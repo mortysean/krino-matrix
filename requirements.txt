@@ -4,3 +4,5 @@ python-dotenv>=1.0
 anthropic>=1.13
 sagax-data>=1.1
 pandas>=2
+torch>=2
+transformers>=4.40

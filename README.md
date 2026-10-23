@@ -62,7 +62,7 @@ core/
   formulator/       Problem Formulator  (api_formulator)
   observer/         Observer            (api_observer)
   generator/        Action Generator    (api_generator)
-  evaluator/        Action Evaluator
+  evaluator/        Action Evaluator    (value_evaluator)
   data/             DataSource / Query interface, sagax source
 services/
   llm.py            unified LLM interface over OpenRouter, litellm and the Anthropic SDK
@@ -82,11 +82,12 @@ cp .env.example .env    # fill in LLM providers and the sagax API key
 | `python examples/api_generator_demo.py` | Generator only, on a hand-written state |
 | `python examples/data_demo.py` | sagax data queries |
 | `python examples/pipeline_demo.py ["request"]` | The whole pipeline |
+| `python examples/value_evaluator_demo.py [data.jsonl]` | Value evaluator: fine-tune, save, reload, score |
 
 ## Status
 
 - Implemented: Formulator, Observer, Generator, sagax data source, pipeline
-- Pending: Action Evaluator — `pipeline_demo.py` uses a placeholder that scores every action the same
+- In progress: Action Evaluator — `value_evaluator` is a non-autoregressive value model (text encoder + linear head, one forward pass per action) with a minimal training loop; it still needs labeled data, so `pipeline_demo.py` keeps a placeholder that scores every action the same
 
 ## License
 
