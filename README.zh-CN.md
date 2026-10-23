@@ -62,7 +62,7 @@ core/
   formulator/       Problem Formulator（api_formulator）
   observer/         Observer（api_observer）
   generator/        Action Generator（api_generator）
-  evaluator/        Action Evaluator
+  evaluator/        Action Evaluator（value_evaluator）
   data/             DataSource / Query 接口，sagax 数据源
 services/
   llm.py            统一的大模型接口，支持 OpenRouter、litellm 和 Anthropic SDK
@@ -82,11 +82,12 @@ cp .env.example .env    # 填入大模型服务商和 sagax API key
 | `python examples/api_generator_demo.py` | 仅 Generator，使用手写的状态 |
 | `python examples/data_demo.py` | sagax 数据查询 |
 | `python examples/pipeline_demo.py ["请求"]` | 完整流水线 |
+| `python examples/value_evaluator_demo.py [data.jsonl]` | 价值评估器：微调、保存、加载、打分 |
 
 ## 进度
 
 - 已实现：Formulator、Observer、Generator、sagax 数据源、流水线
-- 待实现：Action Evaluator —— `pipeline_demo.py` 暂用占位实现，所有行动得分相同
+- 进行中：Action Evaluator —— `value_evaluator` 是非自回归的价值模型（文本编码器 + 线性头，每个行动一次前向），附最简训练循环；还缺标注数据，所以 `pipeline_demo.py` 仍用占位实现，所有行动得分相同
 
 ## 许可证
 
