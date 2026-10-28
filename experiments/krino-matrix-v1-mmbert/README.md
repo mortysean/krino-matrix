@@ -43,8 +43,8 @@ bash experiments/krino-matrix-v1-mmbert/run.sh
 
 ## 产物
 
-发布的 seed 0 uncertainty 模型：<https://huggingface.co/yuxiaohuang2004/krino-matrix-mmbert>。
-Hub 仓库包含可加载的 checkpoint、模型卡和本实验 benchmark 报告。
+发布的 seed 0 uncertainty 模型：<https://huggingface.co/yuxiaohuang2004/krino_matrix/tree/main/matrix-mmbert>。
+Hub checkpoint 位于现有公开仓库 `yuxiaohuang2004/krino_matrix` 的 `matrix-mmbert/` 子目录；仓库根目录的 model card 汇总了 MatrixEvaluator 和原 ValueEvaluator，子目录内附有本模型卡及 benchmark 报告。
 
 | 路径 | 内容 | 进 git |
 |---|---|---|
