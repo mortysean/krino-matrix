@@ -58,12 +58,19 @@ sagax is a data platform built by the author. It collects China market data from
 ```
 core/
   schema.py         basic elements
+  matrix.py         typed decision-case format and dataset validation
   pipeline.py       end-to-end pipeline
   formulator/       Problem Formulator  (api_formulator)
   observer/         Observer            (api_observer)
   generator/        Action Generator    (api_generator)
-  evaluator/        Action Evaluator    (value_evaluator)
+  evaluator/        Value and Matrix decision evaluators
   data/             DataSource / Query interface, sagax source
+decision_core/      device-independent web decision flow and safety rules
+model_adapter/      LLM and Matrix evaluator adapters
+backend/            FastAPI, authentication, conversations and persistence
+frontend/           React + Vite web application
+benchmark/          typed-decisions benchmark runners and metrics
+experiments/        reproducible model experiments and reports
 services/
   llm.py            unified LLM interface over OpenRouter, litellm and the Anthropic SDK
 examples/           runnable demos
@@ -82,12 +89,40 @@ cp .env.example .env    # fill in LLM providers and the sagax API key
 | `python examples/api_generator_demo.py` | Generator only, on a hand-written state |
 | `python examples/data_demo.py` | sagax data queries |
 | `python examples/pipeline_demo.py ["request"]` | The whole pipeline |
-| `python examples/value_evaluator_demo.py [data.jsonl]` | Value evaluator: fine-tune, save, reload, score |
+| `python examples/value_evaluator_data.py [--cases N]` | Synthesize labeled cases for the value evaluator with a teacher LLM |
+| `python examples/value_evaluator_demo.py [data/value]` | Value evaluator: train, calibrate, evaluate, save, reload, score |
+
+## Web Decision Assistant (V2.5 P0)
+
+First version of the KRINO MATRIX V2.5 spec: goal → state/constraints → clarifying questions when needed (at most 3, skippable) → 2–4 candidates → evaluation → action cards → choice and feedback.
+
+| Directory | Contents |
+|---|---|
+| `decision_core/` | Device-independent decision core: one clarification / decision / error contract, clarifier, card generator, explicit safety rules |
+| `model_adapter/` | Concrete models: traced LLM calls; evaluator `baseline` (default, a general LLM compares, labeled as test mode, no scores shown) or `matrix` (experimental KRINO Matrix model, shows its real selection probabilities) |
+| `backend/` | FastAPI: email login, conversations and decision snapshots, feedback, personal memory, usage, call latency and failures; PostgreSQL (SQLite for local dev) |
+| `frontend/` | React + Vite: Today / Chats / Decision / Settings, product demo, stage progress, mobile layout, reduced motion |
+
+```bash
+pip install -r requirements.txt
+cd frontend && npm install && npm run build && cd ..
+uvicorn backend.main:app --port 8000          # open http://localhost:8000
+# frontend hot reload: run uvicorn backend.main:app --reload and (cd frontend && npm run dev) together
+pytest tests                                   # backend and core tests, no model calls
+```
+
+Configuration is in the Web section of `.env.example` (`DATABASE_URL`, `KRINO_SECRET_KEY`, `KRINO_EVALUATOR`, ...). Email delivery is not wired up yet, so password reset links go to the server log; balance, top-up and BYOK are marked as not live in Settings.
+
+## Model Experiments
+
+`core/matrix.py` defines the `krino-matrix/1` case format. The Matrix evaluator has separate goal, constraint and action-selection heads; hard-constraint rules filter unsafe candidates before selection. Training data is expected under `data/krino_matrix/{zh,en}` and checkpoints are kept locally (they are excluded from Git). See [experiment reports](experiments/README.md) for training details and results. The typed-decisions comparison is documented in [benchmark/results/typed_decisions_laya/report.md](benchmark/results/typed_decisions_laya/report.md).
 
 ## Status
 
 - Implemented: Formulator, Observer, Generator, sagax data source, pipeline
-- In progress: Action Evaluator — `value_evaluator` is a non-autoregressive value model (text encoder + linear head, one forward pass per action) with a minimal training loop; it still needs labeled data, so `pipeline_demo.py` keeps a placeholder that scores every action the same
+- Implemented, experimental: `MatrixEvaluator` predicts goal attainment, constraint violations and action selection in one pass; a trained checkpoint is required to use it. The pipeline demo falls back to equal placeholder scores when no checkpoint is present.
+- Also available: `value_evaluator` is a Laya-style goal-value model trained with RLCD on teacher-labeled cases; it returns a calibrated distribution over ordered rubric levels.
+- Web app: the LLM baseline is the default evaluator; the trained Matrix evaluator can be selected in experimental mode.
 
 ## License
 

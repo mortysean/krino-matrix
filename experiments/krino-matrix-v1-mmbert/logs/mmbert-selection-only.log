@@ -1,0 +1,43 @@
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 2210.90it/s]
+[transformers] [1mModernBertModel LOAD REPORT[0m from: /home/seanhuang2004/Krino-Matrix/checkpoints/base/mmbert-base
+Key               | Status     |  | 
+------------------+------------+--+-
+head.norm.weight  | UNEXPECTED |  | 
+head.dense.weight | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+base /home/seanhuang2004/Krino-Matrix/checkpoints/base/mmbert-base: encoder from the pretrained weights, all heads from scratch
+device cuda, 3375 train cases, 450 val cases
+train 3375 cases, val 450; 424 optimizer steps; 324M trainable; weighting uncertainty
+step 20/424 epoch 1 selection 1.3908 total 0.6938 | weights goal 0.500 constraints 0.500 selection 0.480
+step 40/424 epoch 1 selection 1.1090 total 0.5524 | weights goal 0.500 constraints 0.500 selection 0.468
+step 60/424 epoch 1 selection 1.1004 total 0.5480 | weights goal 0.500 constraints 0.500 selection 0.464
+step 80/424 epoch 1 selection 1.0351 total 0.5176 | weights goal 0.500 constraints 0.500 selection 0.467
+step 100/424 epoch 1 selection 1.0617 total 0.5300 | weights goal 0.500 constraints 0.500 selection 0.470
+epoch 1 val selection 1.0850 sum 1.0850
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:02<00:00,  2.43s/it]Writing model shards: 100%|██████████| 1/1 [00:02<00:00,  2.43s/it]
+step 120/424 epoch 2 selection 1.0266 total 0.5134 | weights goal 0.500 constraints 0.500 selection 0.473
+step 140/424 epoch 2 selection 1.0036 total 0.5023 | weights goal 0.500 constraints 0.500 selection 0.481
+step 160/424 epoch 2 selection 1.0220 total 0.5109 | weights goal 0.500 constraints 0.500 selection 0.486
+step 180/424 epoch 2 selection 1.0192 total 0.5095 | weights goal 0.500 constraints 0.500 selection 0.489
+step 200/424 epoch 2 selection 0.9941 total 0.4972 | weights goal 0.500 constraints 0.500 selection 0.493
+epoch 2 val selection 1.0658 sum 1.0658
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.15s/it]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.15s/it]
+step 220/424 epoch 3 selection 0.9882 total 0.4942 | weights goal 0.500 constraints 0.500 selection 0.497
+step 240/424 epoch 3 selection 0.9598 total 0.4799 | weights goal 0.500 constraints 0.500 selection 0.505
+step 260/424 epoch 3 selection 0.9497 total 0.4746 | weights goal 0.500 constraints 0.500 selection 0.510
+step 280/424 epoch 3 selection 0.9302 total 0.4644 | weights goal 0.500 constraints 0.500 selection 0.514
+step 300/424 epoch 3 selection 0.9607 total 0.4800 | weights goal 0.500 constraints 0.500 selection 0.517
+epoch 3 val selection 1.0658 sum 1.0658
+step 320/424 epoch 4 selection 0.9158 total 0.4567 | weights goal 0.500 constraints 0.500 selection 0.519
+step 340/424 epoch 4 selection 0.9157 total 0.4565 | weights goal 0.500 constraints 0.500 selection 0.522
+step 360/424 epoch 4 selection 0.9098 total 0.4534 | weights goal 0.500 constraints 0.500 selection 0.523
+step 380/424 epoch 4 selection 0.9030 total 0.4497 | weights goal 0.500 constraints 0.500 selection 0.524
+step 400/424 epoch 4 selection 0.9190 total 0.4581 | weights goal 0.500 constraints 0.500 selection 0.525
+step 420/424 epoch 4 selection 0.9212 total 0.4592 | weights goal 0.500 constraints 0.500 selection 0.525
+epoch 4 val selection 1.0713 sum 1.0713
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 1614.89it/s]
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:03<00:00,  3.36s/it]Writing model shards: 100%|██████████| 1/1 [00:03<00:00,  3.36s/it]
+best epoch 2, temperatures {'goal': 5.0, 'constraints': 5.0, 'selection': 1.0}, saved to /home/seanhuang2004/Krino-Matrix/experiments/krino-matrix-v1-mmbert/checkpoints/mmbert-selection-only
+peak GPU memory 6.1 GiB

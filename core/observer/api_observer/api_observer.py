@@ -5,7 +5,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from services.llm import LLM, ToolCall
-from ...schema import State, Problem
+from ...schema import State, Problem, constraints_text
 from ...data.data_source import DataSource, Query
 from ..observer import Observer
 
@@ -26,8 +26,8 @@ Today: {today}
 State:
 {state}
 
-Objective:
-{objective}
+Goal:
+{goal}
 
 Constraints:
 {constraints}"""
@@ -69,8 +69,8 @@ class APIObserver(Observer):
         messages: list[dict] = [{"role": "user", "content": PROMPT.format(
             today=date.today().isoformat(),
             state=json.dumps(problem.state.data, ensure_ascii=False, indent=2),
-            objective=problem.objective,
-            constraints="\n".join(f"- {c}" for c in problem.constraints) or "None",
+            goal=problem.goal,
+            constraints=constraints_text(problem.constraints),
         )}]
         observations = []
         for _ in range(self.max_rounds):

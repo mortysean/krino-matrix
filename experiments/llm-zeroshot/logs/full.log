@@ -1,0 +1,277 @@
+07:55:52 - LiteLLM:WARNING: get_model_cost_map.py:675 - LiteLLM: Failed to fetch remote model cost map from https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json: InvalidURL fetching https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json: Invalid port: ':1]'. Falling back to local backup.
+~deepseek/deepseek-flash-latest → deepseek/deepseek-v4.1-flash-1017
+zh: 450 cases to ask, concurrency 16
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 46 column 41 [type=json_invalid, input_value='{\n "judgments": {\n ...01\n }\n }\n }', 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 2605 [type=json_invalid, input_value='{"judgments": {"negotiat..._manual_repor
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 1 column 1429 [type=json_invalid, input_value='{"judgments": {"borrow_d...suburb_to_save": 0
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 31 column 26 [type=json_invalid, input_value='{\n "judgments": {\n ...ate_loan": 0.12\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 45 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 18 column 31 [type=json_invalid, input_value='{\n "judgments": {\n ...ip_early": 0.02\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 2247 [type=json_invalid, input_value='{ "judgments": { "priori...n_and_invest"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 478 [type=json_invalid, input_value='{ "judgments": { "run_wa...ard_10k_plan":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 1307 [type=json_invalid, input_value='{ "judgments": { "all_ni...tbook_review"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 1 column 156 [type=json_invalid, input_value='{"renovation_payment_dea..._keep_internet
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 11 column 24 [type=json_invalid, input_value='{\n "judgments": {\n ...on_offer": 0.45\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 9 column 66 [type=json_invalid, input_value='{\n "judgments": {\n ...eam_slot": 0.02\n }\n}', 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 9 column 5 [type=json_invalid, input_value='{\n "preserve_cas..._partial": 0.07\n }\n}'
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 74 [type=json_invalid, input_value='{ "judoffer": 0.02, "pri...peting_offer": 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 554 [type=json_invalid, input_value='{"client_proposal_deadli...timeblock_core": 0.66
+  zh: 25/450 done, 0 failed
+  zh: 50/450 done, 0 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 50 column 18 [type=json_invalid, input_value='{\n "judgments": {\n ...earch_ik": 0.06\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 2696 [type=json_invalid, input_value='{"judgments": {"external...ed_scope_pilot": 0.2
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 68 column 45 [type=json_invalid, input_value='{\n "judgments": {\n ...mmitment": 0.62\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 1 column 1380 [type=json_invalid, input_value='{"judgments": {"do_easy_...kup_and_buff
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 1 column 1665 [type=json_invalid, input_value='{ "judgments": { "scale_...orm_promotion": 0.
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 1 column 277 [type=json_invalid, input_value='{"reason": "明早6:00-1...y_nearby_hotel": 0.02}}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 1590 [type=json_invalid, input_value='{ "judgments": { "borrow...nt_near_work"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 16 column 55 [type=json_invalid, input_value='{\n "judgments": {\n ..._gummies": 0.02\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 7 [type=json_invalid, input_value='{ "{ "judgments": { "leg...iit_run_camp": 0.01 } }
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 11 [type=json_invalid, input_value='{ " } }, "use_grace_peri..._online_loan": 0.01 } 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 1 column 182 [type=json_invalid, input_value='{ "budget_limit_cny": 0....d_pilot_board"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 158 [type=json_invalid, input_value='{ "judgments": { "combin...lier_payment":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 243 [type=json_invalid, input_value='{ "complete_main_reducti...and_set_stop": 0.28 }
+  zh: 75/450 done, 0 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 64 column 28 [type=json_invalid, input_value='{\n "judgments": {\n ...r_coupon": 0.26\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 1385 [type=json_invalid, input_value='{ "judgments": { "daily_...n_renovation"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 2488 [type=json_invalid, input_value='{ "judgments": { "withdr...iry_control":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 90 column 33 [type=json_invalid, input_value='{\n "judgments": {\n ....1,\nour": 0.03\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 2148 [type=json_invalid, input_value='{ "judgments": { "cut_tw..._optimization": 0.9 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 55 column 73 [type=json_invalid, input_value='{\n "judgments": {\n ...it_for_c": 0.04\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 1 column 3438 [type=json_invalid, input_value='{ "judgments": { "phased...s_assume_api": 0.0
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 2 column 11 [type=json_invalid, input_value='{\n "jud。",\n "g...ed_cloud": 0.02\n }\n}', input
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 208 [type=json_invalid, input_value='{ "jud有限，单靠此...lyers_nearby": 0.11 } }', 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 25 column 31 [type=json_invalid, input_value='{\n "judgments": {\n ...triggers": 0.70\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 13 [type=json_invalid, input_value='{"judgment "target_home_..._build_savings": 0.15}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 11 column 5 [type=json_invalid, input_value='{\n "deadline_48_...fluencer": 0.01\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 1 column 486 [type=json_invalid, input_value='{"judgments": {"hold_and...n_average_down": 0.
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 4 column 0 [type=json_invalid, input_value='
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 12 column 0 [type=json_invalid, input_value=
+  zh: 100/450 done, 0 failed
+  zh: 125/450 done, 0 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 49 column 359 [type=json_invalid, input_value='{\n "judgments": {\n ...10\n }\n }\n }',
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 73 column 38 [type=json_invalid, input_value='{\n "judgments": {\n ...05\n }\n }\n }', 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 2993 [type=json_invalid, input_value='{"judgments": {"high_spe...gcuo_an_budget": 0.0
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 47 column 34 [type=json_invalid, input_value='{\n "judgments": {\n ...ter_deck": 0.02\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 1 column 1169 [type=json_invalid, input_value='{ "judgments": { "pause_...d_only_check": 0.0
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 1 column 1482 [type=json_invalid, input_value='{ "judgments": { "memori...ing_prep_plan": 0.
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 39 column 38 [type=json_invalid, input_value='{\n "judgments": {\n ...nch_sets": 0.14\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 1514 [type=json_invalid, input_value='{ "judgments": { "cut_pr...le_paid_media
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 179 [type=json_invalid, input_value='{ "judgments": { "refres...e_then_scale":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 31 column 50 [type=json_invalid, input_value='{\n "judgments": {\n ...laddered": 0.68\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 1 column 696 [type=json_invalid, input_value='{ "judgments": { "engage...mium_package": 0.10
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 97 [type=json_invalid, input_value='{"judgments_evenly_all_t...nt_integration"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 9 column 5 [type=json_invalid, input_value='{\n "delivery_dea...n_source": 0.09\n }\n}'
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 215 [type=json_invalid, input_value='{ "submit_assets_deadlin...eallocate_ads": 0.8 }
+  zh: 150/450 done, 1 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 4035 [type=json_invalid, input_value='{ "judgments": { "presen...t_or_change": 0.9 } 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 67 column 46 [type=json_invalid, input_value='{\n "judgments": {\n ...est_loan": 0.01\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 1 column 1476 [type=json_invalid, input_value='{ "judgments": { "join_o...jogging_plan
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 2894 [type=json_invalid, input_value='{ "judgments": { "renego...core_modules"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 692 [type=json_invalid, input_value='{"judgments": {"sell_new...nergy_hold_cas
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 16 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 49 column 35 [type=json_invalid, input_value='{\n "judgments": {\n ...ffic_129": 0.02\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 38 column 1 [type=json_invalid, input_value='{\n "judgments": {\n ..._external": 0.3\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 8 column 5 [type=json_invalid, input_value='{\n "budget_cap":..._moments": 0.07\n }\n}'
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 327 [type=json_invalid, input_value='{"judgments": {"buy_smal..._rent_and_save
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 23 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 1 column 205 [type=json_invalid, input_value='{ "within_45_days": 0.05...al_guarantee":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 3 column 0 [type=json_invalid, input_value='
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 88 [type=json_invalid, input_value='{ "jud_and_reduce_sync":..._split_tasks": 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 7 column 0 [type=json_invalid, input_value='
+  zh: 175/450 done, 1 failed
+  zh: 200/450 done, 1 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 66 column 55 [type=json_invalid, input_value='{\n "judgments": {\n ...02\n }\n }\n }', input_t
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 52 column 27 [type=json_invalid, input_value='{\n "judgments": {\n ...10\n }\n }\n }', input_t
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 2884 [type=json_invalid, input_value='{ "judgments": { "hire_e...ore_analysis"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 22 column 49 [type=json_invalid, input_value='{\n "judgments": {\n ...nt_lunch": 0.02\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 19 column 34 [type=json_invalid, input_value='{\n "judgments": {\n ..._parking": 0.82\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 852 [type=json_invalid, input_value='{ "judgments": { "close_..._and_tasting":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 798 [type=json_invalid, input_value='{ "judgments": { "buy_us...ne_total_cost"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 16 column 25 [type=json_invalid, input_value='{\n "judgments": {\n ...tory_bet": 0.03\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 1301 [type=json_invalid, input_value='{ "judgments": { "exit_s...t_for_rebound
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 150 [type=json_invalid, input_value='{ "judgments": { "build_..._prep_system":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 938 [type=json_invalid, input_value='{ "judgments": { "accept...company_data":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 19 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 18 column 57 [type=json_invalid, input_value='{\n "judgments": {\n ..._deposit": 0.02\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 12 column 49 [type=json_invalid, input_value='{\n "emergency_fu...iquidity": 0.75\n }\n
+  zh: 225/450 done, 1 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 56 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 1891 [type=json_invalid, input_value='{ "judgments": { "risk_b...l_regression"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 33 column 41 [type=json_invalid, input_value='{\n "judgments": {\n ...nd_notes": 0.03\n }\n}',
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 1661 [type=json_invalid, input_value='{ "judgments": { "transc...holder_first"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 1 column 332 [type=json_invalid, input_value='{ "judgments": { "all_in...y_ai_leader": 0.005
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 55 column 140 [type=json_invalid, input_value='{\n "judgments": {\n ..._batches": 0.65\
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 35 column 31 [type=json_invalid, input_value='{\n "judgments": {\n ...xury_suv": 0.08\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 14 column 21 [type=json_invalid, input_value='{\n "judgments": {\n ..._payment": 0.15\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 30 column 145 [type=json_invalid, input_value='{\n "judgments": {\n ...nd_rounds": 0.3\
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 1 column 303 [type=json_invalid, input_value='{ "支出可控在预算...nd_long_ride": 0.02 } }', i
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 58 column 53 [type=json_invalid, input_value='{\n "judgments": {\n ...spection": 0.02\n }\n}',
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 84 [type=json_invalid, input_value='{"judplus": {"reason": "...d_borrow_later"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 1 column 376 [type=json_invalid, input_value='{"three_week_deadline": ...el_general_pre
+  zh: 250/450 done, 1 failed
+  zh: 275/450 done, 1 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 3515 [type=json_invalid, input_value='{ "judgments": { "past_p...ake_review": 0.40 } 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 1509 [type=json_invalid, input_value='{"judgments": {"rent_alt...epare_purchas
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 1 column 5858 [type=json_invalid, input_value='{ "judgments": { "order_...emium_fridge": 0.0
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 2333 [type=json_invalid, input_value='{"judgments": {"increase..._and_liabilit
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 1 column 1427 [type=json_invalid, input_value='{"judgments": {"all_in_l...cost_portfolio": 0
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 46 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 1 column 2221 [type=json_invalid, input_value='{ "judgments": { "take_m...terial_roads": 0.0
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 33 column 17 [type=json_invalid, input_value='{\n "judgments": {\n ...e_quit_a": 0.04\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 2122 [type=json_invalid, input_value='{ "judgments": { "enroll..._with_travel": 0.01 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 35 column 30 [type=json_invalid, input_value='{\n "judgments": {\n ...ick_gain": 0.01\n }\n}',
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 20 column 38 [type=json_invalid, input_value='{\n "judgments": {\n ...ons_only": 0.02\n }\n}',
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 23 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 8 column 5 [type=json_invalid, input_value='{\n "ad_budget_li...p_orders": 0.20\n }\n}'
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 5 column 0 [type=json_invalid, input_value='
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 2 column 31 [type=json_invalid, input_value='{\n "reply_deadli...en_terms": 0.69\n }\n}
+  zh: 300/450 done, 2 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 47 column 16 [type=json_invalid, input_value='{\n "judgments": {\n ... "goal 0.0\n }\n}', in
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 104 column 137 [type=json_invalid, input_value='{\n "judgments": {\n ....8\n }\n }\n }'
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 1435 [type=json_invalid, input_value='{"judgments": {"buy_over...mute_preference": 0.
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 5457 [type=json_invalid, input_value='{"judgments": {"build_go..._matured_fund
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 27 column 25 [type=json_invalid, input_value='{\n "judgments": {\n ...h_filing": 0.07\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 19 column 33 [type=json_invalid, input_value='{\n "judgments": {\n ...en_scale": 0.53\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 114 [type=json_invalid, input_value='{ "reason": "隔天3次3..._workout_once":0.01 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 21 column 23 [type=json_invalid, input_value='{\n "judgments": {\n ...location": 0.01\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 44 column 27 [type=json_invalid, input_value='{\n "judgments": {\n ...nishment": 0.00\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 1425 [type=json_invalid, input_value='{"judgments": {"reject_a...delay_decisio
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 11 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 152 [type=json_invalid, input_value='{ "judgments": { "mother...grandparents":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 334 [type=json_invalid, input_value='{ "resolve_oven_and_leas..._fixing_oven": 0.03 }
+  zh: 325/450 done, 2 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 3198 [type=json_invalid, input_value='{"judgments": {"book_gui...ie_nature_tri
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 41 column 6 [type=json_invalid, input_value='{\n "judgments": {\n ..._plus_ci": 0.25\n 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 57 column 98 [type=json_invalid, input_value='{\n "judgments": {\n ...ideshare": 0.04\n }\n}',
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 47 column 28 [type=json_invalid, input_value='{\n "judgments": {\n ...proposal": 0.25\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 30 column 42 [type=json_invalid, input_value='{\n "judgments": {\n ...ed_offer": 0.78\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 1 column 2121 [type=json_invalid, input_value='{ "judgments": { "clinic...ace_and_rest": 0.1
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 44 column 57 [type=json_invalid, input_value='{\n "judgments": {\n ...ort_bond": 0.18\n }\n}',
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 17 column 59 [type=json_invalid, input_value='{\n "judgments": {\n ...isk_fund": 0.34\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 129 [type=json_invalid, input_value='{"judgments": {"phased_p...uarantee_class
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 1 column 2213 [type=json_invalid, input_value='{ "judgments": { "scale_...targeted_ads": 0.4
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 1 column 2 [type=json_invalid, input_value='{_and_wait_investigation...and_stop_loss":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 2547 [type=json_invalid, input_value='{ "judgments": { "park_a...il_and_metro"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 2316 [type=json_invalid, input_value='{ "judgments": { "expand...l_renovation"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 562 [type=json_invalid, input_value='{ "negotiate_hardship_pl..._bridge_loan": 0.06 }
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 264 [type=json_invalid, input_value='{ "judgments": { "exchan...l_equity_etf":
+  zh: 350/450 done, 2 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 46 column 18 [type=json_invalid, input_value='{\n "judgments": {\n ...},\n "best_.03\n }\n}'
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 2146 [type=json_invalid, input_value='{ "judgments": { "divers...ll_then_wait"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 57 column 22 [type=json_invalid, input_value='{\n "judgments": {\n ...me project to meet its
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 40 column 26 [type=json_invalid, input_value='{\n "judgments": {\n ...in_nanny": 0.02\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 44 column 38 [type=json_invalid, input_value='{\n "judgments": {\n ..._at_home": 0.02\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 1345 [type=json_invalid, input_value='{ "judgments": { "stretc...raw_and_rest"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 1375 [type=json_invalid, input_value='{ "judgments": { "dual_t...l_validation": 0.72 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 29 column 75 [type=json_invalid, input_value='{\n "judgments": {\n ...deciding": 0.05\n }\n}',
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 1918 [type=json_invalid, input_value='{"judgments": {"weather_...mize_bus_metr
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 7 column 39 [type=json_invalid, input_value='{\n "judgments": {\n ...ket_fund": 0.05\n }\n}'
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 284 [type=json_invalid, input_value='{ "judgments": { "delega...on_auth_flow":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 170 [type=json_invalid, input_value='{ "minimum_emergency_res...er_rate_loan":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 221 [type=json_invalid, input_value='{"emergency_floor": 0.02...estment_linked": 0.01
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 136 [type=json_invalid, input_value='{ "budget_remaining": 0....th_incentives": 0.4 }
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 5 column 0 [type=json_invalid, input_value='
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 3 column 30 [type=json_invalid, input_value='{\n "budget_limit...ay_tours": 0.19\n }\n}', in
+  zh: 375/450 done, 2 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 2923 [type=json_invalid, input_value='{ "judgments": { "reshoo...compliance": 0.97 } 
+  retrying after ValidationError: 2 validation errors for Teacher best.send_child_to_grandparents Field required [type=missing, input_value={'confirm_registered_fami...care_with_backup': 0.37}, 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 64 column 238 [type=json_invalid, input_value='{\n "judgments": {\n ...an_shark": 0.03\
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 38 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 21 column 39 [type=json_invalid, input_value='{\n "judgments": {\n ...lassmate": 0.10\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 1 column 2151 [type=json_invalid, input_value='{"judgments": {"buy_mini...e_cabinet_sl
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 88 column 111 [type=json_invalid, input_value='{\n "judgments": {\n ..._consult": 0.05\n }\n}'
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 42 column 33 [type=json_invalid, input_value='{\n "judgments": {\n ...buy_oven": 0.02\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 54 column 32 [type=json_invalid, input_value='{\n "judgments": {\n ...nd_stock": 0.72\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 15 column 18 [type=json_invalid, input_value='{\n "judgments": {\n ...amp_menu": 0.30\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 27 column 45 [type=json_invalid, input_value='{\n "judgments": {\n ...d_fridge": 0.02\n }\n}',
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 29 column 7 [type=json_invalid, input_value='{\n "judgments": {\n ...ent_store": 0.3\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 335 [type=json_invalid, input_value='{"judgments": {"extend_t...ad_ad_campaign
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 4 column 53 [type=json_invalid, input_value='{\n "judgments": {\n ...services": 0.03\n 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 5 column 0 [type=json_invalid, input_value='
+  zh: 400/450 done, 2 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 81 column 39 [type=json_invalid, input_value='{\n "judgments": {\n ...05\n }\n }\n }', input
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 58 column 5 [type=json_invalid, input_value='{\n "judgments": {\n ...with_cap": 0.45\n 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 78 column 4 [type=json_invalid, input_value='{\n "judgments": {\n ..._service": 0.08\n 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 44 column 54 [type=json_invalid, input_value='{\n "judgments": {\n ...traction": 0.45\n }\n}',
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 2403 [type=json_invalid, input_value='{"judgments": {"buy_csi3..._ai_leader_now": 0.1
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 58 column 231 [type=json_invalid, input_value='{\n "judgments": {\n ..._no_paid": 0.04\
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 52 column 47 [type=json_invalid, input_value='{\n "judgments": {\n ..._core_etf": 0.6\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 1134 [type=json_invalid, input_value='{ "judgments": { "hire_s...ehavior_camp"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 52 column 52 [type=json_invalid, input_value='{\n "judgments": {\n ...ht_store": 0.05\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 24 column 29 [type=json_invalid, input_value='{\n "judgments": {\n ...outright": 0.04\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 17 column 39 [type=json_invalid, input_value='{\n "judgments": {\n ...memorize": 0.02\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected value at line 1 column 548 [type=json_invalid, input_value='{"judgments": {"stay_and...est_and_decide": 0.
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 5 column 47 [type=json_invalid, input_value='{\n "mother_resum..._english": 0.05\n }\n}
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 1 column 364 [type=json_invalid, input_value='{ "judgments": { "jog_ev...and_strength": 0.78
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 9 column 0 [type=json_invalid, input_value='
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 1 column 17 [type=json_invalid, input_value='{ "judgments": {达成..._min_payment": 0.04 
+  zh: 425/450 done, 2 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 41 column 41 [type=json_invalid, input_value='{\n "judgments": {\n ...03\n }\n }\n }', 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 43 column 43 [type=json_invalid, input_value='{\n "judgments": {\n ...05\n }\n }\n }', 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 48 column 31 [type=json_invalid, input_value='{\n "judgments": {\n ...lump_sum": 0.05\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 1754 [type=json_invalid, input_value='{"judgments": {"park_in_...core_etf_bond
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 57 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 1145 [type=json_invalid, input_value='{"judgments": {"buy_cert...r_old_car_wai
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 323 [type=json_invalid, input_value='{ "judgments": { "take_c..._repair_oven":
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 1 column 431 [type=json_invalid, input_value='{"judgments": {"import_v...d_fridge_first
+  zh: 450/450 done, 2 failed
+zh: 2 failed cases asked again, one at a time
+  zh: again 1/2: answered
+  zh: again 2/2: still failed
+zh: 450 cases, 1 failed, 196 answered only on a retry
+en: 225 cases to ask, concurrency 16
+  en: 25/225 done, 1 failed
+  en: 50/225 done, 2 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 1 column 1258 [type=json_invalid, input_value='{ "best": { "continue": ...elease_paths"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 33 column 74 [type=json_invalid, input_value='{\n "best": {\n "ans...": 0.05\n }\n }', input_t
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 370 [type=json_invalid, input_value='{ "best": { "close_benig...tions": { "c1"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 794 [type=json_invalid, input_value='{ "best": { "close_benig...c4": 0.0, "c5"
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 18 column 46 [type=json_invalid, input_value='{\n "best": {\n "app...d": 0.0\n }\n }', 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 24 column 18 [type=json_invalid, input_value='{\n "best": {\n "app...n }\n }\n }\n}', input_
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 574 [type=json_invalid, input_value='{ "best": { "approve": 0...qty_limit": 0.
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 7 column 5 [type=json_invalid, input_value='{\n "c1": 0.05,\n...n }\n }\n }\n}', input_
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 6 column 4 [type=json_invalid, input_value='{\n "continue": 0.05,...n }\n }\n }\n}', in
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 2 column 0 [type=json_invalid, input_value='
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 1 column 367 [type=json_invalid, input_value='{"reason": "Observing wi...ue": 0.1, "stop": 0
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 16 column 1 [type=json_invalid, input_value='{\n "approve": {\n ...n }\n }\n }\n}', inp
+  en: 75/225 done, 2 failed
+  en: 100/225 done, 2 failed
+  en: 125/225 done, 2 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: invalid number at line 3 column 26 [type=json_invalid, input_value='{\n "best": {\n "ans...3": 0.2\n }\n }', input_
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 31 [type=json_invalid, input_value='{ "violations": { "no_ac...integrity": 0.0 } } } 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 2 column 2 [type=json_invalid, input_value='{\n 0.2,\n "c3": ...n }\n }\n }\n}', input
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 3 column 1 [type=json_invalid, input_value='{ "close_benign": { "goa...": { "c1": 0.01 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 24 column 1 [type=json_invalid, input_value='{\n "judgments": {\n ... "approve": 0.1\n
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `]` at line 2 column 30 [type=json_invalid, input_value='{\n "goal": [0.05, ...n }\n }\n }\n}', inp
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 2 column 1 [type=json_invalid, input_value='{\ntegrity": 0.15,\n ...n }\n }\n }\n}', i
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 1 column 3 [type=json_invalid, input_value='{ does not explicitly in...tion_path": 0.1
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 1 column 79 [type=json_invalid, input_value='{ "best": { "continue": ...ool_error": 0.6
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 3 column 0 [type=json_invalid, input_value='
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 18 column 1 [type=json_invalid, input_value='{\n "continue": {\n ...n }\n }\n }\n}', i
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 10 column 5 [type=json_invalid, input_value='{\n "do_not_treat...n }\n }\n }\n}', input
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 30 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 2 column 0 [type=json_invalid, input_value='
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 18 column 9 [type=json_invalid, input_value='{\n "judgments": {\n ... "approve": 1.0\n
+  en: 150/225 done, 2 failed
+  en: 175/225 done, 3 failed
+  en: 200/225 done, 3 failed
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `:` at line 1 column 1286 [type=json_invalid, input_value='{ "best": { "close_benig...ncipal_impact": 0.0 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected ident at line 24 column 35 [type=json_invalid, input_value='{\n "best": {\n "app...": 0.05\n }\n }', input
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: key must be a string at line 20 column 9 [type=json_invalid, input_value='{\n "best": {\n "con...": 0.45\n }\n }', 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 21 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: expected `,` or `}` at line 3 column 1 [type=json_invalid, input_value='{ "c1": 0.0, "c2": 0\n\n...c5": 1.0, "c6": 
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 12 column 5 [type=json_invalid, input_value='{\n "account_for_...n }\n }\n }\n}', input
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 31 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 17 column 0 [type=json_invalid, input_value=
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: trailing characters at line 12 column 5 [type=json_invalid, input_value='{\n "c1": 0.05,\n...n }\n }\n }\n}', input
+  retrying after ValidationError: 1 validation error for Teacher Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 29 column 0 [type=json_invalid, input_value=
+  en: 225/225 done, 3 failed
+en: 3 failed cases asked again, one at a time
+  en: again 1/3: answered
+  en: again 2/3: answered
+  en: again 3/3: still failed
+en: 225 cases, 1 failed, 37 answered only on a retry
+  zh: goal 0.623  constraints 0.906  selection 0.818  decision 0.818
+  en: goal 0.400  constraints 0.916  selection 0.676  decision 0.676
+wrote /home/seanhuang2004/Krino-Matrix/experiments/llm-zeroshot/results/llm-zeroshot-flash.json

@@ -1,0 +1,84 @@
+prior:
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.247  goal 0.288  constraints 0.781  selection 0.247
+  en: decision 0.191  goal 0.369  constraints 0.848  selection 0.378
+mmbert-uncertainty:
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 1813.52it/s]
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.787  goal 0.544  constraints 0.832  selection 0.787
+  en: decision 0.627  goal 0.569  constraints 0.903  selection 0.627
+mmbert-fixed:
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 1949.03it/s]
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.760  goal 0.555  constraints 0.825  selection 0.760
+  en: decision 0.631  goal 0.569  constraints 0.896  selection 0.631
+mmbert-selection-only:
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 1620.06it/s]
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.800  selection 0.800
+  en: decision 0.622  selection 0.622
+wrote /home/seanhuang2004/Krino-Matrix/experiments/krino-matrix-v1-mmbert/results/report.md
+prior:
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.247  goal 0.288  constraints 0.781  selection 0.247
+  en: decision 0.191  goal 0.369  constraints 0.848  selection 0.378
+mmbert-uncertainty-s1:
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:  10%|▉         | 13/134 [00:00<00:00, 121.70it/s]Loading weights:  19%|█▉        | 26/134 [00:00<00:01, 81.23it/s] Loading weights:  29%|██▉       | 39/134 [00:00<00:00, 96.91it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 306.62it/s]
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.773  goal 0.543  constraints 0.828  selection 0.773
+  en: decision 0.631  goal 0.573  constraints 0.900  selection 0.631
+mmbert-fixed-s1:
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:   8%|▊         | 11/134 [00:00<00:01, 98.85it/s]Loading weights:  17%|█▋        | 23/134 [00:00<00:01, 104.53it/s]Loading weights:  26%|██▌       | 35/134 [00:00<00:00, 110.75it/s]Loading weights:  37%|███▋      | 49/134 [00:00<00:00, 118.06it/s]Loading weights:  51%|█████▏    | 69/134 [00:00<00:00, 143.82it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 245.52it/s]
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.753  goal 0.540  constraints 0.830  selection 0.756
+  en: decision 0.631  goal 0.580  constraints 0.901  selection 0.631
+mmbert-selection-only-s1:
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 1770.94it/s]
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.753  selection 0.753
+  en: decision 0.640  selection 0.640
+wrote /home/seanhuang2004/Krino-Matrix/experiments/krino-matrix-v1-mmbert/results/report.md
+prior:
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.247  goal 0.288  constraints 0.781  selection 0.247
+  en: decision 0.191  goal 0.369  constraints 0.848  selection 0.378
+mmbert-uncertainty-s2:
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:   9%|▉         | 12/134 [00:00<00:01, 93.39it/s]Loading weights:  16%|█▋        | 22/134 [00:00<00:01, 87.98it/s]Loading weights:  24%|██▍       | 32/134 [00:00<00:01, 85.18it/s]Loading weights:  31%|███       | 41/134 [00:00<00:01, 84.21it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 233.92it/s]
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.753  goal 0.552  constraints 0.834  selection 0.753
+  en: decision 0.609  goal 0.574  constraints 0.902  selection 0.609
+mmbert-fixed-s2:
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:  10%|█         | 14/134 [00:00<00:00, 134.83it/s]Loading weights:  21%|██        | 28/134 [00:00<00:00, 135.87it/s]Loading weights:  34%|███▍      | 46/134 [00:00<00:00, 152.26it/s]Loading weights:  46%|████▋     | 62/134 [00:00<00:00, 137.66it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 265.64it/s]
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.751  goal 0.546  constraints 0.832  selection 0.753
+  en: decision 0.609  goal 0.593  constraints 0.896  selection 0.609
+mmbert-selection-only-s2:
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights:   5%|▌         | 7/134 [00:00<00:01, 65.93it/s]Loading weights:  10%|█         | 14/134 [00:00<00:02, 42.51it/s]Loading weights:  17%|█▋        | 23/134 [00:00<00:01, 56.02it/s]Loading weights:  22%|██▏       | 30/134 [00:00<00:02, 46.08it/s]Loading weights:  27%|██▋       | 36/134 [00:00<00:02, 42.48it/s]Loading weights:  31%|███       | 41/134 [00:01<00:02, 34.85it/s]Loading weights:  34%|███▎      | 45/134 [00:01<00:02, 32.24it/s]Loading weights:  37%|███▋      | 49/134 [00:01<00:02, 29.31it/s]Loading weights:  40%|████      | 54/134 [00:01<00:02, 30.54it/s]Loading weights:  44%|████▍     | 59/134 [00:01<00:02, 33.54it/s]Loading weights:  48%|████▊     | 64/134 [00:01<00:02, 33.68it/s]Loading weights: 100%|██████████| 134/134 [00:01<00:00, 75.56it/s]
+  zh: 200/450
+  zh: 400/450
+  en: 200/225
+  zh: decision 0.762  selection 0.762
+  en: decision 0.618  selection 0.618
+wrote /home/seanhuang2004/Krino-Matrix/experiments/krino-matrix-v1-mmbert/results/report.md

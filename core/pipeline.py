@@ -1,5 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
-
 from pydantic import BaseModel
 
 from .schema import Problem, Decision
@@ -11,11 +9,12 @@ from .evaluator.evaluator import Evaluator
 
 class PipelineResult(BaseModel):
     problem: Problem
-    decisions: list[Decision]   # every candidate action with its score, best first
+    decisions: list[Decision]   # every candidate action with its score, best first, excluded actions last
 
     @property
-    def decision(self) -> Decision:
-        return self.decisions[0]
+    def decision(self) -> Decision | None:
+        """The best action that is not excluded, or None when every action breaks a hard constraint."""
+        return next((d for d in self.decisions if not d.excluded_by), None)
 
 
 class Pipeline:
@@ -36,7 +35,7 @@ class Pipeline:
         self.observer = observer
         self.generator = generator
         self.evaluator = evaluator
-        self.max_workers = max_workers     # actions are evaluated concurrently
+        self.max_workers = max_workers     # for evaluators that score actions one at a time, concurrently
 
     def run(
         self,
@@ -45,15 +44,8 @@ class Pipeline:
         problem = self.formulator.formulate(request)
         if self.observer:
             problem = problem.model_copy(update={"state": self.observer.observe(problem)})
-        space = self.generator.generate(problem.state, problem.objective, problem.constraints)
+        space = self.generator.generate(problem.state, problem.goal, problem.constraints)
         if not space.actions:
             raise ValueError("Generator returned no actions")
-
-        with ThreadPoolExecutor(self.max_workers) as pool:
-            scores = list(pool.map(
-                lambda action: self.evaluator.evaluate(problem.state, problem.objective, action),
-                space.actions,
-            ))
-        decisions = [Decision(action=action, score=score) for action, score in zip(space.actions, scores)]
-        decisions.sort(key=lambda d: d.score, reverse=True)
+        decisions = self.evaluator.decide(problem, space.actions, self.max_workers)
         return PipelineResult(problem=problem, decisions=decisions)

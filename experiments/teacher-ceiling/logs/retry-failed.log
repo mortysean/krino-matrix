@@ -1,0 +1,34 @@
+zh: 450 cases, teacher deepseek/deepseek-v4.1-flash-1017 → deepseek/deepseek-v4.1-flash-1017
+en: 225 cases, teacher deepseek/deepseek-v4.1-flash-1017 → deepseek/deepseek-v4.1-flash-1017
+Traceback (most recent call last):
+  File "/home/seanhuang2004/Krino-Matrix/experiments/teacher-ceiling/run.py", line 646, in <module>
+    asyncio.run(main(parser.parse_args()))
+  File "/home/seanhuang2004/anaconda3/envs/krino_matrix/lib/python3.11/asyncio/runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/home/seanhuang2004/anaconda3/envs/krino_matrix/lib/python3.11/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/seanhuang2004/anaconda3/envs/krino_matrix/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/seanhuang2004/Krino-Matrix/experiments/teacher-ceiling/run.py", line 602, in main
+    served, counters = await sample_sets(args, cases)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/seanhuang2004/Krino-Matrix/experiments/teacher-ceiling/run.py", line 303, in sample_sets
+    pending.append((name, case, index))
+    ^^^^^^^
+NameError: name 'pending' is not defined
+zh: 450 cases, teacher deepseek/deepseek-v4.1-flash-1017 → deepseek/deepseek-v4.1-flash-1017
+en: 225 cases, teacher deepseek/deepseek-v4.1-flash-1017 → deepseek/deepseek-v4.1-flash-1017
+3 teacher runs to make (2022 runs already valid), concurrency 16
+  3/3 runs, 0 retries, 0 failed, 94s
+teacher-relabel zh: decision 0.840  goal 0.790  constraints 0.966  selection 0.902
+teacher-relabel en: decision 0.796  goal 0.718  constraints 0.958  selection 0.791
+teacher-single-s1 zh: decision 0.822  goal 0.721  constraints 0.952  selection 0.882
+teacher-single-s1 en: decision 0.787  goal 0.668  constraints 0.945  selection 0.791
+teacher-single-s2 zh: decision 0.820  goal 0.732  constraints 0.952  selection 0.889
+teacher-single-s2 en: decision 0.742  goal 0.654  constraints 0.947  selection 0.751
+teacher-single-s3 zh: decision 0.818  goal 0.739  constraints 0.952  selection 0.880
+teacher-single-s3 en: decision 0.782  goal 0.647  constraints 0.944  selection 0.787
+wrote /home/seanhuang2004/Krino-Matrix/experiments/teacher-ceiling/results/report.md

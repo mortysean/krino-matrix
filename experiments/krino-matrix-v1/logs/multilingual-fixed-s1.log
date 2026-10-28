@@ -1,0 +1,23 @@
+Traceback (most recent call last):
+  File "/home/seanhuang2004/Krino-Matrix/examples/matrix_train.py", line 59, in <module>
+    model = MatrixModel(args.base, max_length=args.max_length, head_layers=args.head_layers,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/seanhuang2004/Krino-Matrix/core/evaluator/matrix_evaluator/model.py", line 88, in __init__
+    self.tokenizer = AutoTokenizer.from_pretrained(path)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/seanhuang2004/anaconda3/envs/krino_matrix/lib/python3.11/site-packages/transformers/models/auto/tokenization_auto.py", line 984, in from_pretrained
+    return tokenizer_class.from_pretrained(pretrained_model_name_or_path, *inputs, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/seanhuang2004/anaconda3/envs/krino_matrix/lib/python3.11/site-packages/transformers/tokenization_utils_base.py", line 1750, in from_pretrained
+    return cls._from_pretrained(
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/seanhuang2004/anaconda3/envs/krino_matrix/lib/python3.11/site-packages/transformers/tokenization_utils_base.py", line 1944, in _from_pretrained
+    tokenizer = cls(*init_inputs, **init_kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/seanhuang2004/anaconda3/envs/krino_matrix/lib/python3.11/site-packages/transformers/tokenization_utils_tokenizers.py", line 412, in __init__
+    raise ValueError(
+ValueError: Couldn't instantiate the backend tokenizer from one of: 
+(1) a `tokenizers` library serialization file, 
+(2) a slow tokenizer instance to convert or 
+(3) an equivalent slow tokenizer class to instantiate and convert. 
+You need to have sentencepiece or tiktoken installed to convert a slow tokenizer to a fast one.

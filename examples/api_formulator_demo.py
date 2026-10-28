@@ -32,7 +32,9 @@ if __name__ == "__main__":
     problem = APIFormulator(llm).formulate(request)
     print("State:")
     print(json.dumps(problem.state.data, ensure_ascii=False, indent=2))
-    print(f"\nObjective:\n{problem.objective}\n")
+    print(f"\nGoal:\n{problem.goal}\n")
     print("Constraints:")
-    for c in problem.constraints or ["(none)"]:
-        print(f"- {c}")
+    for c in problem.constraints:
+        print(f"- [{c.id}] {c.text}" + ("" if c.hard else " (preference)"))
+    if not problem.constraints:
+        print("(none)")

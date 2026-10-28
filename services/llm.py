@@ -2,10 +2,12 @@ import json
 import os
 import re
 from fnmatch import fnmatch
+from functools import cached_property
 from pathlib import Path
 from typing import Any, Literal, TypeVar
 
 import anthropic
+import httpx
 import litellm
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -136,6 +138,22 @@ class LLM:
         if provider.backend == "anthropic":
             self._client = anthropic.Anthropic(api_key=provider.api_key, base_url=provider.api_base)
             self._aclient = anthropic.AsyncAnthropic(api_key=provider.api_key, base_url=provider.api_base)
+
+    @cached_property
+    def served_model(self) -> str:
+        """The concrete model behind self.model, resolved on first use. OpenRouter aliases such as
+        "~deepseek/deepseek-flash-latest" move to each new release, and litellm reports the alias back,
+        so ask OpenRouter directly with a one-token request; other backends serve the name as given."""
+        if self.provider.backend != "openrouter":
+            return self.model
+        response = httpx.post(
+            (self.provider.api_base or "https://openrouter.ai/api/v1").rstrip("/") + "/chat/completions",
+            headers={"Authorization": f"Bearer {self.provider.api_key or os.getenv('OPENROUTER_API_KEY')}"},
+            json={"model": self.model, "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1},
+            timeout=60,
+        )
+        response.raise_for_status()
+        return response.json()["model"]
 
     def chat(
         self,

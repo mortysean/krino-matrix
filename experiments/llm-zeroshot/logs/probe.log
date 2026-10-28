@@ -1,0 +1,12 @@
+07:48:32 - LiteLLM:WARNING: get_model_cost_map.py:675 - LiteLLM: Failed to fetch remote model cost map from https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json: InvalidURL fetching https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json: Invalid port: ':1]'. Falling back to local backup.
+~deepseek/deepseek-flash-latest → deepseek/deepseek-v4.1-flash-1017
+  probe en @ 1: 10/50
+  probe en @ 1: 20/50
+  probe zh @ 1: 10/50
+  probe en @ 1: 30/50
+  probe en @ 1: 40/50
+  probe en @ 1: 50/50
+  probe zh @ 1: 20/50
+  probe zh @ 1: 30/50
+  probe zh @ 1: 40/50
+  probe zh @ 1: 50/50

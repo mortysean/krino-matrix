@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from ..schema import State, ActionSpace
+from ..schema import State, Constraint, ActionSpace
 
 
 class Generator(ABC):
@@ -8,7 +8,7 @@ class Generator(ABC):
     def generate(
         self,
         state: State,
-        objective: str,
-        constraints: list[str]
+        goal: str,
+        constraints: list[Constraint]
     ) -> ActionSpace:
         pass

@@ -1,0 +1,1434 @@
+zh: 450 cases, teacher deepseek/deepseek-v4.1-flash-1017 → deepseek/deepseek-v4.1-flash-1017
+en: 225 cases, teacher deepseek/deepseek-v4.1-flash-1017 → deepseek/deepseek-v4.1-flash-1017
+2025 teacher runs to make (0 runs already valid), concurrency 16
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 2332 [type=json_invalid, input_value='{ "judgments": { "rent_n...s_8000_cny": 0.05 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 511 [type=json_invalid, input_value='{ "judgments": { "broker...operty_cyber": 0.10 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 255 [type=json_invalid, input_value='{ "emergency_fund_floor_...nd_index_dca": 0.12 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2942 [type=json_invalid, input_value='{ "judgments": { "accept...current_team": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 4367 [type=json_invalid, input_value='{ "judgments": { "condit...pand_capacity": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 81 column 0 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\..._cyber": 0.08\n\n}\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  25/2025 runs, 3 retries, 0 failed, 231s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 3027 [type=json_invalid, input_value='{ "judgments": { "build_...then_convert": 0.06 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 814 [type=json_invalid, input_value='{ "judgments": { "adjust...thout_doctor": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 60 column 128 [type=json_invalid, input_value='{  \n  "judgments": {  \...vert": 0.03  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 3308 [type=json_invalid, input_value='{ "judgments": { "broker...同时cyber": 0.06 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 102 [type=json_invalid, input_value='{ "presentation_deadline..._borrow_help": 0.40 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 35 column 28 [type=json_invalid, input_value='{  \n  "judgments": {\n ..._offer_b": 0.00\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 30 column 1 [type=json_invalid, input_value='{  \n  "judgments": {\n ...ull_time": 0.01\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 1269 [type=json_invalid, input_value='{ "judgments": { "discus...er_a_standard":0.16 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 3218 [type=json_invalid, input_value='{ "judgments": { "buy_in... } }, "best_rea0.66 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 427 [type=json_invalid, input_value='{ "reason": "能快速...ug_in_hybrid": 0.82 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1401 [type=json_invalid, input_value='{ "judgments": { "browse...then_convert": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+judgments.book_top_livestream.violations.avoid_affecting_new_launch_channel_pricing
+  Field required [type=missing, input_value={'price_floor_899': 0.1, ...r_and_reputation': 0.12}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.14/v/missing
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 45 column 210 [type=json_invalid, input_value='{\n\n\n"judgments": {\n ...y_purchase": 0.02\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2360 [type=json_invalid, input_value='{ "judgments": { "browse...hen_convert": 0.015 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  50/2025 runs, 14 retries, 0 failed, 460s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 2662 [type=json_invalid, input_value='{ "judgments": { "buy_ov...re_in_hybrid": 0.69 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 512 [type=json_invalid, input_value='{ "judgments": { "accept..._and_feature": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 1624 [type=json_invalid, input_value='{ "judgments": { "launch...distributors": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+value_more-train-00003 #1: gave up after 4 attempts (ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 3631 [type=json_invalid, input_value='{ "judgments": { "browse...then_convert": 0.02 } }', input_type=str])
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1050 [type=json_invalid, input_value='{ "judgments": { "accept..._and_feature": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1310 [type=json_invalid, input_value='{ "judgments": { "buy_ov...ug_in_hybrid": 0.65 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  75/2025 runs, 20 retries, 1 failed, 638s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 2381 [type=json_invalid, input_value='{ "judgments": { "split_...分应急金，.25 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 304 [type=json_invalid, input_value='{ "judgments": { "sequen...s_skip_paper": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 809 [type=json_invalid, input_value='{ "judgments": { "mandat...e_and_freeze": 0.91 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 10 column 30 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\...freeze": 1.00\n\n}\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 705 [type=json_invalid, input_value='{ "judgments": { "improv...ion_and_loan": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1145 [type=json_invalid, input_value='{ "judgments": { "physio...h_gait_rehab": 0.17 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2915 [type=json_invalid, input_value='{ "judgments": { "sequen...: 0.99_paper": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2818 [type=json_invalid, input_value='{ "judgments": { "skip_t...e_and_freeze": 0.96 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 2 column 2 [type=json_invalid, input_value='{  \n 0.00],\n      "vio...d_freeze": 0.86\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 29 column 65 [type=json_invalid, input_value='{ \n  "judgments": {\n  ...package": 0.005\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 3752 [type=json_invalid, input_value='{ "judgments": { "all_ni...friday_rush": 0.005 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 61 column 24 [type=json_invalid, input_value='{  \n  "judgments": {  \...      }  \n    }  \n  }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1274 [type=json_invalid, input_value='{ "judgments": { "borrow...then_reenter": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 261 [type=json_invalid, input_value='{ "judgments": { "borrow...tock_partial": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 182 [type=json_invalid, input_value='{ "reason": "取消本...h_consultant": 0.90 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 13 column 4 [type=json_invalid, input_value='{\n    "reason": "全范...and_freeze": 0.92\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 71 [type=json_invalid, input_value='{ "reason": "通过校...er_package": 0.0025 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  100/2025 runs, 30 retries, 1 failed, 884s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1162 [type=json_invalid, input_value='{ "judgments": { "borrow...tock_partial": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 3 column 8 [type=json_invalid, input_value='{\n        "deadline_30_...g_agency": 0.04\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 506 [type=json_invalid, input_value='{ "use_prepared_packs_an...amline_menu": 0.880 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 10 column 6 [type=json_invalid, input_value='{  \n      "reason": "...lear": 0.16  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 15 [type=json_invalid, input_value='{ "jud 0.05, "security_a...skip_testing": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 349 [type=json_invalid, input_value='{ "judgments": { "four_w...t_immersion": 0.001 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 3844 [type=json_invalid, input_value='{ "judgments": { "seek_f...}, "best_reason0.80 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  125/2025 runs, 46 retries, 1 failed, 1084s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2381 [type=json_invalid, input_value='{ "judgments": { "buy_re...p_livestream": 0.06 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 2040 [type=json_invalid, input_value='{ "judgments": { "whole_..._ci_medical": 0.665 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 284 [type=json_invalid, input_value='{ "judgments": { "delay_...tone_delivery": 0.2 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+best.outsource_noncore_to_peer_workshop
+  Field required [type=missing, input_value={'accept_full_order_with_...h_supplier_funds': 0.01}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.14/v/missing
+  150/2025 runs, 52 retries, 1 failed, 1278s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 865 [type=json_invalid, input_value='{ "judgments": { "flight...l_to_chengdu": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 753 [type=json_invalid, input_value='{  "judgments": {    "or...pacity_model": 0.01  }}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  175/2025 runs, 53 retries, 1 failed, 1411s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 46 [type=json_invalid, input_value='{ "judgments": { "daily_..._boost_course": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 242 [type=json_invalid, input_value='{ "prep_budget_600_cny":...and_bootcamp": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 756 [type=json_invalid, input_value='{ "judgments": { "diagno...apers_review": 0.07 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 1916 [type=json_invalid, input_value='{ "judgments": { "pause_..._path_buffer": 0.67 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 45 column 55 [type=json_invalid, input_value='{  \n  "judgments": {\n ...al_sync": 0.005\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1352 [type=json_invalid, input_value='{ "judgments": { "overti..._attrition": 0.08 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 1513 [type=json_invalid, input_value='{ "judgments": { "freeze..._and_buffer": 0.880 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 29 [type=json_invalid, input_value='{ "reason": "外部顾...xternal_sync": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 831 [type=json_invalid, input_value='{ "judgments": { "borrow...down_payment": 0.00 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 3574 [type=json_invalid, input_value='{ "judgments": { "bedtim..._per_night": 0.80 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  200/2025 runs, 60 retries, 1 failed, 1607s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 1224 [type=json_invalid, input_value='{ "judgments": { "stay_n...st_bus": 0和网.85 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1847 [type=json_invalid, input_value='{ "judgments": { "physio...im_yoga_only": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 11 column 8 [type=json_invalid, input_value='{  \n  "judgments": {  \...ync": 0.005  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 280 [type=json_invalid, input_value='{ "judgments": { "delay_...scount_promo": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 22 column 0 [type=json_invalid, input_value='{  \n  "judgments": {  \...ttle": 0.00  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2698 [type=json_invalid, input_value='{ "judgments": { "borrow...解决loan": 0.00 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1332 [type=json_invalid, input_value='{ "reason": "预算、...down_payment": 0.00 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: EOF while parsing an object at line 1 column 2457 [type=json_invalid, input_value='{ "judgments": { "outsou...preference": 0.50 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  225/2025 runs, 69 retries, 1 failed, 1825s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2964 [type=json_invalid, input_value='{ "judgments": { "home_r...}_deadline": 0.05 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 318 [type=json_invalid, input_value='{ "judgments": { "practi...video_course": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 3 column 0 [type=json_invalid, input_value='{  \n      "reason": "...dent": 0.07  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1619 [type=json_invalid, input_value='{ "judgments": { "delive..."no_credit": 0.00 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 139 [type=json_invalid, input_value='{ "delivery_deadline": 0...pay_penalty": 0.005 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  250/2025 runs, 73 retries, 1 failed, 2003s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 1527 [type=json_invalid, input_value='{ "judgments": { "home_r...are_rotation":0.180 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 26 column 188 [type=json_invalid, input_value='{  \n  "judgments": {\n ..._penalty": 0.00\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 2791 [type=json_invalid, input_value='{ "judgments": { "practi...video_course": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2116 [type=json_invalid, input_value='{ "judgments": { "repair...use_category": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1696 [type=json_invalid, input_value='{ "judgments": { "timebo...e_full_scope": 0.10 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 7 column 165 [type=json_invalid, input_value='{  \n  "judgments": {\n ...s_evenly": 0.00\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 2 [type=json_invalid, input_value='{，集中修复关键...nd_release": 0.00\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  275/2025 runs, 83 retries, 1 failed, 2199s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 122 column 21 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\...t": 0.95\n\n}\n\n}\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 87 [type=json_invalid, input_value='{ "reason": "主动沟...e_consultant": 0.85 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2334 [type=json_invalid, input_value='{ "judgments": { "ab_tes...aid_traffic": 0.025 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 3015 [type=json_invalid, input_value='{ "judgments": { "extend...ip_by_credit": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 2267 [type=json_invalid, input_value='{ "judgments": { "skip_v...e_consultant": 0.85 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2072 [type=json_invalid, input_value='{ "judgments": { "pay_in...minimum_debt": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 1139 [type=json_invalid, input_value='{ "judgments": { "extend...p_by_credit": 0.005 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  300/2025 runs, 89 retries, 1 failed, 2394s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 926 [type=json_invalid, input_value='{ "judgments": { "launch...lyers_nearby": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 2030 [type=json_invalid, input_value='{ "judgments": { "layere...nt_portfolio": 0.21 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 78 [type=json_invalid, input_value='{ "judgments": { "monthl..._auto_invest": 0.98 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 1723 [type=json_invalid, input_value='{ "judgments": { "optimi...ce_buildings": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  325/2025 runs, 92 retries, 1 failed, 2574s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2671 [type=json_invalid, input_value='{ "judgments": { "launch..."best_reason": "在 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1304 [type=json_invalid, input_value='{ "judgments": { "optimi...ce_buildings": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 243 [type=json_invalid, input_value='{ "judgments": { "rent_a...uild_savings": 0.59 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 169 [type=json_invalid, input_value='{ "judgments": { "monthl..._auto_invest": 0.92 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 46 column 280 [type=json_invalid, input_value='{  \n  "judgments": {  \...wait": 0.01  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 227 [type=json_invalid, input_value='{ "judgments": { "optimi...ce_buildings": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  350/2025 runs, 102 retries, 1 failed, 2747s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 2029 [type=json_invalid, input_value='{ "judgments": { "contac...m_search_ads": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 20 column 35 [type=json_invalid, input_value='{  \n  "judgments": {  \..._ads": 0.03  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 2633 [type=json_invalid, input_value='{ "judgments": { "async_...t_and_verify": 0.92 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 12 [type=json_invalid, input_value='{": 0.00, "avoid_overpac...fixed_blocks": 0.85 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 115 [type=json_invalid, input_value='{ "judritten_record": 0....t_and_verify": 0.95 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 3763 [type=json_invalid, input_value='{ "judgments": { "switch..._highlights": 0.2 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  375/2025 runs, 104 retries, 1 failed, 2944s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 491 [type=json_invalid, input_value='{ "judgments": { "carpoo...monthly_pass": 0.05 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 385 [type=json_invalid, input_value='{ "reason": "月票280...epaired_bike": 0.72 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 2063 [type=json_invalid, input_value='{ "judgments": { "trade_...er_8gb_model": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 23 column 0 [type=json_invalid, input_value='{\n\n\n  "judgments": {\...": 0.25\n\n\n  }\n\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2496 [type=json_invalid, input_value='{ "judgments": { "buy_me...disclosure": 0.00 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 914 [type=json_invalid, input_value='{ "judgments": { "cheap_...uo_an_budget": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  400/2025 runs, 108 retries, 1 failed, 3126s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1580 [type=json_invalid, input_value='{ "judgments": { "carpoo...epaired_bike": 0.95 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 3411 [type=json_invalid, input_value='{ "judgments": { "two_tr...ucture_etf": 0.02 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValueError: carpool_with_colleague: goal is not 5 probabilities: []
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 311 [type=json_invalid, input_value='{ "judgments": { "choose...ter_sublimit": 0.08 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 230 [type=json_invalid, input_value='{ "decision_deadline_day...ter_sublimit": 0.25 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  425/2025 runs, 113 retries, 1 failed, 3297s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2164 [type=json_invalid, input_value='{ "judgments":  { "fix_r...e_and_cost": 0.05 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 1935 [type=json_invalid, input_value='{ "judgments": { "assign...ailability": 0.80 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 207 [type=json_invalid, input_value='{ "judgments": { "accept...ter_sublimit": 0.08 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 10 column 0 [type=json_invalid, input_value='{\n      "budget_cny": 0...er_testing": 0.01\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 83 column 40 [type=json_invalid, input_value='{\n\n\n  \n    "judgment... 0.07\n    }\n  \n\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 39 column 15 [type=json_invalid, input_value='{ "judgments": {\n    "c...10\n      }\n    }\n  }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1320 [type=json_invalid, input_value='{ "judgments": { "buy_ic..._inventory": 0.55 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  450/2025 runs, 123 retries, 1 failed, 3461s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1753 [type=json_invalid, input_value='{ "judgments": { "demand...s_and_accept": 0.05 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 512 [type=json_invalid, input_value='{ "judgments": { "lever...d_bond_funds": 0.50 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 753 [type=json_invalid, input_value='{ "judgments": { "wait_f...and_weekends": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 916 [type=json_invalid, input_value='{ "judgments": { "build_...teed_tutoring": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1737 [type=json_invalid, input_value='{ "judgments": { "quit_p...ching_package": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1819 [type=json_invalid, input_value='{ "judgments": { "demand...s_and_accept": 0.11 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 315 [type=json_invalid, input_value='{ "judgments": { "reread...crash_course": 0.09 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  475/2025 runs, 126 retries, 1 failed, 3625s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1752 [type=json_invalid, input_value='{ "judgments": { "levera...d_bond_funds": 0.32 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2326 [type=json_invalid, input_value='{ "judgments": { "defer_...preference": 0.80 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 243 [type=json_invalid, input_value='{ "interview_deadline_21...hing_package": 0.00 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 7 column 5 [type=json_invalid, input_value='{\n        "annual_premi...rm_plan": 0.839\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 3269 [type=json_invalid, input_value='{"judgments": {"wait_for..._to_shangri_la": 0.03}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 22 [type=json_invalid, input_value='{ "cannot_resign": 0.{ "...alanced_plan": 0.14 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  500/2025 runs, 138 retries, 1 failed, 3790s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 67 column 0 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\...coupon": 0.50\n\n}\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1507 [type=json_invalid, input_value='{ "judgments": { "buy_eq...osit_ladder": 0.625 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 118 column 22 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\...al_pay": 0.07\n\n}\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 103 [type=json_invalid, input_value='{ "judgments": { "negoti..._installment": 0.00 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 191 [type=json_invalid, input_value='{ "reason": "把6万元..._fund_all_in": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  525/2025 runs, 141 retries, 1 failed, 3955s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 3 column 0 [type=json_invalid, input_value='{\n"reason": "最贴合...s_and_wait": 0.03\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1900 [type=json_invalid, input_value='{ "judgments": { "pilot_...meal_channel": 0.68 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 116 [type=json_invalid, input_value='{ "judgments": { "launch...m_lunch_sets": 0.05 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1822 [type=json_invalid, input_value='{ "judgments": { "finish...95, "budget_cny_12000 }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 168 [type=json_invalid, input_value='{ "reason": "低成本...nd_relocate": 0.001 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 13 column 57 [type=json_invalid, input_value='{ "judgments": { "sell_n...wn_new_energy": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2092 [type=json_invalid, input_value='{ "judgments": { "renova...staff_rest": 0.02 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2462 [type=json_invalid, input_value='{ "judgments": { "finish...erdue_risk": 0.05 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 120 column 113 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\...h_sets": 0.03\n\n}\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 238 [type=json_invalid, input_value='{ "reason": "加班和..._with_buffer": 0.66 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  550/2025 runs, 147 retries, 1 failed, 4136s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 448 [type=json_invalid, input_value='{ "judgments": { "paid_r...k_interviews": 0.68 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 272 [type=json_invalid, input_value='{ "judgments": { "priori..._with_buffer": 0.50 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1903 [type=json_invalid, input_value='{ "judgments": { "target...fulltime_prep": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1980 [type=json_invalid, input_value='{ "judgments": { "quit_j...estion_bank": 0.020 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 460 [type=json_invalid, input_value='{ "judgments": { "target...fulltime_prep": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  575/2025 runs, 157 retries, 1 failed, 4332s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 39 column 0 [type=json_invalid, input_value='{\n\n\n"judgments": {\n"..._diligence": 0.06\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 74 column 30 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\...rallel": 0.08\n\n}\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 103 [type=json_invalid, input_value='{ "departure_within_3_we...tour_planner": 0.52 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1976 [type=json_invalid, input_value='{ "judgments": { "wait_f...ical_illness": 0.07 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1481 [type=json_invalid, input_value='{ "judgments": { "book_o...nd_discounts": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Upstream error from Ionstream: litellm.InternalServerError: The model is repeating the same chunk =    
+
+
+
+., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Upstream error from Ionstream: litellm.InternalServerError: The model is repeating the same chunk =    
+
+
+
+., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1543 [type=json_invalid, input_value='{ "judgments": { "book_r...tour_planner": 0.36 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 10 column 23 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\...d_fund": 0.01\n\n}\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2219 [type=json_invalid, input_value='{ "judgments": { "take_c...ue_diligence": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 32 column 0 [type=json_invalid, input_value='{  \n  "judgments": {  \...unts": 0.01  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 1418 [type=json_invalid, input_value='{ "judgments": { "algori..._close_offer": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 746 [type=json_invalid, input_value='{ "judgments": { "use_fr...answers_cheat": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 259 [type=json_invalid, input_value='{ "judgments": { "priori...r_full_scope": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  600/2025 runs, 160 retries, 1 failed, 4566s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 232 [type=json_invalid, input_value='{ "goal": [0.1, 0.48, 0....厨房方案。" } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 681 [type=json_invalid, input_value='{ "buy_used_small_oven_a...制而降级。" } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 31 column 165 [type=json_invalid, input_value='{\n\n\n"judgments": {\n ...ium_policy": 0.00\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 35 column 46 [type=json_invalid, input_value='{\n\n\n  "judgments": {\...kstreams": 0.24\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 322 [type=json_invalid, input_value='{ "judgments": { "fix_lo...excel_export": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  625/2025 runs, 175 retries, 1 failed, 4716s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1959 [type=json_invalid, input_value='{ "judgments": { "buy_us...small_online": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 2042 [type=json_invalid, input_value='{ "judgments": { "deep_d...ffing_limit": 0.0 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 40 column 0 [type=json_invalid, input_value='{ "judgments": {  \n    ...bike": 0.01  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 2084 [type=json_invalid, input_value='{ "judgments": { "buy_us...wo_wheeler": 0.00 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 41 column 41 [type=json_invalid, input_value='{  \n  "judgments": {  \...lone": 0.14  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 715 [type=json_invalid, input_value='{ "judgments": { "run_cu...nt_promotion": 0.06 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  650/2025 runs, 179 retries, 1 failed, 4911s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1874 [type=json_invalid, input_value='{ "judgments": { "bulk_b...te_ceiling": 0.15 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 820 [type=json_invalid, input_value='{ "best": { "apply_bridg...und_drawdown": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 3809 [type=json_invalid, input_value='{ "judgments": { "take_l...and_cancel_a": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 688 [type=json_invalid, input_value='{ "run_customer_survey_a...nt_promotion": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 232 [type=json_invalid, input_value='{ "best": { "adopt_agpl_...meline_limit": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1919 [type=json_invalid, input_value='{ "judgments": { "buy_us...ut_measuring": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValueError: patch_monolith_incrementally: goal is not 5 probabilities: [0.0, 0.0, 0.0, 0.0, 0.0]
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 631 [type=json_invalid, input_value='{ "buy_generic_course": ...r_questions": 0.005 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  675/2025 runs, 188 retries, 1 failed, 5067s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 895 [type=json_invalid, input_value='{ "judgments": { "adopt_...way_in_house": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 52 column 0 [type=json_invalid, input_value='{\n\n\n"judgments": {\n ...take_break": 0.01\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 722 [type=json_invalid, input_value='{"goal": [0.0, 0.05, 0.2...fic_capacity": 0.05}}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 1072 [type=json_invalid, input_value='{ "judgments": { "accept...wait_bigtech": 0.87 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 438 [type=json_invalid, input_value='{ "judgments": { "enroll...ma_full_time": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 38 column 52 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\...igtech": 0.75\n\n}\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1231 [type=json_invalid, input_value='{ "judgments": { "hire_r...push_through": 0.00 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1024 [type=json_invalid, input_value='{ "judgments": { "enroll...ma_full_time": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 734 [type=json_invalid, input_value='{ "judgments": { "run_ex...pt_msk_kafka": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1625 [type=json_invalid, input_value='{ "judgments": { "adopt_...way_in_house": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 39 [type=json_invalid, input_value='{ "execution_deadline": ...nd_scale_ads": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  700/2025 runs, 192 retries, 1 failed, 5246s
+  retrying after ValueError: quit_and_go_fulltime_consulting: goal is not 5 probabilities: [0.0, 0.0, 0.0, 0.0, 0.0]
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 4194 [type=json_invalid, input_value='{ "judgments": { "adopt_...city_limit": 0.05 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 38 [type=json_invalid, input_value='{ "judgments": { "confir...re_prototype": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  725/2025 runs, 203 retries, 1 failed, 5380s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 31 column 28 [type=json_invalid, input_value='{  \n  "judgments": {  \...unds": 0.60  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  750/2025 runs, 205 retries, 1 failed, 5496s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 26 column 49 [type=json_invalid, input_value='{ \n  "judgments": {\n  ...d_hybrid": 0.12\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 689 [type=json_invalid, input_value='{ "judgments": { "dual_t...econd_rounds": 0.28 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 24 column 31 [type=json_invalid, input_value='{\n\n\n"judgments": {\n ...luxury_suv": 0.02\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  775/2025 runs, 205 retries, 1 failed, 5630s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 18 column 0 [type=json_invalid, input_value='{\n\n\n"judgments": {\n"...sed_e_bike": 0.12\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1766 [type=json_invalid, input_value='{ "judgments": { "negoti...fer_bet_on_c": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 131 [type=json_invalid, input_value='{ "event_deadline": 0.02...sprint_race": 0.005 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 26 [type=json_invalid, input_value='{ "reason": "空间和{ ...d_used_hybrid": 0.5 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  800/2025 runs, 210 retries, 1 failed, 5748s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2058 [type=json_invalid, input_value='{ "judgments": { "pause_..._peer_bakery": 0.05 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 3 column 24 [type=json_invalid, input_value='{  \n      "reason": "...race": 0.00  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 3552 [type=json_invalid, input_value='{ "brace_and_rest": { "r...d_swim_only": 0.008 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Upstream error from Ionstream: litellm.InternalServerError: The model is repeating the same chunk = 
+
+
+  
+
+
+  
+
+
+  ., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Upstream error from Ionstream: litellm.InternalServerError: The model is repeating the same chunk = 
+
+
+  
+
+
+  
+
+
+  ., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 27 column 94 [type=json_invalid, input_value='{ "judgments": { "mass_a...rview_course": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 1133 [type=json_invalid, input_value='{\t"best": {\t"brace_and...sens": 0.75\t}\t}\t}\t}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValueError: compare_broker_preunderwriting: goal is not 5 probabilities: [0.0, 0.0, 0.0, 0.0, 0.0]
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1013 column 1 [type=json_invalid, input_value='{ "best": { "brace_and_r...n\n  \n\n\n  \n\n\n   }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 1 column 1775 [type=json_invalid, input_value='{\t"best":\t{\t"buy_gene...t_15_hours":\t0.4\t}\t}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2354 [type=json_invalid, input_value='{ "judgments": { "resign...on_acceptable": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 124 [type=json_invalid, input_value='{ "judgments，不能覆...underwriting": 0.55 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 3416 [type=json_invalid, input_value='{ "judgments": { "order_...ocal_display": 0.15 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  825/2025 runs, 218 retries, 1 failed, 5866s
+  850/2025 runs, 225 retries, 1 failed, 5957s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 2181 [type=json_invalid, input_value='{ "judgments": { "park_a...n_metro_back": 0.82 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1920 [type=json_invalid, input_value='{ "judgments": { "target...ncing_risk": 0.05 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 2030 [type=json_invalid, input_value='{ "judgments": { "lock_e...th_stop_loss": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  875/2025 runs, 225 retries, 1 failed, 6055s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2273 [type=json_invalid, input_value='{ "judgments": { "walk_o...n_self_guide": 0.55 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 11 [type=json_invalid, input_value='{ "goal{ "best": { "core...ch_time_limit": 0.8 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 3041 [type=json_invalid, input_value='{ "judgments": { "single...edical_fund": 0.0 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 735 [type=json_invalid, input_value='{ "judgments": { "hand_o...ith_overtime": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1270 [type=json_invalid, input_value='{ "judgments": { "walk_o...en_self_guide":0.52 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 7 column 16 [type=json_invalid, input_value='{\n\n\n"judgments": {\n ...rma_switch": 0.70\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  900/2025 runs, 229 retries, 1 failed, 6162s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 151 [type=json_invalid, input_value='{ "emergency_fund_protec..._sector_etfs": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 151 [type=json_invalid, input_value='{ "emergency_fund_protec..._sector_etfs": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 58 column 2 [type=json_invalid, input_value='{\n\n\n"judgments": {  \...n": 0.05  \n}  \n}  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 493 [type=json_invalid, input_value='{"reason":"仅将1万元...terly_rebalance":0.68}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  925/2025 runs, 234 retries, 1 failed, 6257s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 115 [type=json_invalid, input_value='{ "exam_deadline": 0.35,..._choice_only": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1597 [type=json_invalid, input_value='{"judgments": {"wait_for..._and_far_hotel": 0.01}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  950/2025 runs, 239 retries, 1 failed, 6354s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 24 column 43 [type=json_invalid, input_value='{\n  "best": {\n    "boo...n      }\n    }\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1453 [type=json_invalid, input_value='{ "judgments": { "recrui...ad_targeting": 0.25 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1180 [type=json_invalid, input_value='{ "judgments": { "accept...in_franchise": 0.00 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 185 [type=json_invalid, input_value='{ "reason": "与老师..._cram_school": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValueError: catch_up_workout_once: goal is not 5 probabilities: []
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 771 [type=json_invalid, input_value='{ "judgments": { "reject...nd_negotiate": 0.10 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 131 [type=json_invalid, input_value='{ "jouse_cannot_relocate...nd_wait_bonus":0.07 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 33 column 2 [type=json_invalid, input_value='{ \n\n \t \t"brisk_walk_...n \t \t} \n\n \t} \n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 3 column 0 [type=json_invalid, input_value='{\n        "arrange_with...me_alone": 0.01\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 609 [type=json_invalid, input_value='{ "reason": "前期支..._pause_lease": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  975/2025 runs, 244 retries, 1 failed, 6484s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 12 column 5 [type=json_invalid, input_value='{\n        "boss_visible...n      }\n    }\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1306 [type=json_invalid, input_value='{ "judgments": { "run_te...e": 0.00 } }": 0.05 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 750 [type=json_invalid, input_value='{ "corporate_group_order...novation": 0.05 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 1982 [type=json_invalid, input_value='{ "best": { "corporate_g...o_renovation": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1843 [type=json_invalid, input_value='{ "judgments": { "corpor..._price_lunch": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1000/2025 runs, 250 retries, 1 failed, 6589s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 288 [type=json_invalid, input_value='{ "goal": [ 0, 0.03, 0.1...e_taxi_directly": 0.6 }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 12 column 37 [type=json_invalid, input_value='{  \n  "judgments": {  \..._etf": 0.00  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 296 [type=json_invalid, input_value='{ "reason": "每天两...ressive_plan": 0.72 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1025/2025 runs, 256 retries, 1 failed, 6712s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2121 [type=json_invalid, input_value='{ "judgments": { "rent_w...icket_advance": 0.1 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 269 [type=json_invalid, input_value='{ "best": { "buy_return_...nditions": 0.45 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 3171 [type=json_invalid, input_value='{ "judgments": { "run_wa...preference": 0.30 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2347 [type=json_invalid, input_value='{ "judgments": { "reserv..._near_office": 0.80 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1135 [type=json_invalid, input_value='{ "judgments": { "levera...ified_buffer": 0.73 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1050/2025 runs, 259 retries, 1 failed, 6796s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2193 [type=json_invalid, input_value='{ "judgments": { "quit_s...t_downgrade": 0.0 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 589 [type=json_invalid, input_value='{ "best": { "renew_ci_fi..._premium": 0.15 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 41 column 0 [type=json_invalid, input_value='{\n  "best": {\n    "buy...": 0.35\n      }\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValueError: best is not a distribution: {'trim_overweights_into_bond_ladder': 0.0, 'switch_to_c_share_funds': 0.0, 'use_margin_to_buy_dips': 0.0, 'rebalance_then_auto_invest': 0.0, 'move_to_cash_and_short_bond': 0.0}
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 654 [type=json_invalid, input_value='{ "goal": [0.0, 0.03, 0....eference": 0.55 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1075/2025 runs, 269 retries, 1 failed, 6933s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 50 column 134 [type=json_invalid, input_value='{\n\n\n  "judgments": {\...00\n      }\n    }\n  }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 32 column 16 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\...all_ci": 0.10\n}\n\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1100/2025 runs, 277 retries, 1 failed, 6998s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: EOF while parsing an object at line 1 column 2475 [type=json_invalid, input_value='{ "judgments": { "share_..._preference": 0.8 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 37 [type=json_invalid, input_value='{ "judgments": { "violat...argeted_prep": 0.85 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 231 [type=json_invalid, input_value='{ "compliance_pre_review...ata_labeling": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 230 [type=json_invalid, input_value='{ "compliance_pre_review...ata_labeling": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 1694 [type=json_invalid, input_value='{ "judgments": { "withdr..._keep_entry": 0.5 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 2114 [type=json_invalid, input_value='{ "judgments": { "full_r...on_deadline": 0.0 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1125/2025 runs, 281 retries, 1 failed, 7105s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 223 [type=json_invalid, input_value='{ "minimum_emergency_res...er_rate_loan": 0.05 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 9 column 1 [type=json_invalid, input_value='{\n      "goal": [0.0, 0...n      }\n    }\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 376 [type=json_invalid, input_value='{ "demo_deadline_5_worki...instance": 0.55 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1150/2025 runs, 287 retries, 1 failed, 7198s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 482 [type=json_invalid, input_value='{ "best": { "all_in_hot_...articipation": 0.95 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 1076 [type=json_invalid, input_value='{ "liquidate_all_to_mone...ep_broad_etf": 0.52 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 3793 [type=json_invalid, input_value='{ "best": { "book_privat...training": 0.95 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 182 [type=json_invalid, input_value='{ "judgments长期运维...bitmq_celery": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 2 column 1 [type=json_invalid, input_value='{  \nredis": 1.0,  \n   ... }  \n    }  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 177 [type=json_invalid, input_value='{ "best": { "book_privat...training": 0.98 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 113 [type=json_invalid, input_value='{ "reason": "费用低...grandparents": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1175/2025 runs, 293 retries, 1 failed, 7321s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 47 column 28 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\...ear_target": 0.15\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1200/2025 runs, 297 retries, 1 failed, 7396s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 41 column 188 [type=json_invalid, input_value='{\n    "best": {\n      ....02\n        }\n      }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 2981 [type=json_invalid, input_value='{ "judgments": { "rush_r...arts_terms": 0.00 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 2996 [type=json_invalid, input_value='{ "judgments": { "unifor...restock_only": 0.05 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 10 column 123 [type=json_invalid, input_value='{\n    "best": {\n      ...n      }\n    }\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1225/2025 runs, 298 retries, 1 failed, 7493s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1977 [type=json_invalid, input_value='{ "judgments": { "ask_gr...te_work_week": 0.11 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 2 column 1 [type=json_invalid, input_value='{"best": {"ask_grandmoth...oject_deadline": 0.08}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 486 [type=json_invalid, input_value='{ "judgments": { "use_ca...payment_plan": 0.60 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValueError: request_flexible_remote_work_week: goal is not 5 probabilities: [0.0, 0.0, 0.0, 0.0, 0.0]
+  1250/2025 runs, 301 retries, 1 failed, 7580s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 1171 [type=json_invalid, input_value='{ "best": { "align_with_...olerance": 0.80 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 535 [type=json_invalid, input_value='{ "best": { "buy_mock_pa...ax_hours": 0.01 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 312 [type=json_invalid, input_value='{ "buy_ai_etf_with_parti...ash_only": 0.00 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValueError: best is not a distribution: {'start_purchase_process_now': 0.0, 'sign_three_year_riverside_lease': 0.0, 'buy_landlord_flat_outright': 0.0, 'rent_nearby_one_year_and_prepare': 0.0, 'do_parallel_rent_and_purchase_track': 0.0}
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 1572 [type=json_invalid, input_value='{ "best": { "buy_gym_pri...deadlines": 0.6 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 2 [type=json_invalid, input_value='{.0 } }, "diagnostic_pas...max_hours": 0.0 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1275/2025 runs, 307 retries, 1 failed, 7684s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 12 column 85 [type=json_invalid, input_value='{\r\n \t\t"best": {\r\n ...\t\t}\r\n \t\t}\r\n \t}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 3 [type=json_invalid, input_value='{\t现货当天"b送est"...: 0.0\t\t\t}\t\t}\t}\t}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 162 [type=json_invalid, input_value='{"budget_limit": 1.0, "c...pright_piano": 0.02}}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 29 [type=json_invalid, input_value='{ "commercial_insurance_...emium_cap": 0.1 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 1177 [type=json_invalid, input_value='{ \t"best": { \t\t"ban_s...0.8 \t\t\t} \t\t} \t} }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 19 column 0 [type=json_invalid, input_value='{\n    "ban_screens_and_...n      }\n    }\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1300/2025 runs, 314 retries, 1 failed, 7782s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 4637 [type=json_invalid, input_value='{ "judgments": { "ban_sc...es_mockery": 0.50 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 943 [type=json_invalid, input_value='{ "all_in_crypto_for_eme..._ceiling": 0.05 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1325/2025 runs, 317 retries, 1 failed, 7850s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1359 [type=json_invalid, input_value='{   "best": {     "avala...ee": 0.02       }     }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 1278 [type=json_invalid, input_value='{"best": {"buy_local_foo...cost_pricing": 0.02}}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 918 [type=json_invalid, input_value='{ "best": { "buy_certifi...e_ceiling": 0.0 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 747 [type=json_invalid, input_value='{ "buy_local_food_blogge..._pricing": 0.03 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 418 [type=json_invalid, input_value='{ "buy_certified_used_hy..._ceiling": 0.01 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1350/2025 runs, 323 retries, 1 failed, 7967s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 131 [type=json_invalid, input_value='{ "priority": 0.0, "acce...ed_hybrid_suv": 0.9 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 18 column 0 [type=json_invalid, input_value='{  \n  "judgments": {  \...ain": 0.120  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 682 [type=json_invalid, input_value='{ "best": { "buy_certifi...e_ceiling": 0.0 } } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 448 [type=json_invalid, input_value='{ "judgments": { "monito....0, "contain": 0.05 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 15 [type=json_invalid, input_value='{ "judgments "violations...0.0, "observe": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 402 [type=json_invalid, input_value='{ "reason": "Issuing a r...wer_directly": 0.05 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 665 [type=json_invalid, input_value='{ "judgments": { "close_... 0.02, "c4": 0.02 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 4 column 0 [type=json_invalid, input_value='{\n\n                "re...7\n\n        }\n\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1409 [type=json_invalid, input_value='{ "judgments": { "monito...ction system": 0.08 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 163 [type=json_invalid, input_value='{ "reason": "Investigati...35, "monitor": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1375/2025 runs, 327 retries, 1 failed, 8098s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1013 [type=json_invalid, input_value='{ "judgments": { "human_...e_tool_errors": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 238 [type=json_invalid, input_value='{ "no_benign_from_change...00, "contain": 0.10 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+tr_security_incidents_000082 #2: gave up after 4 attempts (ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 40 [type=json_invalid, input_value='{ "judgments to a correc...00, "contain": 0.15 } }', input_type=str]
+ )
+  1400/2025 runs, 336 retries, 2 failed, 8219s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 262 [type=json_invalid, input_value='{"freight_not_separately...: 0.7, "reject": 0.02}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 1459 [type=json_invalid, input_value='{ "judgments": { "invest... 0.10, "c7": 0.30 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 446 [type=json_invalid, input_value='{"judgments": {"contain"..., "c3": 0.05ign": 0.0}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 14 column 97 [type=json_invalid, input_value='{ \n  "judgments": {\n  ..."approve": 0.01\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 6 column 5 [type=json_invalid, input_value='{  \n        "no_delete_...inue": 0.85  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 88 [type=json_invalid, input_value='{ "c1": 0.00, "c2": 0.00...close_benign": 0.00 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 40 column 1 [type=json_invalid, input_value='{\n  "judgments": {\n   ...ormation": 0.05\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1203 [type=json_invalid, input_value='{ "judgments": { "manual...ment_discount": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1425/2025 runs, 338 retries, 2 failed, 8353s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 140 [type=json_invalid, input_value='{ "j_record_irreversible...1, "continue": 0.70 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected ident at line 1 column 505 [type=json_invalid, input_value='{ "judgments": { "reject....15, "approve": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1450/2025 runs, 344 retries, 2 failed, 8456s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1727 [type=json_invalid, input_value='{ "judgments": { "hold":...08, "approve": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 1288 [type=json_invalid, input_value='{ "judgments": { "close_...: 0.05, "c6": 0.1 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 1863 [type=json_invalid, input_value='{ "judgments": { "reject...ations":hold": 0.80 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 119 [type=json_invalid, input_value='{"evidence_only": 0.2, "...0.95, "contain": 0.02}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 10 column 34 [type=json_invalid, input_value='{\n\n\n  "judgments": {\...   "stop": 0.02\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 1027 [type=json_invalid, input_value='{ "judgments": { "reject...02, "approve": 0.97 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1115 [type=json_invalid, input_value='{ "observe": { "reason":...human_review": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2113 [type=json_invalid, input_value='{ "judgments": { "reject...voice_check": 0.0 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 449 [type=json_invalid, input_value='{ "reason": "Keeps the s... 0.25, "stop": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 3 column 0 [type=json_invalid, input_value='{  \n      "reason": "Is...tion": 0.00  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1475/2025 runs, 350 retries, 2 failed, 8631s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1722 [type=json_invalid, input_value='{ "judgments": { "reject...the invoice and can } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 19 column 168 [type=json_invalid, input_value='{  \n  "judgments": {  \....02  \n      }  \n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 4 column 343 [type=json_invalid, input_value='{  \n  "judgments": {  \...tain": 0.02  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 3 column 0 [type=json_invalid, input_value='{  \n      "reason": "Ha...tion": 0.05  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 10 column 5 [type=json_invalid, input_value='{\n        "c1": 0.01,\n..."monitor": 0.06\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1500/2025 runs, 355 retries, 2 failed, 8777s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 26 column 1 [type=json_invalid, input_value='{\n  "judgments": {\n   ..."observe": 0.50\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 2322 [type=json_invalid, input_value='{ "judgments": { "manual...ate_payment": 0.0 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1343 [type=json_invalid, input_value='{ "judgments": { "invest... 0.00, "c5": 0.00 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 848 [type=json_invalid, input_value='{ "judgments": { "reject...12, "approve": 0.22 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1525/2025 runs, 363 retries, 2 failed, 8915s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 14 column 159 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\..."approve": 0.08\n}\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 259 [type=json_invalid, input_value='{ "reason": "Holding pre....02, "reject": 0.10 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1550/2025 runs, 364 retries, 2 failed, 9049s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 452 [type=json_invalid, input_value='{ "judgments": { "approv....65, "reject": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1480 [type=json_invalid, input_value='{ "judgments": { "invest...01, "contain": 0.14 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1194 [type=json_invalid, input_value='{"judgments": {"stop": {...nt_violations": 0.08}}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1356 [type=json_invalid, input_value='{ "judgments": { "contai...ct_factors": 0.00 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1513 [type=json_invalid, input_value='{ "judgments": { "invest...ticality and strong e }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1575/2025 runs, 368 retries, 2 failed, 9184s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 342 [type=json_invalid, input_value='{"reason":"Queueing the ...ue":0.0,"observe":0.0}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 3 column 0 [type=json_invalid, input_value='{  \n  "judgments.05,  \...inue": 0.62  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1671 [type=json_invalid, input_value='{ "judgments": { "hold":..._exceptions": 1.0 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1600/2025 runs, 374 retries, 2 failed, 9302s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 826 [type=json_invalid, input_value='{ "judgments": { "close_... 0.10, "c5": 0.10 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 461 [type=json_invalid, input_value='{"reason": "Immediate co...0.92, "monitor": 0.05}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1783 [type=json_invalid, input_value='{ "judgments": { "reject...g_required": 0.00 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 25 column 42 [type=json_invalid, input_value='{ \n  "judgments": {\n  ..."approve": 0.05\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1625/2025 runs, 377 retries, 2 failed, 9445s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 9 column 5 [type=json_invalid, input_value='{\n        "c1": 0.02,\n..."contain": 0.15\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1141 [type=json_invalid, input_value='{"judgments":{"investiga...03}}6":0.30,"c7":0.00}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 5 column 1 [type=json_invalid, input_value='{\n      "reason": "Imme...e_benign": 0.01\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1650/2025 runs, 380 retries, 2 failed, 9542s
+  retrying after ValueError: answer_directly: goal is not 5 probabilities: [-0.0, 0.0, 0.0, 0.0, 0.0]
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 676 [type=json_invalid, input_value='{ "judgments": { "observ..."human_review": 0.1 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 33 column 0 [type=json_invalid, input_value='{  \n  "judgments": {  \...proceed without  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 828 [type=json_invalid, input_value='{ "judgments": { "observ...human_review": 0.88 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected ident at line 1 column 1325 [type=json_invalid, input_value='{ "judgments": { "human_....15, "observe": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 4 column 1 [type=json_invalid, input_value='{\n\n\n00\n      }\n    ...e_refund": 0.01\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 467 [type=json_invalid, input_value='{ "reason": "Immediate c...00, "monitor": 0.08 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 410 [type=json_invalid, input_value='{ "reason": "Keeping the...0, "continue": 0.97 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1675/2025 runs, 383 retries, 2 failed, 9690s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1097 [type=json_invalid, input_value='{"judgments": {"hold": {..."process_in_usd": 0.0}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 37 [type=json_invalid, input_value='{ "change_window_not_con...close_benign": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1700/2025 runs, 392 retries, 2 failed, 9792s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 174 [type=json_invalid, input_value='{ "reason": "There is no...03, "reject": 0.002 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 36 column 41 [type=json_invalid, input_value='{\n\n\n"judgments": {\n ...d": 0.05\n    }\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 963 [type=json_invalid, input_value='{ "judgments": { "monito...to_repo_read": 0.10 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 39 column 27 [type=json_invalid, input_value='{  \n  "judgments": {  \...      }  \n    }  \n  }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 209 [type=json_invalid, input_value='{ "no_downtime": 0.001, ...2, "continue": 0.60 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 4 column 2215 [type=json_invalid, input_value='{\n\n\n"judgments": { "i..._repo_read": 0.00 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 942 [type=json_invalid, input_value='{ "judgments": { "monito..."investigate": 0.94 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 1 column 291 [type=json_invalid, input_value='{ "reason": "Nothing nee...00, "approve": 1.00 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1725/2025 runs, 393 retries, 2 failed, 9923s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 4 column 1 [type=json_invalid, input_value='{  \n      "cloud_spend_...view": 0.90  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 200 [type=json_invalid, input_value='{ "judgments": { "contin... 0.15, "stop": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 264 [type=json_invalid, input_value='{ "disposition_must_use_...5, "monitor": 0.015 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 11 column 5 [type=json_invalid, input_value='{\n        "no_force_pus...   "stop": 0.01\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 12 column 3 [type=json_invalid, input_value='{\n      "freight_not_se...ual_review": 0.78\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1750/2025 runs, 402 retries, 2 failed, 10061s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 502 [type=json_invalid, input_value='{"reason":"Stopping halt...1,"human_review":0.01}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 545 [type=json_invalid, input_value='{ "reason": "Halting the...human_review": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 3 column 135 [type=json_invalid, input_value='{"judgments":{\n  "stop"..._supplied_trace":0.40}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1775/2025 runs, 405 retries, 2 failed, 10184s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 229 [type=json_invalid, input_value='{ "judgments": { "monito... } }, "close_benign } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 291 [type=json_invalid, input_value='{ "judgments": { "human_... 0.10, "stop": 0.03 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 58 column 4 [type=json_invalid, input_value='{  \n    "stop": {  \n  ...erve": 0.07  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after MidStreamFallbackError: litellm.MidStreamFallbackError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID:  Original exception: APIError: litellm.APIError: APIError: OpenrouterException - Message: Network connection lost., Metadata: {'error_type': 'provider_unavailable'}, User ID: 
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 491 [type=json_invalid, input_value='{ "judgments": { "manual...85, "approve": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 254 [type=json_invalid, input_value='{ "no_customer_data_outs...01, "observe": 0.04 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1800/2025 runs, 410 retries, 2 failed, 10312s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 20 column 2 [type=json_invalid, input_value='{"judgments": {\n  "obse...e": 0.00\n    }\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 23 column 0 [type=json_invalid, input_value='{ \n  "judgments": {\n  ...": 0.00\n      }\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 8 column 5 [type=json_invalid, input_value='{  \n        "no_recheck...ctly": 0.01  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1172 [type=json_invalid, input_value='{ "judgments": { "approv...nual_review": 0.006 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 345 [type=json_invalid, input_value='{ "reason": "Manual revi... 1.0, "reject": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1825/2025 runs, 417 retries, 2 failed, 10457s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 9 column 6 [type=json_invalid, input_value='{  \n      "reason": "Qu...stop": 0.05  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 1761 [type=json_invalid, input_value='{ "judgments": { "monito...recurrence": 0.10 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `]` at line 5 column 21 [type=json_invalid, input_value='{ \n  "judgments": {\n  ...continue": 0.01\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 296 [type=json_invalid, input_value='{ "vendor_freight_not_se...nual_review": 0.009 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 235 [type=json_invalid, input_value='{ "reason": "Rejecting a...anual_review": 0.70 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 1 column 2 [type=json_invalid, input_value='{ceed_invoice_total_befo...ct": 0.01\n\n\n}\n\n\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 434 [type=json_invalid, input_value='{ "net_30_payment_terms"...manual_review": 0.0 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 952 [type=json_invalid, input_value='{ "judgments": { "human_..._tool_errors": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1850/2025 runs, 422 retries, 2 failed, 10601s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 52 [type=json_invalid, input_value='{ "c1": 0.70, "c2": 0.00...lose_benign": 0.005 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 884 [type=json_invalid, input_value='{ "judgments": { "approv...25, "reject": 0.005 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 52 [type=json_invalid, input_value='{ "c1": 0.02, "c2": 0.01...close_benign": 0.00 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 998 [type=json_invalid, input_value='{ "judgments": { "invest... 0.90, "c6": 0.90 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 1169 [type=json_invalid, input_value='{ "judgments": { "invest... 0.25, "c6": 0.70 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 949 [type=json_invalid, input_value='{ "judgments": { "escala...extra_charge": 0.80 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 2 column 2 [type=json_invalid, input_value='{ \n but it still likely...   "stop": 0.08\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 2 column 5 [type=json_invalid, input_value='{ "c1": 0.02, "c2": 0.05...tion": 0.70  \n  }  \n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1875/2025 runs, 430 retries, 2 failed, 10729s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 641 [type=json_invalid, input_value='{ "judgments": { "execut...e_no_action": 0.005 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected ident at line 1 column 386 [type=json_invalid, input_value='{ "judgments": { "execut...ate_to_human": 0.97 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 586 [type=json_invalid, input_value='{"judgments":{"escalate_...est_information":0.74}}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1900/2025 runs, 437 retries, 2 failed, 10835s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 966 [type=json_invalid, input_value='{ "contain": { "reason":...92, "monitor": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 1324 [type=json_invalid, input_value='{ "judgments": { "escala... 0.02, "c5": 0.05 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 7 column 0 [type=json_invalid, input_value='{\n\n\n"judgments": {\n\...er_directly": 1.0\n}\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+customer_service_000095 #1: gave up after 4 attempts (ValidationError: 1 validation error for Teacher
+  Invalid JSON: control character (\u0000-\u001F) found while parsing a string at line 27 column 0 [type=json_invalid, input_value='{\n  "judgments": {\)
+  1925/2025 runs, 442 retries, 3 failed, 10946s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 491 [type=json_invalid, input_value='{ "reason": "Immediate c....9, "monitor": 0.02 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: trailing characters at line 1 column 449 [type=json_invalid, input_value='{ "reason": "The assista...ate_to_human": 0.16 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected ident at line 1 column 877 [type=json_invalid, input_value='{ "judgments": { "reques...ion_pressure": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1950/2025 runs, 444 retries, 3 failed, 11069s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected value at line 1 column 1796 [type=json_invalid, input_value='{ "judgments": { "reject...otal_basis": 0.00 } } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 1 column 739 [type=json_invalid, input_value='{ "judgments": { "approv... 0.02, "hold": 0.70 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: key must be a string at line 5 column 1 [type=json_invalid, input_value='{\n      "reason": "A hu...e_refund": 0.01\n  }\n}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  1975/2025 runs, 445 retries, 3 failed, 11188s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: invalid number at line 1 column 368 [type=json_invalid, input_value='{ "judgments": { "stop":...0, "continue": 0.00 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValueError: monitor: goal is not 5 probabilities: [0.0, 0.0, 0.0, 0.0, 0.0]
+  2000/2025 runs, 448 retries, 3 failed, 11301s
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `,` or `}` at line 30 column 235 [type=json_invalid, input_value='{  \n  "judgments": {\n ...": 0.00\n      }\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  retrying after ValidationError: 1 validation error for Teacher
+  Invalid JSON: expected `:` at line 1 column 814 [type=json_invalid, input_value='{ "judgments": { "close_..._information": 0.01 } }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.14/v/json_invalid
+  2025/2025 runs, 452 retries, 3 failed, 11419s
+zh: 450 cases without 3 valid runs are left unscored
+en: 225 cases without 3 valid runs are left unscored
+/home/seanhuang2004/anaconda3/envs/krino_matrix/lib/python3.11/site-packages/numpy/_core/fromnumeric.py:3824: RuntimeWarning: Mean of empty slice
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/home/seanhuang2004/anaconda3/envs/krino_matrix/lib/python3.11/site-packages/numpy/_core/_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+wrote /home/seanhuang2004/Krino-Matrix/experiments/teacher-ceiling/results/report.md

@@ -51,7 +51,7 @@ Hub checkpoint 位于现有公开仓库 `yuxiaohuang2004/krino_matrix` 的 `matr
 | `run.sh` | 完整的训练和评测流程 | 是 |
 | `results/report.md` | 汇总报告：各任务指标（含 95% bootstrap 区间）、配对差异、多种子均值 ± 标准差 | 是 |
 | `results/<模型>.json` | 每个模型的全部指标和逐 case 输出 | 是 |
-| `logs/` | 每次训练和 benchmark 的日志 | 是 |
+| `logs/` | 每次训练和 benchmark 的日志 | 否（本地调试产物） |
 | `checkpoints/` | 模型权重，每个约 1.3 GB | 否 |
 
 ## 怎么读结果

@@ -1,0 +1,33 @@
+Starting km-train.service - Krino Matrix training (multilingual-uncertainty)...
+gpu: NVIDIA GeForce RTX 4060 Laptop GPU
+device cuda, 3375 train cases, 450 val cases
+train 3375 cases, val 450; 424 optimizer steps; 324M trainable; weighting uncertainty
+step 20/424 epoch 1 goal 1.7048 constraints 0.5717 selection 1.5686 total 1.9104 | weights goal 0.475 constraints 0.527 selection 0.475
+step 40/424 epoch 1 goal 1.5851 constraints 0.5379 selection 1.1891 total 1.6042 | weights goal 0.434 constraints 0.582 selection 0.446
+step 60/424 epoch 1 goal 1.5404 constraints 0.5050 selection 1.1301 total 1.5026 | weights goal 0.400 constraints 0.650 selection 0.440
+step 80/424 epoch 1 goal 1.4751 constraints 0.5012 selection 1.0498 total 1.4098 | weights goal 0.373 constraints 0.729 selection 0.455
+step 100/424 epoch 1 goal 1.4811 constraints 0.4865 selection 1.0729 total 1.3928 | weights goal 0.357 constraints 0.805 selection 0.466
+epoch 1 val goal 1.4848 constraints 0.4990 selection 1.1171 sum 3.1009
+step 120/424 epoch 2 goal 1.4540 constraints 0.4832 selection 1.0427 total 1.3554 | weights goal 0.350 constraints 0.868 selection 0.472
+step 140/424 epoch 2 goal 1.4406 constraints 0.4880 selection 1.0039 total 1.3308 | weights goal 0.348 constraints 0.917 selection 0.489
+step 160/424 epoch 2 goal 1.4302 constraints 0.4799 selection 1.0183 total 1.3238 | weights goal 0.348 constraints 0.950 selection 0.493
+step 180/424 epoch 2 goal 1.4260 constraints 0.4719 selection 1.0101 total 1.3093 | weights goal 0.349 constraints 0.978 selection 0.494
+step 200/424 epoch 2 goal 1.4277 constraints 0.4588 selection 0.9891 total 1.2854 | weights goal 0.350 constraints 1.001 selection 0.498
+epoch 2 val goal 1.4369 constraints 0.4781 selection 1.0818 sum 2.9968
+step 220/424 epoch 3 goal 1.3992 constraints 0.4633 selection 0.9825 total 1.2756 | weights goal 0.351 constraints 1.019 selection 0.502
+step 240/424 epoch 3 goal 1.3890 constraints 0.4606 selection 0.9470 total 1.2508 | weights goal 0.353 constraints 1.033 selection 0.513
+step 260/424 epoch 3 goal 1.4002 constraints 0.4490 selection 0.9308 total 1.2338 | weights goal 0.355 constraints 1.045 selection 0.523
+step 280/424 epoch 3 goal 1.3725 constraints 0.4508 selection 0.9094 total 1.2139 | weights goal 0.356 constraints 1.055 selection 0.528
+step 300/424 epoch 3 goal 1.3762 constraints 0.4464 selection 0.9442 total 1.2286 | weights goal 0.357 constraints 1.061 selection 0.530
+epoch 3 val goal 1.4317 constraints 0.4687 selection 1.0962 sum 2.9966
+step 320/424 epoch 4 goal 1.3731 constraints 0.4551 selection 0.9058 total 1.2162 | weights goal 0.358 constraints 1.065 selection 0.532
+step 340/424 epoch 4 goal 1.3586 constraints 0.4437 selection 0.9038 total 1.1975 | weights goal 0.359 constraints 1.069 selection 0.535
+step 360/424 epoch 4 goal 1.3554 constraints 0.4321 selection 0.8978 total 1.1806 | weights goal 0.360 constraints 1.072 selection 0.537
+step 380/424 epoch 4 goal 1.3551 constraints 0.4421 selection 0.8746 total 1.1786 | weights goal 0.360 constraints 1.074 selection 0.538
+step 400/424 epoch 4 goal 1.3408 constraints 0.4413 selection 0.9042 total 1.1884 | weights goal 0.360 constraints 1.074 selection 0.539
+step 420/424 epoch 4 goal 1.3499 constraints 0.4406 selection 0.8986 total 1.1880 | weights goal 0.360 constraints 1.074 selection 0.539
+epoch 4 val goal 1.4347 constraints 0.4691 selection 1.1053 sum 3.0092
+best epoch 3, temperatures {'goal': 1.100000023841858, 'constraints': 1.149999976158142, 'selection': 1.149999976158142}, saved to checkpoints/matrix/multilingual-uncertainty
+peak GPU memory 6.1 GiB
+Finished km-train.service - Krino Matrix training (multilingual-uncertainty).
+km-train.service: Consumed 31min 28.721s CPU time, 1.9G memory peak, 0B memory swap peak.

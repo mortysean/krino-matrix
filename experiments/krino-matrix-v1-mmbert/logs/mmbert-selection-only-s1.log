@@ -1,0 +1,44 @@
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 2171.41it/s]
+[transformers] [1mModernBertModel LOAD REPORT[0m from: /home/seanhuang2004/Krino-Matrix/checkpoints/base/mmbert-base
+Key               | Status     |  | 
+------------------+------------+--+-
+head.dense.weight | UNEXPECTED |  | 
+head.norm.weight  | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+base /home/seanhuang2004/Krino-Matrix/checkpoints/base/mmbert-base: encoder from the pretrained weights, all heads from scratch
+device cuda, 3375 train cases, 450 val cases
+train 3375 cases, val 450; 424 optimizer steps; 324M trainable; weighting uncertainty
+step 20/424 epoch 1 selection 1.3749 total 0.6859 | weights goal 0.500 constraints 0.500 selection 0.482
+step 40/424 epoch 1 selection 1.1115 total 0.5538 | weights goal 0.500 constraints 0.500 selection 0.471
+step 60/424 epoch 1 selection 1.0871 total 0.5419 | weights goal 0.500 constraints 0.500 selection 0.467
+step 80/424 epoch 1 selection 1.0344 total 0.5172 | weights goal 0.500 constraints 0.500 selection 0.470
+step 100/424 epoch 1 selection 1.0594 total 0.5289 | weights goal 0.500 constraints 0.500 selection 0.472
+epoch 1 val selection 1.0839 sum 1.0839
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:05<00:00,  5.49s/it]Writing model shards: 100%|██████████| 1/1 [00:05<00:00,  5.49s/it]
+step 120/424 epoch 2 selection 1.0113 total 0.5061 | weights goal 0.500 constraints 0.500 selection 0.476
+step 140/424 epoch 2 selection 1.0115 total 0.5059 | weights goal 0.500 constraints 0.500 selection 0.485
+step 160/424 epoch 2 selection 1.0018 total 0.5011 | weights goal 0.500 constraints 0.500 selection 0.492
+step 180/424 epoch 2 selection 0.9897 total 0.4950 | weights goal 0.500 constraints 0.500 selection 0.496
+step 200/424 epoch 2 selection 1.0305 total 0.5152 | weights goal 0.500 constraints 0.500 selection 0.495
+epoch 2 val selection 1.0660 sum 1.0660
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.32s/it]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.32s/it]
+step 220/424 epoch 3 selection 0.9887 total 0.4944 | weights goal 0.500 constraints 0.500 selection 0.497
+step 240/424 epoch 3 selection 0.9576 total 0.4789 | weights goal 0.500 constraints 0.500 selection 0.505
+step 260/424 epoch 3 selection 0.9353 total 0.4672 | weights goal 0.500 constraints 0.500 selection 0.511
+step 280/424 epoch 3 selection 0.9264 total 0.4624 | weights goal 0.500 constraints 0.500 selection 0.518
+step 300/424 epoch 3 selection 0.9431 total 0.4708 | weights goal 0.500 constraints 0.500 selection 0.521
+epoch 3 val selection 1.0539 sum 1.0539
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.66s/it]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.66s/it]
+step 320/424 epoch 4 selection 0.9257 total 0.4617 | weights goal 0.500 constraints 0.500 selection 0.523
+step 340/424 epoch 4 selection 0.8918 total 0.4438 | weights goal 0.500 constraints 0.500 selection 0.526
+step 360/424 epoch 4 selection 0.8982 total 0.4470 | weights goal 0.500 constraints 0.500 selection 0.528
+step 380/424 epoch 4 selection 0.8885 total 0.4418 | weights goal 0.500 constraints 0.500 selection 0.530
+step 400/424 epoch 4 selection 0.9104 total 0.4534 | weights goal 0.500 constraints 0.500 selection 0.530
+step 420/424 epoch 4 selection 0.9195 total 0.4582 | weights goal 0.500 constraints 0.500 selection 0.530
+epoch 4 val selection 1.0650 sum 1.0650
+Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 1475.93it/s]
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.05s/it]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.05s/it]
+best epoch 3, temperatures {'goal': 0.6000000238418579, 'constraints': 5.0, 'selection': 1.100000023841858}, saved to /home/seanhuang2004/Krino-Matrix/experiments/krino-matrix-v1-mmbert/checkpoints/mmbert-selection-only-s1
+peak GPU memory 6.1 GiB

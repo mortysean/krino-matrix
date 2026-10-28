@@ -1,0 +1,2 @@
+{"aggregate": true, "set": "zh", "calls": 451, "input_tokens": 140033, "output_tokens": 148020, "note": "aggregate of the two full runs before results/audit.jsonl split run and probe audits; per-call lines live only in probe.jsonl / cost.jsonl"}
+{"aggregate": true, "set": "en", "calls": 225, "input_tokens": 94100, "output_tokens": 104585, "note": "aggregate of the two full runs before results/audit.jsonl split run and probe audits; per-call lines live only in probe.jsonl / cost.jsonl"}
