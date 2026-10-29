@@ -33,10 +33,10 @@ The formulator, clarifier and generator call a hosted LLM; the evaluator is the 
 `DecisionEngine` in `krino/engine.py` chains the modules into one decision turn:
 
 ```
-request ─▶ Formulator ─▶ Clarifier ─▶ Generator ─▶ Ranker ─▶ safety rules ─▶ decision
+request ─▶ Formulator ─▶ Clarifier ─▶ Generator ─▶ Evaluator ─▶ safety rules ─▶ decision
 ```
 
-The ranker is the Matrix evaluator trained from `jhu-clsp/mmBERT-base` with uncertainty loss weighting (see `krino/ranker/`).
+The evaluator runs the Matrix model trained from `jhu-clsp/mmBERT-base` with uncertainty loss weighting (`krino/evaluator/` in the flow, `model/inference/` for the model itself).
 
 ### Data Sources
 
@@ -59,9 +59,9 @@ krino/                the Python package
     formulator.py       request → decision problem
     clarifier.py        one key question when needed
     generator.py        candidate actions
-  ranker/             ranking and safety
-    base.py             the Ranker interface
-    matrix.py           ranking by the Matrix model
+  evaluator/          evaluation and safety
+    base.py             the Evaluator interface
+    matrix.py           evaluation by the Matrix model (model/inference)
     rules.py            explicit safety rules
   common/             shared by every part
     schema.py           basic elements
@@ -104,7 +104,7 @@ First version of the KRINO MATRIX V2.5 spec: goal → state/constraints → clar
 
 | Directory | Contents |
 |---|---|
-| `krino/` | Device-independent decision flow: one clarification / decision / error contract, clarifier, card generator, Matrix ranking (shows its real selection probabilities; checkpoint set by `KRINO_MATRIX_CHECKPOINT`), explicit safety rules |
+| `krino/` | Device-independent decision flow: one clarification / decision / error contract, clarifier, card generator, Matrix evaluation (shows its real selection probabilities; checkpoint set by `KRINO_MATRIX_CHECKPOINT`), explicit safety rules |
 | `backend/` | FastAPI: email login, conversations and decision snapshots, feedback, personal memory, usage, call latency and failures; PostgreSQL (SQLite for local dev) |
 | `frontend/` | React + Vite: Today / Chats / Decision / Settings, product demo, stage progress, mobile layout, reduced motion |
 

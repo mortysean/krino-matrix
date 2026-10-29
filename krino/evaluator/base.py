@@ -6,7 +6,7 @@ from ..common.contract import EvaluatorInfo
 from ..common.schema import Problem, Action
 
 
-class Ranking(BaseModel):
+class Evaluation(BaseModel):
     """How an evaluator ranked the candidates.
 
     order        every action id, best first, excluded actions last
@@ -29,15 +29,15 @@ class Ranking(BaseModel):
     checks_constraints: bool = False    # True when every hard constraint was checked against every action
 
 
-class Ranker(ABC):
-    """The one evaluator interface the engine depends on; MatrixRanker is the implementation, tests use fakes."""
+class Evaluator(ABC):
+    """The one evaluator interface the engine depends on; MatrixModelEvaluator implements it, tests use fakes."""
 
     info: EvaluatorInfo
 
     @abstractmethod
-    def rank(
+    def evaluate(
         self,
         problem: Problem,
         actions: list[Action]
-    ) -> Ranking:
+    ) -> Evaluation:
         pass

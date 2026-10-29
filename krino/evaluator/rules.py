@@ -1,6 +1,6 @@
 """Explicit safety rules, applied after the evaluator and independent of any model.
 
-They never change the ranking; they mark what the user must confirm themselves.
+They never change the evaluation; they mark what the user must confirm themselves.
 """
 import re
 

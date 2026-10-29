@@ -1,13 +1,13 @@
-"""One decision turn: input → Formulator → Clarifier → Generator → Ranker → rules → response."""
+"""One decision turn: input → Formulator → Clarifier → Generator → Evaluator → rules → response."""
 import os
 from collections.abc import Callable
 from pathlib import Path
 
 from .common.schema import Problem
 from .common.tracing import TracedLLM
-from .ranker.base import Ranker, Ranking
-from .ranker.matrix import MatrixRanker
-from .ranker.rules import MESSAGES, lang_of, requires_confirmation
+from .evaluator.base import Evaluator, Evaluation
+from .evaluator.matrix import MatrixModelEvaluator
+from .evaluator.rules import MESSAGES, lang_of, requires_confirmation
 from .steps.clarifier import Clarifier
 from .steps.formulator import APIFormulator, Formulator
 from .steps.generator import CardGenerator, CandidateAction
@@ -66,13 +66,13 @@ class DecisionEngine:
         formulator: Formulator,
         clarifier: Clarifier,
         generator: CardGenerator,
-        ranker: Ranker,
+        evaluator: Evaluator,
         generator_version: Callable[[], str] = lambda: "unknown"
     ):
         self.formulator = formulator
         self.clarifier = clarifier
         self.generator = generator
-        self.ranker = ranker
+        self.evaluator = evaluator
         self.generator_version = generator_version
 
     def run(
@@ -112,53 +112,53 @@ class DecisionEngine:
         actions = self.generator.generate(problem.state, problem.goal, problem.constraints).actions
         if not actions:
             return ErrorResponse(code="no_actions", message=ERRORS[lang]["no_actions"], suggestions=["edit", "retry"])
-        ranking = self.ranker.rank(problem, actions)
-        return self._decision(problem, actions, ranking, lang)
+        evaluation = self.evaluator.evaluate(problem, actions)
+        return self._decision(problem, actions, evaluation, lang)
 
     def _decision(
         self,
         problem: Problem,
         actions: list[CandidateAction],
-        ranking: Ranking,
+        evaluation: Evaluation,
         lang: str
     ) -> DecisionResponse:
         msg = MESSAGES[lang]
         by_id = {a.id: a for a in actions}
-        order = [i for i in ranking.order if i in by_id] + [a.id for a in actions if a.id not in ranking.order]
+        order = [i for i in evaluation.order if i in by_id] + [a.id for a in actions if a.id not in evaluation.order]
         cards = []
         for action_id in order:
             a = by_id[action_id]
             cards.append(ActionCard(
                 id=a.id, title=a.title, description=a.description, why=a.why, difference=a.difference,
-                risks=a.risks, excluded_by=ranking.excluded.get(a.id, []),
+                risks=a.risks, excluded_by=evaluation.excluded.get(a.id, []),
                 requires_confirmation=requires_confirmation(f"{a.title} {a.description}"),
             ))
 
-        best = by_id.get(ranking.choice) if ranking.choice else None
+        best = by_id.get(evaluation.choice) if evaluation.choice else None
         warnings = []
         if best is None:
             warnings.append(msg["all_excluded"])
         elif requires_confirmation(f"{best.title} {best.description}"):
             warnings.append(msg["confirm"])
         hard = [c for c in problem.constraints if c.hard]
-        if hard and not ranking.checks_constraints:
+        if hard and not evaluation.checks_constraints:
             warnings.append(msg["unverified"].format(items="；".join(c.text for c in hard)))
-        if ranking.pending:
+        if evaluation.pending:
             texts = {c.id: c.text for c in problem.constraints}
-            warnings.append(msg["pending"].format(items="；".join(texts.get(i, i) for i in ranking.pending)))
+            warnings.append(msg["pending"].format(items="；".join(texts.get(i, i) for i in evaluation.pending)))
         warnings.append(msg["experimental"])
-        info = self.ranker.info
+        info = self.evaluator.info
 
         titles = {a.id: a.title for a in actions}
-        evidence = [f"{titles[i]}：{ranking.notes[i]}" if lang == "zh" else f"{titles[i]}: {ranking.notes[i]}"
-                    for i in order if ranking.notes.get(i)]
+        evidence = [f"{titles[i]}：{evaluation.notes[i]}" if lang == "zh" else f"{titles[i]}: {evaluation.notes[i]}"
+                    for i in order if evaluation.notes.get(i)]
         return DecisionResponse(
             headline=best.title if best else (cards[0].title if cards else ""),
-            explanation=(ranking.reason or best.why) if best else msg["all_excluded"],
+            explanation=(evaluation.reason or best.why) if best else msg["all_excluded"],
             best_action=best.id if best else None,
             actions=cards,
-            action_scores=ranking.scores,
-            confidence=ranking.confidence,
+            action_scores=evaluation.scores,
+            confidence=evaluation.confidence,
             warnings=warnings,
             problem=problem_view(problem),
             evidence=evidence,
@@ -168,10 +168,10 @@ class DecisionEngine:
 
 
 def build_engine() -> DecisionEngine:
-    """The engine the web app runs: hosted-LLM formulator, clarifier and generator, Matrix ranker."""
+    """The engine the web app runs: hosted-LLM formulator, clarifier and generator, Matrix evaluator."""
     path = Path(os.getenv("KRINO_MATRIX_CHECKPOINT") or DEFAULT_CHECKPOINT)
     if not (path / "matrix_config.json").exists():
         raise FileNotFoundError(f"no Matrix checkpoint at {path}")
     llm = TracedLLM()
-    return DecisionEngine(APIFormulator(llm), Clarifier(llm), CardGenerator(llm), MatrixRanker(str(path)),
+    return DecisionEngine(APIFormulator(llm), Clarifier(llm), CardGenerator(llm), MatrixModelEvaluator(str(path)),
                           generator_version=llm.version)

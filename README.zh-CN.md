@@ -33,10 +33,10 @@ Formulator、Clarifier、Generator 调用托管的大模型；评估器是训练
 `krino/engine.py` 的 `DecisionEngine` 把各模块串成一轮完整决策：
 
 ```
-请求 ─▶ Formulator ─▶ Clarifier ─▶ Generator ─▶ Ranker ─▶ 安全规则 ─▶ 决策
+请求 ─▶ Formulator ─▶ Clarifier ─▶ Generator ─▶ Evaluator ─▶ 安全规则 ─▶ 决策
 ```
 
-Ranker 是基于 `jhu-clsp/mmBERT-base`、用 uncertainty loss 加权训练的 Matrix 评估器（见 `krino/ranker/`）。
+Evaluator 使用基于 `jhu-clsp/mmBERT-base`、用 uncertainty loss 加权训练的 Matrix 模型（决策流程里的一步在 `krino/evaluator/`，模型推理本身在 `model/inference/`）。
 
 ### 数据源
 
@@ -59,9 +59,9 @@ krino/                核心 Python 包
     formulator.py       请求 → 决策问题
     clarifier.py        必要时追问一个关键问题
     generator.py        生成候选行动
-  ranker/             排序与安全
-    base.py             Ranker 接口
-    matrix.py           Matrix 模型排序
+  evaluator/          评估与安全
+    base.py             Evaluator 接口
+    matrix.py           调用 Matrix 模型评估（model/inference）
     rules.py            显式安全规则
   common/             各部分共享
     schema.py           基本元素
@@ -104,7 +104,7 @@ cp .env.example .env    # 填入大模型服务商和 sagax API key
 
 | 目录 | 内容 |
 |---|---|
-| `krino/` | 与设备无关的决策流程：统一的 clarification / decision / error 响应、澄清、候选生成、Matrix 排序（显示真实输出的选择倾向；检查点由 `KRINO_MATRIX_CHECKPOINT` 指定）、显式安全规则 |
+| `krino/` | 与设备无关的决策流程：统一的 clarification / decision / error 响应、澄清、候选生成、Matrix 评估（显示真实输出的选择倾向；检查点由 `KRINO_MATRIX_CHECKPOINT` 指定）、显式安全规则 |
 | `backend/` | FastAPI：邮箱登录、对话与决策快照、反馈、个人记忆、使用量、调用耗时与失败记录；PostgreSQL（本地开发可用 SQLite） |
 | `frontend/` | React + Vite：Today / 对话 / 决策详情 / 设置，演示动画、进度轨迹、移动端适配、减少动效 |
 

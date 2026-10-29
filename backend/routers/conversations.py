@@ -7,7 +7,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from krino.common.contract import Answer, ErrorResponse
-from krino.ranker.rules import lang_of
+from krino.evaluator.rules import lang_of
 from ..config import settings
 from ..db import get_db
 from ..models import Conversation, Decision, Message, Turn, User, now

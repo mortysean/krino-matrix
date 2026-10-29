@@ -14,7 +14,7 @@ from krino.steps.formulator import Formulator  # noqa: E402
 from krino.steps.clarifier import Clarifier  # noqa: E402
 from krino.steps.generator import CandidateAction, CandidateSpace, CardGenerator  # noqa: E402
 from krino.engine import DecisionEngine  # noqa: E402
-from krino.ranker.base import Ranker, Ranking  # noqa: E402
+from krino.evaluator.base import Evaluator, Evaluation  # noqa: E402
 from krino.common.contract import EvaluatorInfo, Question  # noqa: E402
 
 
@@ -50,14 +50,14 @@ class FakeGenerator(CardGenerator):
         return CandidateSpace(actions=actions)
 
 
-class FakeRanker(Ranker):
+class FakeEvaluator(Evaluator):
     info = EvaluatorInfo(name="fake", version="fake/0", experimental=True)
 
-    def rank(self, problem, actions):
+    def evaluate(self, problem, actions):
         ids = [a.id for a in actions]
         excluded = {"quit_and_study": ["no_quit_now"]} if "quit_and_study" in ids else {}
         order = [i for i in ids if i not in excluded] + [i for i in ids if i in excluded]
-        return Ranking(order=order, choice=order[0] if order[0] not in excluded else None, excluded=excluded,
+        return Evaluation(order=order, choice=order[0] if order[0] not in excluded else None, excluded=excluded,
                        reason="作品集最快建立可信度。", checks_constraints=True)
 
 
@@ -68,7 +68,7 @@ class FailingFormulator(Formulator):
 
 def fake_engine(**overrides) -> DecisionEngine:
     parts = dict(formulator=FakeFormulator(), clarifier=FakeClarifier(), generator=FakeGenerator(),
-                 ranker=FakeRanker(), generator_version=lambda: "fake-llm")
+                 evaluator=FakeEvaluator(), generator_version=lambda: "fake-llm")
     parts.update(overrides)
     return DecisionEngine(**parts)
 
