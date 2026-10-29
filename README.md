@@ -36,7 +36,7 @@ The formulator, clarifier and generator call a hosted LLM; the evaluator is the 
 request ─▶ Formulator ─▶ Clarifier ─▶ Generator ─▶ Ranker ─▶ safety rules ─▶ decision
 ```
 
-The ranker is the Matrix evaluator trained from `jhu-clsp/mmBERT-base` with uncertainty loss weighting (see `krino/ranker.py`).
+The ranker is the Matrix evaluator trained from `jhu-clsp/mmBERT-base` with uncertainty loss weighting (see `krino/ranker/`).
 
 ### Data Sources
 
@@ -54,16 +54,20 @@ sagax is a data platform built by the author. It collects China market data from
 
 ```
 krino/                the Python package
-  schema.py           basic elements
-  contract.py         the clarification / decision / error responses clients get
-  formulator.py       request → decision problem
-  clarifier.py        one key question when needed
-  generator.py        candidate actions
-  ranker.py           ranking by the Matrix evaluator
-  rules.py            explicit safety rules
-  engine.py           one decision turn, and the engine the web app runs
-  matrix.py           the case format for training and benchmarks
-  llm.py, tracing.py  LLM interface (OpenRouter, litellm, Anthropic SDK) and call records
+  engine.py           one decision turn through every step, and build_engine() for the web app
+  steps/              the three hosted-LLM steps
+    formulator.py       request → decision problem
+    clarifier.py        one key question when needed
+    generator.py        candidate actions
+  ranker/             ranking and safety
+    base.py             the Ranker interface
+    matrix.py           ranking by the Matrix model
+    rules.py            explicit safety rules
+  common/             shared by every part
+    schema.py           basic elements
+    contract.py         the clarification / decision / error responses clients get
+    matrix.py           the case format for training and benchmarks
+    llm.py, tracing.py  LLM interface (OpenRouter, litellm, Anthropic SDK) and call records
   data/               DataSource / Query interface, sagax source
 model/                the Matrix model
   network.py          the network, shared by training and inference
@@ -115,7 +119,7 @@ Configuration is in the Web section of `.env.example` (`DATABASE_URL`, `KRINO_SE
 
 ## Model Experiments
 
-`krino/matrix.py` defines the `krino-matrix/1` case format. The Matrix evaluator has separate goal, constraint and action-selection heads; hard-constraint rules filter unsafe candidates before selection. Training data is expected under `data/krino_matrix/{zh,en}` and checkpoints are kept locally (they are excluded from Git). The current model is trained in-house from the small multilingual encoder `jhu-clsp/mmBERT-base`, with all three task heads initialised from scratch and uncertainty loss weighting; it is the only checkpoint kept locally, `model/checkpoints/mmbert-uncertainty`. See the [experiment report](experiments/krino-matrix-v1-mmbert/README.md) for training details and results.
+`krino/common/matrix.py` defines the `krino-matrix/1` case format. The Matrix evaluator has separate goal, constraint and action-selection heads; hard-constraint rules filter unsafe candidates before selection. Training data is expected under `data/krino_matrix/{zh,en}` and checkpoints are kept locally (they are excluded from Git). The current model is trained in-house from the small multilingual encoder `jhu-clsp/mmBERT-base`, with all three task heads initialised from scratch and uncertainty loss weighting; it is the only checkpoint kept locally, `model/checkpoints/mmbert-uncertainty`. See the [experiment report](experiments/krino-matrix-v1-mmbert/README.md) for training details and results.
 
 ## Status
 

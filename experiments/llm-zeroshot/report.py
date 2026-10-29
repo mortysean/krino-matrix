@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))      # run.py sits next
 
 import httpx
 
-from krino.matrix import load
+from krino.common.matrix import load
 from run import EXP, MODEL, MAX_ATTEMPTS, MAX_TOKENS, REASONING, ATTEMPT_TIMEOUT, CROSS_ATTEMPT, PROBE, \
     COST_CASES, CONCURRENCY, TEACHER
 from model.training.benchmark import BOOTSTRAP
@@ -133,7 +133,7 @@ def main():
     out += [f"- 最终失败的 case：{', '.join(f'{name} {len(v)}' for name, v in failed.items())}。", ""]
 
     out += ["## 设置", "",
-            f"- 模型：`.env` 的 `LLM_DEFAULT` 是 `~deepseek/deepseek-flash-latest`，经 `krino/llm.py` 的 `LLM()` "
+            f"- 模型：`.env` 的 `LLM_DEFAULT` 是 `~deepseek/deepseek-flash-latest`，经 `krino/common/llm.py` 的 `LLM()` "
             f"调用，`served_model` = `{served_model}`；teacher 是 `{TEACHER}`。",
             "- 每条 test case 只问一次，temperature 0（重试时同样）。prompt 和输出 schema 直接 import 自 "
             "`data/build_data.py`（`LABEL_PROMPT`、`GOAL_TASK`、`CONSTRAINTS_TASK`、`BEST_TASK`、"

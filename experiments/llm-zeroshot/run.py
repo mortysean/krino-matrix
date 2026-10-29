@@ -22,7 +22,7 @@ Answers are appended to raw/<set>.jsonl as they arrive, so an interrupted run co
 whose latest record is an error is asked again on the next run, a successful one is kept (delete its line, or the
 file, to ask again). Wall-clock milliseconds and the attempt count are recorded per case, but not tokens:
 LLM.astructured returns only the parsed object. Tokens and the latency of a single call come from an audit of the
-HTTP answers (the Auditor below, which wraps the HTTP transport and never krino/llm.py). The first
+HTTP answers (the Auditor below, which wraps the HTTP transport and never krino/common/llm.py). The first
 --latency-probe cases of each set are asked one call at a time for the latency_ms of the results, free of queueing,
 and --cost-cases cases at --concurrency measure the tokens, delays and price of one call as deployed. A probed call
 is not retried, so each is a clean single call.
@@ -57,11 +57,11 @@ import httpx
 import litellm
 import numpy as np
 
-from krino.matrix import Labels, load
+from krino.common.matrix import Labels, load
 from model.inference import Assessment
 from data.build_data import (BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, LABEL_PROMPT, constraints_list,
                                         levels_text, normalized, teacher_output)
-from krino.llm import LLM
+from krino.common.llm import LLM
 from model.training.benchmark import score
 from litellm.llms.custom_httpx.aiohttp_transport import LiteLLMAiohttpTransport
 
@@ -285,7 +285,7 @@ class Auditor:
     """Records what LLM does not report: one line per HTTP answer of a chat completion, keyed by the request's first
     user message, so the prompt tokens, the completion tokens (a retry is its own call) and the wait of every single
     call are visible. litellm sends its requests through LiteLLMAiohttpTransport.handle_async_request, so that method
-    is wrapped for the duration; krino/llm.py is not touched. Records go to `path` when one is set, and are kept
+    is wrapped for the duration; krino/common/llm.py is not touched. Records go to `path` when one is set, and are kept
     in memory by key either way."""
 
     URL = "https://openrouter.ai/api/v1/chat/completions"

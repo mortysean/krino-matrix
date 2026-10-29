@@ -25,13 +25,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
-from krino.matrix import LEVELS, SPLITS, Labels, MatrixCase, load
-from krino.schema import Constraint
+from krino.common.matrix import LEVELS, SPLITS, Labels, MatrixCase, load
+from krino.common.schema import Constraint
 from data.build_data import (
     BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, TEACHER_SAMPLES, constraints_list, label, levels_text, mean,
     normalized, retry,
 )
-from krino.llm import LLM
+from krino.common.llm import LLM
 
 VAL_FRACTION = 0.1
 TEST_FRACTION = 0.15

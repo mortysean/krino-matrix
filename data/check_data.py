@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
 
-from krino.matrix import SPLITS, load
+from krino.common.matrix import SPLITS, load
 
 PROPORTIONS = {"train": 0.75, "val": 0.1, "test": 0.15}
 

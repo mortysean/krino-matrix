@@ -1,8 +1,8 @@
 import torch
 from pydantic import BaseModel
 
-from krino.matrix import Labels
-from krino.schema import Problem, Action
+from krino.common.matrix import Labels
+from krino.common.schema import Problem, Action
 from ..network import MatrixModel, TASKS
 
 

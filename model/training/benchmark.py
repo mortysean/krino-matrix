@@ -33,7 +33,7 @@ sys.path.insert(0, str(ROOT))
 import numpy as np
 import torch
 
-from krino.matrix import Labels, load
+from krino.common.matrix import Labels, load
 from model.inference import MatrixEvaluator, Assessment
 
 SETS = {"zh": "data/krino_matrix/zh", "en": "data/krino_matrix/en"}

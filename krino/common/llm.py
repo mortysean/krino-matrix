@@ -12,7 +12,7 @@ import litellm
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
-load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 litellm.suppress_debug_info = True
 litellm.drop_params = True

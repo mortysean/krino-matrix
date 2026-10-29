@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from krino.tracing import model_configured
+from krino.common.tracing import model_configured
 from ..config import settings
 from ..db import get_db
 from ..models import Conversation, ModelCall, User

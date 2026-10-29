@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import torch
 
-from krino.matrix import load
+from krino.common.matrix import load
 from model.network import MatrixModel, TASKS
 from model.training.trainer import TrainConfig, train, calibrate
 

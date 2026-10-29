@@ -48,9 +48,9 @@ for name in ("NO_PROXY", "no_proxy"):
 
 import numpy as np                                                                     # noqa: E402
 
-from krino.matrix import LEVELS, Labels, MatrixCase, load                               # noqa: E402
+from krino.common.matrix import LEVELS, Labels, MatrixCase, load                               # noqa: E402
 from model.inference import Assessment                                # noqa: E402
-from krino.llm import LLM                                                          # noqa: E402
+from krino.common.llm import LLM                                                          # noqa: E402
 from data.build_data import (                                              # noqa: E402
     BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, LABEL_PROMPT, constraints_list, levels_text, mean, normalized,
     retry, teacher_output,

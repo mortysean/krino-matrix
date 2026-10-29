@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, Field
 
-from .llm import LLM
-from .schema import State, Constraint, Problem
+from ..common.llm import LLM
+from ..common.schema import State, Constraint, Problem
 
 
 class Formulator(ABC):
@@ -54,7 +54,7 @@ class Formulation(BaseModel):
 
 
 class APIFormulator(Formulator):
-    """Formulates problems by calling a hosted LLM through krino.llm."""
+    """Formulates problems by calling a hosted LLM through krino.common.llm."""
 
     def __init__(
         self,
