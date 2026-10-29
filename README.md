@@ -62,11 +62,16 @@ krino/                the Python package
   ranker.py           ranking by the Matrix evaluator
   rules.py            explicit safety rules
   engine.py           one decision turn, and the engine the web app runs
-  evaluator/          the Matrix model: network, training, inference
   matrix.py           the case format for training and benchmarks
   llm.py, tracing.py  LLM interface (OpenRouter, litellm, Anthropic SDK) and call records
   data/               DataSource / Query interface, sagax source
-scripts/              build data, train, benchmark, check datasets, sagax demo
+model/                the Matrix model
+  network.py          the network, shared by training and inference
+  training/           training framework: trainer.py (training, calibration), train.py (command), benchmark.py
+  inference/          inference framework: MatrixEvaluator, one forward pass, hard-constraint filter, selection
+  checkpoints/        trained weights (git-ignored); the web app runs mmbert-uncertainty
+data/                 scripts that build and check the datasets, sagax demo; the data itself is git-ignored
+scripts/              bash scripts: train, benchmark, serve the web app, test
 backend/              FastAPI, authentication, conversations and persistence
 frontend/             React + Vite web application
 experiments/          reproducible model experiments and reports
@@ -80,13 +85,14 @@ pip install -r requirements.txt
 cp .env.example .env    # fill in LLM providers and the sagax API key
 ```
 
-| Script | What it runs |
+| Command | What it runs |
 | --- | --- |
-| `python scripts/build_data.py ...` | Build Krino Matrix datasets labeled by a teacher LLM |
-| `python scripts/check_data.py` / `merge_data.py` / `unify_data.py` | Check, merge and unify datasets |
-| `python scripts/train.py data/krino_matrix/zh data/krino_matrix/en` | Train the Matrix evaluator |
-| `python scripts/benchmark.py <checkpoint>` | Score a checkpoint on the test sets |
-| `python scripts/sagax_demo.py` | sagax data queries |
+| `bash scripts/serve.sh` | Build the frontend and serve the web app (`--dev`: API only, next to `npm run dev`) |
+| `bash scripts/test.sh` | Backend and decision-flow tests, no model calls |
+| `bash scripts/train.sh [out_dir] [seed]` | Train a Matrix model with the current recipe (mmBERT-base, uncertainty weighting) |
+| `bash scripts/benchmark.sh [checkpoint ...]` | Score on the test sets; default `model/checkpoints/mmbert-uncertainty` |
+| `python data/build_data.py ...` | Build datasets labeled by a teacher LLM; the other data scripts are in [data/README.md](data/README.md) |
+| `python data/sagax_demo.py` | sagax data queries |
 
 ## Web Decision Assistant (V2.5 P0)
 
@@ -100,17 +106,16 @@ First version of the KRINO MATRIX V2.5 spec: goal → state/constraints → clar
 
 ```bash
 pip install -r requirements.txt
-cd frontend && npm install && npm run build && cd ..
-uvicorn backend.main:app --port 8000          # open http://localhost:8000
-# frontend hot reload: run uvicorn backend.main:app --reload and (cd frontend && npm run dev) together
-pytest tests                                   # backend and core tests, no model calls
+bash scripts/serve.sh          # open http://localhost:8000
+# frontend hot reload: run bash scripts/serve.sh --dev and (cd frontend && npm run dev) together
+bash scripts/test.sh           # backend and decision-flow tests, no model calls
 ```
 
 Configuration is in the Web section of `.env.example` (`DATABASE_URL`, `KRINO_SECRET_KEY`, `KRINO_MATRIX_CHECKPOINT`, ...). Email delivery is not wired up yet, so password reset links go to the server log; balance, top-up and BYOK are marked as not live in Settings.
 
 ## Model Experiments
 
-`krino/matrix.py` defines the `krino-matrix/1` case format. The Matrix evaluator has separate goal, constraint and action-selection heads; hard-constraint rules filter unsafe candidates before selection. Training data is expected under `data/krino_matrix/{zh,en}` and checkpoints are kept locally (they are excluded from Git). The current model is trained in-house from the small multilingual encoder `jhu-clsp/mmBERT-base`, with all three task heads initialised from scratch and uncertainty loss weighting; it is the only checkpoint kept locally, `experiments/krino-matrix-v1-mmbert/checkpoints/mmbert-uncertainty`. See the [experiment report](experiments/krino-matrix-v1-mmbert/README.md) for training details and results.
+`krino/matrix.py` defines the `krino-matrix/1` case format. The Matrix evaluator has separate goal, constraint and action-selection heads; hard-constraint rules filter unsafe candidates before selection. Training data is expected under `data/krino_matrix/{zh,en}` and checkpoints are kept locally (they are excluded from Git). The current model is trained in-house from the small multilingual encoder `jhu-clsp/mmBERT-base`, with all three task heads initialised from scratch and uncertainty loss weighting; it is the only checkpoint kept locally, `model/checkpoints/mmbert-uncertainty`. See the [experiment report](experiments/krino-matrix-v1-mmbert/README.md) for training details and results.
 
 ## Status
 

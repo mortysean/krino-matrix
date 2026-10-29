@@ -16,7 +16,7 @@ from .contract import (
 
 ROOT = Path(__file__).resolve().parents[1]
 # The mmBERT-base Matrix model trained with uncertainty loss weighting; KRINO_MATRIX_CHECKPOINT overrides it
-DEFAULT_CHECKPOINT = ROOT / "experiments/krino-matrix-v1-mmbert/checkpoints/mmbert-uncertainty"
+DEFAULT_CHECKPOINT = ROOT / "model/checkpoints/mmbert-uncertainty"
 
 # Exceptions that mean the model endpoint itself is unreachable or refuses us, matched by name so the core does
 # not depend on any one SDK

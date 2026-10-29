@@ -6,7 +6,7 @@ produced the original labels, score the old labels against the new ones.
     python experiments/teacher-ceiling/run.py --sets zh         # one set
     python experiments/teacher-ceiling/run.py --report-only     # rebuild report.md from raw/, no teacher calls
 
-Every test case was labeled by scripts/build_data.py: label() in three independent teacher runs at
+Every test case was labeled by data/build_data.py: label() in three independent teacher runs at
 temperature 0.7, the reasons and probabilities in one structured output, the actions in a fresh random order per run,
 every run retried (4 attempts) unless every value is usable, and the labels the means of the three runs. This script
 repeats that for each test case with the model recorded in meta.goal_teacher, but keeps the three raw runs:
@@ -17,7 +17,7 @@ repeats that for each test case with the model recorded in meta.goal_teacher, bu
   2. assess     the three runs become an Assessment the way MatrixEvaluator.assess does it (hard constraints at 0.5
                 exclude, the most probable remaining action is the choice) for four "models": teacher-relabel (the
                 mean of the three runs, the original labeling pipeline), teacher-single-s1/-s2/-s3 (one run each).
-  3. score      scripts/benchmark.py's score() against the original test labels. The model files are exactly
+  3. score      model/training/benchmark.py's score() against the original test labels. The model files are exactly
                 what that benchmark writes, so it lists them next to the trained models.
   4. noise      agreement between the runs themselves: argmax of best, expected goal level.
   5. report     results/report.md.
@@ -49,17 +49,17 @@ for name in ("NO_PROXY", "no_proxy"):
 import numpy as np                                                                     # noqa: E402
 
 from krino.matrix import LEVELS, Labels, MatrixCase, load                               # noqa: E402
-from krino.evaluator import Assessment                                # noqa: E402
+from model.inference import Assessment                                # noqa: E402
 from krino.llm import LLM                                                          # noqa: E402
-from scripts.build_data import (                                              # noqa: E402
+from data.build_data import (                                              # noqa: E402
     BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, LABEL_PROMPT, constraints_list, levels_text, mean, normalized,
     retry, teacher_output,
 )
 
-from scripts import benchmark                                                  # noqa: E402  (import only)
+from model.training import benchmark                                                  # noqa: E402  (import only)
 
 SETS = {"zh": "data/krino_matrix/zh", "en": "data/krino_matrix/en"}
-SAMPLES = 3                 # TEACHER_SAMPLES in scripts/build_data.py: label() averages this many runs
+SAMPLES = 3                 # TEACHER_SAMPLES in data/build_data.py: label() averages this many runs
 ATTEMPTS = 4                # label()'s retry(judged, attempts=4)
 TEMPERATURE = 0.7
 HARD = 0.5                  # MatrixEvaluator's hard_threshold
@@ -376,7 +376,7 @@ async def sample_sets(args: argparse.Namespace, cases: dict[str, list[MatrixCase
 
 def build_sets(cases: dict[str, list[MatrixCase]], runs: dict[str, dict[str, dict[int, dict]]]
                ) -> tuple[dict[str, dict[str, dict]], list[MatrixCase], dict]:
-    """Every model's result per set, in the shape scripts/benchmark.py writes; plus the cases each was
+    """Every model's result per set, in the shape model/training/benchmark.py writes; plus the cases each was
     scored on (the ones with SAMPLES valid runs) and the incomplete ones."""
     results, scored, partial = {model: {} for model in MODELS}, {}, {}
     for name, cs in cases.items():
@@ -507,7 +507,7 @@ def markdown(args, results, stats, counters, env, sets_meta, scored, noise_, par
     out += ["| 数据 | served_model（全部有效运行） |", "|---|---|"]
     for name, s in stats.items():
         out.append(f"| {name} | {', '.join(f'`{k}` × {v}' for k, v in s['served'].items())} |")
-    out += ["", "重试沿用 `scripts/build_data.py` 的 `retry()`：最多 4 次尝试（含首次），退避 1s、2s、4s。"
+    out += ["", "重试沿用 `data/build_data.py` 的 `retry()`：最多 4 次尝试（含首次），退避 1s、2s、4s。"
                 "原始每次运行一条记录，写在 `raw/{zh,en}.jsonl`，包括 `action_order`（该次展示的动作顺序）、"
                 "`served_model`、完整输出、`latency_ms`（含重试的总耗时）、`attempts` 和 `error`。", ""]
 
@@ -639,10 +639,10 @@ def markdown(args, results, stats, counters, env, sets_meta, scored, noise_, par
             "- teacher-single-sN：第 N 次采样单独作为概率，不平均。",
             "- Assessment：labels.goal / constraints / best 为上述概率；excluded = 任一硬约束违反概率 ≥ 0.5 的行动"
             f"（阈值 {HARD}，同 `MatrixEvaluator.assess`）；choice = 未被排除的行动中 best 最大者，全部被排除时为 null。",
-            "- 所有指标由 `scripts/benchmark.py` 的 `score()` 计算（未改动），准确率的方括号为 95% bootstrap 区间。",
+            "- 所有指标由 `model/training/benchmark.py` 的 `score()` 计算（未改动），准确率的方括号为 95% bootstrap 区间。",
             "- en 的 `original_gold_accuracy`：与 typed-decisions 原有 action/disposition gold（`meta.previous_best`）的 "
             "argmax 一致率。它与 teacher 标签的一致度是原 gold 与 teacher 的水平，不是本实验新采样引入的差异。",
-            "- `results/<模型>.json` 的结构与 `scripts/benchmark.py` 写出的完全相同（`model` / `sets` / `environment`），"
+            "- `results/<模型>.json` 的结构与 `model/training/benchmark.py` 写出的完全相同（`model` / `sets` / `environment`），"
             "额外附带 `teacher_latency_ms`、`unscored_cases` 两个字段；把它们复制到 `experiments/krino-matrix-v1-mmbert/results/` 后，"
             "主实验的 benchmark 报告会把它们列为额外的模型。", ""]
     return "\n".join(out)

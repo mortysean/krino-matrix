@@ -22,8 +22,8 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from ..matrix import MatrixCase
-from .model import MatrixModel, TASKS
+from krino.matrix import MatrixCase
+from ..network import MatrixModel, TASKS
 
 FIXED_WEIGHTS = {"goal": 1.0, "constraints": 1.0, "selection": 0.5}
 TEMP_MIN, TEMP_MAX = 0.5, 5.0

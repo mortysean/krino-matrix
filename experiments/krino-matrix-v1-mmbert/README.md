@@ -24,7 +24,7 @@
 ## 运行
 
 ```bash
-# 首次：把 encoder 放到 checkpoints/base/mmbert-base（config.json + model.safetensors + tokenizer*）
+# 首次：把 encoder 放到 model/checkpoints/mmbert-base（config.json + model.safetensors + tokenizer*）
 bash experiments/krino-matrix-v1-mmbert/run.sh
 ```
 
@@ -41,7 +41,7 @@ Hub checkpoint 位于现有公开仓库 `yuxiaohuang2004/krino_matrix` 的 `matr
 | `results/report.md` | 汇总报告：各任务指标（含 95% bootstrap 区间）、配对差异、多种子均值 ± 标准差 | 是 |
 | `results/<模型>.json` | 每个模型的全部指标和逐 case 输出 | 是 |
 | `logs/` | 每次训练和 benchmark 的日志 | 否（本地调试产物） |
-| `checkpoints/` | 模型权重，每个约 1.3 GB | 否 |
+| `checkpoints/` | 模型权重，每个约 1.3 GB；本地只保留 `mmbert-uncertainty`，已移到 `model/checkpoints/` | 否 |
 
 ## 怎么读结果
 

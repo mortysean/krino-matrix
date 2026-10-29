@@ -9,7 +9,7 @@ set -euo pipefail
 ROOT=/home/seanhuang2004/Krino-Matrix
 EXP=$ROOT/experiments/krino-matrix-v1-mmbert
 PY=~/anaconda3/envs/krino_matrix/bin/python
-BASE=$ROOT/checkpoints/base/mmbert-base
+BASE=$ROOT/model/checkpoints/mmbert-base
 cd "$ROOT"
 mkdir -p "$EXP/checkpoints" "$EXP/logs" "$EXP/results"
 
@@ -37,7 +37,7 @@ train() {   # name, seed, extra arguments
     fi
     echo "$(date '+%F %T') training $(basename "$out")"
     # shellcheck disable=SC2086
-    $PY -u scripts/train.py data/krino_matrix/zh data/krino_matrix/en \
+    $PY -u model/training/train.py data/krino_matrix/zh data/krino_matrix/en \
         --base "$BASE" --freeze-below 0 --max-length 2048 \
         --micro-batch 2 --grad-accum 16 --epochs 4 --seed "$seed" $extra \
         --out "$out" > "$EXP/logs/$(basename "$out").log" 2>&1
@@ -48,7 +48,7 @@ benchmark() {   # checkpoint names
     local dirs=() name
     for name in "$@"; do dirs+=("$EXP/checkpoints/$name"); done
     echo "$(date '+%F %T') benchmarking $*"
-    $PY -u scripts/benchmark.py "${dirs[@]}" \
+    $PY -u model/training/benchmark.py "${dirs[@]}" \
         --reference mmbert-uncertainty --out "$EXP/results" >> "$EXP/logs/benchmark.log" 2>&1
 }
 

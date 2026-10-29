@@ -5,6 +5,9 @@ __pycache__/
 .env.*
 !.env.example
 checkpoints/
-data/
+# datasets, databases and outputs stay local; the scripts that build the data are tracked
+data/*
+!data/*.py
+!data/README.md
 experiments/*/checkpoints/
 .backup/

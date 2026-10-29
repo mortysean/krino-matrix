@@ -1,6 +1,6 @@
 """Try the sagax data channel (needs SAGAX_API_KEY / SAGAX_SECRET_KEY in .env):
 
-    python scripts/sagax_demo.py
+    python data/sagax_demo.py
 """
 import sys
 from pathlib import Path

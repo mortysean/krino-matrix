@@ -1,17 +1,17 @@
-"""Train the Krino Matrix evaluator (krino/evaluator) on Krino Matrix datasets, from a plain
+"""Train the Krino Matrix evaluator (model/) on Krino Matrix datasets, from a plain
 pretrained encoder: every head starts from scratch and no decision model is inherited.
 
-    python scripts/train.py data/krino_matrix/zh data/krino_matrix/en --weighting uncertainty \
+    python model/training/train.py data/krino_matrix/zh data/krino_matrix/en --weighting uncertainty \
         --out checkpoints/matrix/mmbert-uncertainty
-    python scripts/train.py data/krino_matrix/zh data/krino_matrix/en --weighting fixed \
+    python model/training/train.py data/krino_matrix/zh data/krino_matrix/en --weighting fixed \
         --out checkpoints/matrix/mmbert-fixed
-    python scripts/train.py data/krino_matrix/zh data/krino_matrix/en --base jhu-clsp/mmBERT-base \
+    python model/training/train.py data/krino_matrix/zh data/krino_matrix/en --base jhu-clsp/mmBERT-base \
         --freeze-below 10 --out checkpoints/matrix/mmbert-uncertainty-frozen
-    python scripts/train.py data/krino_matrix/zh data/krino_matrix/en --tasks selection \
+    python model/training/train.py data/krino_matrix/zh data/krino_matrix/en --tasks selection \
         --out checkpoints/matrix/mmbert-selection-only
 
 train.jsonl of every data dir is trained on and val.jsonl picks the epoch and fits the temperatures; test.jsonl is
-left to scripts/benchmark.py. The run log, with every task's raw loss, effective weight and the total,
+left to model/training/benchmark.py. The run log, with every task's raw loss, effective weight and the total,
 is written to <out>/train_log.jsonl.
 """
 import argparse
@@ -21,13 +21,13 @@ import sys
 from pathlib import Path
 
 # Make the project root importable when this file is run as a script
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import torch
 
 from krino.matrix import load
-from krino.evaluator import MatrixModel, TrainConfig, train, calibrate
-from krino.evaluator.model import TASKS
+from model.network import MatrixModel, TASKS
+from model.training.trainer import TrainConfig, train, calibrate
 
 BASE = "jhu-clsp/mmBERT-base"     # a small pretrained multilingual encoder, before any decision training
 

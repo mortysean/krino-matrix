@@ -62,11 +62,16 @@ krino/                核心 Python 包
   ranker.py           Matrix 评估器排序
   rules.py            显式安全规则
   engine.py           一轮决策的完整流程，以及 Web 使用的引擎
-  evaluator/          Matrix 模型：网络、训练、推理
   matrix.py           训练与评测用的样本格式
   llm.py, tracing.py  大模型接口（OpenRouter、litellm、Anthropic SDK）与调用记录
   data/               DataSource / Query 接口，sagax 数据源
-scripts/              构建数据、训练、评测、检查数据集、sagax 示例
+model/                Matrix 模型
+  network.py          网络结构（训练和推理共用）
+  training/           训练框架：trainer.py（训练与校准）、train.py（训练命令）、benchmark.py（评测）
+  inference/          推理框架：MatrixEvaluator，一次前向、硬约束过滤、再选择
+  checkpoints/        训练好的权重（git 忽略），Web 使用 mmbert-uncertainty
+data/                 构建与检查数据集的脚本、sagax 示例；数据集和数据库本身 git 忽略
+scripts/              常用 bash 脚本：训练、评测、启动 Web、测试
 backend/              FastAPI、认证、对话与持久化
 frontend/             React + Vite Web 应用
 experiments/          可复现的模型实验和报告
@@ -80,13 +85,14 @@ pip install -r requirements.txt
 cp .env.example .env    # 填入大模型服务商和 sagax API key
 ```
 
-| 脚本 | 运行内容 |
+| 命令 | 运行内容 |
 | --- | --- |
-| `python scripts/build_data.py ...` | 用教师 LLM 构建并标注 Krino Matrix 数据集 |
-| `python scripts/check_data.py` / `merge_data.py` / `unify_data.py` | 检查、合并、统一数据集 |
-| `python scripts/train.py data/krino_matrix/zh data/krino_matrix/en` | 训练 Matrix 评估器 |
-| `python scripts/benchmark.py <checkpoint>` | 在测试集上评测 |
-| `python scripts/sagax_demo.py` | sagax 数据查询 |
+| `bash scripts/serve.sh` | 构建前端并启动 Web 应用（`--dev` 只启动 API，配合 `npm run dev`） |
+| `bash scripts/test.sh` | 后端与决策流程测试，不调用模型 |
+| `bash scripts/train.sh [输出目录] [种子]` | 按当前配置训练 Matrix 模型（mmBERT-base、uncertainty 加权） |
+| `bash scripts/benchmark.sh [检查点 ...]` | 在测试集上评测，默认评测 `model/checkpoints/mmbert-uncertainty` |
+| `python data/build_data.py ...` | 用教师 LLM 构建并标注数据集，其余数据脚本见 [data/README.md](data/README.md) |
+| `python data/sagax_demo.py` | sagax 数据查询 |
 
 ## Web 决策助手（V2.5 P0）
 
@@ -100,17 +106,16 @@ cp .env.example .env    # 填入大模型服务商和 sagax API key
 
 ```bash
 pip install -r requirements.txt
-cd frontend && npm install && npm run build && cd ..
-uvicorn backend.main:app --port 8000          # 打开 http://localhost:8000
-# 开发时前端热更新：uvicorn backend.main:app --reload 与 (cd frontend && npm run dev) 同时运行
-pytest tests                                   # 后端与决策核心测试，不调用模型
+bash scripts/serve.sh          # 打开 http://localhost:8000
+# 开发时前端热更新：bash scripts/serve.sh --dev 与 (cd frontend && npm run dev) 同时运行
+bash scripts/test.sh           # 后端与决策流程测试，不调用模型
 ```
 
 配置见 `.env.example` 的 Web 部分（`DATABASE_URL`、`KRINO_SECRET_KEY`、`KRINO_MATRIX_CHECKPOINT` 等）。邮件服务尚未接入，找回密码的链接写在服务器日志中；余额、充值和 BYOK 在设置中标为未上线。
 
 ## 模型实验
 
-`krino/matrix.py` 定义了 `krino-matrix/1` 样本格式。Matrix 评估器分别预测目标达成度、约束违反和行动选择；硬约束规则会在选择前过滤不安全的候选。训练数据放在 `data/krino_matrix/{zh,en}`，模型检查点保存在本地（Git 忽略）。当前模型从小模型 `jhu-clsp/mmBERT-base`（多语言 encoder）自行训练，三个任务头全部从零初始化，loss 用 uncertainty 加权；本地只保留这一个检查点 `experiments/krino-matrix-v1-mmbert/checkpoints/mmbert-uncertainty`。训练方式与结果见[实验报告](experiments/krino-matrix-v1-mmbert/README.md)。
+`krino/matrix.py` 定义了 `krino-matrix/1` 样本格式。Matrix 评估器分别预测目标达成度、约束违反和行动选择；硬约束规则会在选择前过滤不安全的候选。训练数据放在 `data/krino_matrix/{zh,en}`，模型检查点保存在本地（Git 忽略）。当前模型从小模型 `jhu-clsp/mmBERT-base`（多语言 encoder）自行训练，三个任务头全部从零初始化，loss 用 uncertainty 加权；本地只保留这一个检查点 `model/checkpoints/mmbert-uncertainty`。训练方式与结果见[实验报告](experiments/krino-matrix-v1-mmbert/README.md)。
 
 ## 进度
 

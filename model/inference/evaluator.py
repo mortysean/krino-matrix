@@ -1,9 +1,9 @@
 import torch
 from pydantic import BaseModel
 
-from ..matrix import Labels
-from ..schema import Problem, Action
-from .model import MatrixModel, TASKS
+from krino.matrix import Labels
+from krino.schema import Problem, Action
+from ..network import MatrixModel, TASKS
 
 
 class Assessment(BaseModel):

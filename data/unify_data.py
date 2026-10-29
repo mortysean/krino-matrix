@@ -1,7 +1,7 @@
 """Unify the zh and en Krino Matrix datasets before joint training.
 
-    python scripts/unify_data.py relabel-en --data data/krino_matrix/en --target-constraints 7
-    python scripts/unify_data.py resplit --data data/krino_matrix --seed 0
+    python data/unify_data.py relabel-en --data data/krino_matrix/en --target-constraints 7
+    python data/unify_data.py resplit --data data/krino_matrix --seed 0
 
 relabel-en brings the en set to the zh structure and label semantics in two steps per case:
   1. constraints: the teacher proposes the constraints the state implies (per-case count drawn to match zh's
@@ -27,7 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from krino.matrix import LEVELS, SPLITS, Labels, MatrixCase, load
 from krino.schema import Constraint
-from scripts.build_data import (
+from data.build_data import (
     BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, TEACHER_SAMPLES, constraints_list, label, levels_text, mean,
     normalized, retry,
 )

@@ -8,7 +8,7 @@ that asks a large model instead of running MatrixEvaluator's single forward pass
     python experiments/llm-zeroshot/run.py --cost --cost-cases 100       # only the token / cost measurement
 
 Per case the model (LLM_DEFAULT of .env, temperature 0) is asked once, with the teacher's own prompt and output
-schema from scripts/build_data.py (LABEL_PROMPT, GOAL_TASK, CONSTRAINTS_TASK, BEST_TASK, teacher_output,
+schema from data/build_data.py (LABEL_PROMPT, GOAL_TASK, CONSTRAINTS_TASK, BEST_TASK, teacher_output,
 levels_text, constraints_list, normalized), so what differs from the labels is the sampling, not the instructions.
 The action order is shuffled as in label(), with a fixed seed, and recorded with every case. An answer that takes
 longer than ATTEMPT_TIMEOUT, whose goal is not 5 probabilities summing to 1, whose violation probability is outside
@@ -29,7 +29,7 @@ is not retried, so each is a clean single call.
 
 The answers become assessments in the shape MatrixEvaluator.assess returns -- labels, excluded (every action whose
 violation probability of a hard constraint reaches 0.5), choice (the most probable action among the rest, the same
-rule as MatrixEvaluator.assess) -- and are scored by scripts/benchmark.py's score(), imported unchanged.
+rule as MatrixEvaluator.assess) -- and are scored by model/training/benchmark.py's score(), imported unchanged.
 Outputs, under experiments/llm-zeroshot/:
   raw/<set>.jsonl                     every case: shown order, attempt count, wall-clock ms, assessment or error
   results/llm-zeroshot-flash.json     {"model", "sets": {set: {n_cases, **score(), latency_ms, assessments}}}
@@ -58,11 +58,11 @@ import litellm
 import numpy as np
 
 from krino.matrix import Labels, load
-from krino.evaluator import Assessment
-from scripts.build_data import (BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, LABEL_PROMPT, constraints_list,
+from model.inference import Assessment
+from data.build_data import (BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, LABEL_PROMPT, constraints_list,
                                         levels_text, normalized, teacher_output)
 from krino.llm import LLM
-from scripts.benchmark import score
+from model.training.benchmark import score
 from litellm.llms.custom_httpx.aiohttp_transport import LiteLLMAiohttpTransport
 
 EXP = ROOT / "experiments/llm-zeroshot"
@@ -109,7 +109,7 @@ def prompt(case, shown: list[str]) -> str:
 
 
 async def retried(make, attempts: int, deadline: float) -> dict:
-    """scripts.build_data.retry -- ask again after an unusable answer or a failure, with a growing pause, at
+    """data.build_data.retry -- ask again after an unusable answer or a failure, with a growing pause, at
     most `attempts` times -- but with a total deadline instead of a deadline per attempt."""
     for attempt in range(attempts):
         try:

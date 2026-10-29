@@ -66,7 +66,7 @@ class MatrixRanker(Ranker):
     @property
     def evaluator(self):
         if self._evaluator is None:
-            from .evaluator import MatrixEvaluator
+            from model.inference import MatrixEvaluator
             self._evaluator = MatrixEvaluator(self.path, hard_threshold=self.hard_threshold)
         return self._evaluator
 
