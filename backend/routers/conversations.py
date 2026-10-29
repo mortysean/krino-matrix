@@ -6,8 +6,8 @@ from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from decision_core import Answer, ErrorResponse
-from decision_core.rules import lang_of
+from krino.contract import Answer, ErrorResponse
+from krino.rules import lang_of
 from ..config import settings
 from ..db import get_db
 from ..models import Conversation, Decision, Message, Turn, User, now

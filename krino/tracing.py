@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from services.llm import LLM, LLMResponse
+from .llm import LLM, LLMResponse
 
 
 class Call(BaseModel):

@@ -1,8 +1,8 @@
 """Score Krino Matrix evaluators on the test sets, task by task and on the final decision; write report.md and one
 JSON per model:
 
-    python benchmark/run_krino_matrix.py checkpoints/matrix/mmbert-uncertainty checkpoints/matrix/mmbert-fixed
-    python benchmark/run_krino_matrix.py checkpoints/matrix/mmbert-uncertainty --sets zh=data/krino_matrix/zh en=data/krino_matrix/en
+    python scripts/benchmark.py checkpoints/matrix/mmbert-uncertainty checkpoints/matrix/mmbert-fixed
+    python scripts/benchmark.py checkpoints/matrix/mmbert-uncertainty --sets zh=data/krino_matrix/zh en=data/krino_matrix/en
 
 Every model assesses every case with MatrixEvaluator.assess (one forward pass), and is scored on the labels the case
 carries; the input-free prior (the mean labels of the training sets) is scored the same way as a floor.
@@ -15,7 +15,7 @@ Accuracies carry a 95% bootstrap interval over the test cases. The report also g
 difference in decision accuracy of every model from the --reference one (the first model by default), and the
 mean ± std over seeds of every model run with several (directories named <name>-s<seed> group with <name>).
 The en set is the typed-decisions test split in Krino Matrix form. Its goal, constraints and best labels all come
-from the same teacher (see tools/unify_matrix.py), so the three heads are scored against one standard; the
+from the same teacher (see scripts/unify_data.py), so the three heads are scored against one standard; the
 original typed-decisions gold, kept in meta.previous_best, is scored as decision original_gold_accuracy.
 """
 import argparse
@@ -33,8 +33,8 @@ sys.path.insert(0, str(ROOT))
 import numpy as np
 import torch
 
-from core.matrix import Labels, load
-from core.evaluator.matrix_evaluator import MatrixEvaluator, Assessment
+from krino.matrix import Labels, load
+from krino.evaluator import MatrixEvaluator, Assessment
 
 SETS = {"zh": "data/krino_matrix/zh", "en": "data/krino_matrix/en"}
 HARD = 0.5
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     parser.add_argument("models", nargs="*", help="MatrixModel checkpoint directories")
     parser.add_argument("--reference", default=None, help="model the report's paired differences subtract (default: the first)")
     parser.add_argument("--sets", nargs="+", default=[f"{k}={v}" for k, v in SETS.items()], help="name=dataset dir")
-    parser.add_argument("--out", default="benchmark/results/krino_matrix")
+    parser.add_argument("--out", default="data/benchmark")
     args = parser.parse_args()
 
     torch.manual_seed(0)

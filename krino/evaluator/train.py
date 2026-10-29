@@ -22,7 +22,7 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from ...matrix import MatrixCase
+from ..matrix import MatrixCase
 from .model import MatrixModel, TASKS
 
 FIXED_WEIGHTS = {"goal": 1.0, "constraints": 1.0, "selection": 0.5}

@@ -1,6 +1,7 @@
 from conftest import FailingFormulator, FakeGenerator, fake_engine
-from decision_core import Answer, CandidateAction, CoreInput
-from decision_core.rules import requires_confirmation
+from krino.contract import Answer, CoreInput
+from krino.generator import CandidateAction
+from krino.rules import requires_confirmation
 
 
 def test_asks_one_question_first():

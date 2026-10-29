@@ -10,7 +10,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from core.schema import Action, Constraint
+from .schema import Action, Constraint
 
 CORE_VERSION = "decision-core/0.1"
 

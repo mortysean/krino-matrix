@@ -2,8 +2,8 @@ import json
 
 from pydantic import Field
 
-from services.llm import LLM
-from core.schema import State, Constraint, Action, ActionSpace, constraints_text
+from .llm import LLM
+from .schema import State, Constraint, Action, ActionSpace, constraints_text
 
 
 # Kept in the user turn rather than the system prompt: some gateways replace the system prompt

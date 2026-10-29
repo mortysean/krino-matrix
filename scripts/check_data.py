@@ -1,6 +1,6 @@
 """Check the zh and en Krino Matrix datasets before joint training, and print how far they have converged.
 
-    python tools/check_matrix.py --data data/krino_matrix
+    python scripts/check_data.py --data data/krino_matrix
 
 Exits non-zero when a hard check fails: duplicate ids, a group or id straddling two splits, a missing goal or
 best label, a split field that disagrees with the file, or a constraint label naming an unknown action or
@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
 
-from core.matrix import SPLITS, load
+from krino.matrix import SPLITS, load
 
 PROPORTIONS = {"train": 0.75, "val": 0.1, "test": 0.15}
 

@@ -1,6 +1,6 @@
 """Merge generated Krino Matrix cases into a target dataset, keeping every case's own split.
 
-    python tools/merge_matrix_cases.py --source data/krino_matrix/zh_generated --target data/krino_matrix/zh
+    python scripts/merge_data.py --source data/krino_matrix/zh_generated --target data/krino_matrix/zh
 
 Cases are deduplicated by id; ids already present in the target are skipped, so rerunning is safe.
 Every case is validated through MatrixCase before it is written, and the target is rewritten atomically
@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from core.matrix import SPLITS, load
+from krino.matrix import SPLITS, load
 
 
 def main(args: argparse.Namespace) -> None:

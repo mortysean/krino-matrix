@@ -1,9 +1,9 @@
-"""Build Krino Matrix datasets (core/matrix.py): every case is state, goal, constraints and action space, labeled
+"""Build Krino Matrix datasets (krino/matrix.py): every case is state, goal, constraints and action space, labeled
 for goal, constraints and best by a teacher LLM.
 
-    python examples/krino_matrix_data.py legacy data/value_opus data/value_more data/value_ds1017 --out data/krino_matrix/zh
-    python examples/krino_matrix_data.py typed-decisions --out data/krino_matrix/en
-    python examples/krino_matrix_data.py generate --cases 1000 --out data/krino_matrix/zh_generated
+    python scripts/build_data.py legacy data/value_opus data/value_more data/value_ds1017 --out data/krino_matrix/zh
+    python scripts/build_data.py typed-decisions --out data/krino_matrix/en
+    python scripts/build_data.py generate --cases 1000 --out data/krino_matrix/zh_generated
 
 legacy           cases of the earlier {state, objective, actions, gold} format: an LLM splits the objective and the
                  state into goal and constraints, and the teacher labels all three tasks afresh (the earlier value
@@ -31,9 +31,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
-from core.schema import Constraint, Action
-from core.matrix import LEVELS, SPLITS, MatrixCase, Labels, group_split, load
-from services.llm import LLM
+from krino.schema import Constraint, Action
+from krino.matrix import LEVELS, SPLITS, MatrixCase, Labels, group_split, load
+from krino.llm import LLM
 
 DOMAINS = [
     "日常出行与通勤", "个人储蓄与理财", "A 股股票投资", "基金与 ETF 配置", "职业选择与跳槽",

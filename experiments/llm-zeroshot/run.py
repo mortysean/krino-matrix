@@ -8,7 +8,7 @@ that asks a large model instead of running MatrixEvaluator's single forward pass
     python experiments/llm-zeroshot/run.py --cost --cost-cases 100       # only the token / cost measurement
 
 Per case the model (LLM_DEFAULT of .env, temperature 0) is asked once, with the teacher's own prompt and output
-schema from examples/krino_matrix_data.py (LABEL_PROMPT, GOAL_TASK, CONSTRAINTS_TASK, BEST_TASK, teacher_output,
+schema from scripts/build_data.py (LABEL_PROMPT, GOAL_TASK, CONSTRAINTS_TASK, BEST_TASK, teacher_output,
 levels_text, constraints_list, normalized), so what differs from the labels is the sampling, not the instructions.
 The action order is shuffled as in label(), with a fixed seed, and recorded with every case. An answer that takes
 longer than ATTEMPT_TIMEOUT, whose goal is not 5 probabilities summing to 1, whose violation probability is outside
@@ -22,14 +22,14 @@ Answers are appended to raw/<set>.jsonl as they arrive, so an interrupted run co
 whose latest record is an error is asked again on the next run, a successful one is kept (delete its line, or the
 file, to ask again). Wall-clock milliseconds and the attempt count are recorded per case, but not tokens:
 LLM.astructured returns only the parsed object. Tokens and the latency of a single call come from an audit of the
-HTTP answers (the Auditor below, which wraps the HTTP transport and never services/llm.py). The first
+HTTP answers (the Auditor below, which wraps the HTTP transport and never krino/llm.py). The first
 --latency-probe cases of each set are asked one call at a time for the latency_ms of the results, free of queueing,
 and --cost-cases cases at --concurrency measure the tokens, delays and price of one call as deployed. A probed call
 is not retried, so each is a clean single call.
 
 The answers become assessments in the shape MatrixEvaluator.assess returns -- labels, excluded (every action whose
 violation probability of a hard constraint reaches 0.5), choice (the most probable action among the rest, the same
-rule as MatrixEvaluator.assess) -- and are scored by benchmark/run_krino_matrix.py's score(), imported unchanged.
+rule as MatrixEvaluator.assess) -- and are scored by scripts/benchmark.py's score(), imported unchanged.
 Outputs, under experiments/llm-zeroshot/:
   raw/<set>.jsonl                     every case: shown order, attempt count, wall-clock ms, assessment or error
   results/llm-zeroshot-flash.json     {"model", "sets": {set: {n_cases, **score(), latency_ms, assessments}}}
@@ -57,12 +57,12 @@ import httpx
 import litellm
 import numpy as np
 
-from core.matrix import Labels, load
-from core.evaluator.matrix_evaluator import Assessment
-from examples.krino_matrix_data import (BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, LABEL_PROMPT, constraints_list,
+from krino.matrix import Labels, load
+from krino.evaluator import Assessment
+from scripts.build_data import (BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, LABEL_PROMPT, constraints_list,
                                         levels_text, normalized, teacher_output)
-from services.llm import LLM
-from benchmark.run_krino_matrix import score
+from krino.llm import LLM
+from scripts.benchmark import score
 from litellm.llms.custom_httpx.aiohttp_transport import LiteLLMAiohttpTransport
 
 EXP = ROOT / "experiments/llm-zeroshot"
@@ -109,7 +109,7 @@ def prompt(case, shown: list[str]) -> str:
 
 
 async def retried(make, attempts: int, deadline: float) -> dict:
-    """examples.krino_matrix_data.retry -- ask again after an unusable answer or a failure, with a growing pause, at
+    """scripts.build_data.retry -- ask again after an unusable answer or a failure, with a growing pause, at
     most `attempts` times -- but with a total deadline instead of a deadline per attempt."""
     for attempt in range(attempts):
         try:
@@ -285,7 +285,7 @@ class Auditor:
     """Records what LLM does not report: one line per HTTP answer of a chat completion, keyed by the request's first
     user message, so the prompt tokens, the completion tokens (a retry is its own call) and the wait of every single
     call are visible. litellm sends its requests through LiteLLMAiohttpTransport.handle_async_request, so that method
-    is wrapped for the duration; services/llm.py is not touched. Records go to `path` when one is set, and are kept
+    is wrapped for the duration; krino/llm.py is not touched. Records go to `path` when one is set, and are kept
     in memory by key either way."""
 
     URL = "https://openrouter.ai/api/v1/chat/completions"

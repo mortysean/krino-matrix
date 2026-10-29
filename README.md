@@ -30,13 +30,13 @@ The formulator, clarifier and generator call a hosted LLM; the evaluator is the 
 
 ### Decision Flow
 
-`decision_core.DecisionEngine` chains the modules into one decision turn:
+`DecisionEngine` in `krino/engine.py` chains the modules into one decision turn:
 
 ```
 request ─▶ Formulator ─▶ Clarifier ─▶ Generator ─▶ Ranker ─▶ safety rules ─▶ decision
 ```
 
-The ranker is the Matrix evaluator trained from `jhu-clsp/mmBERT-base` (see `model_adapter/`).
+The ranker is the Matrix evaluator trained from `jhu-clsp/mmBERT-base` with uncertainty loss weighting (see `krino/ranker.py`).
 
 ### Data Sources
 
@@ -53,21 +53,24 @@ sagax is a data platform built by the author. It collects China market data from
 ## Project Structure
 
 ```
-core/
-  schema.py         basic elements
-  matrix.py         typed decision-case format and dataset validation
-  formulator.py     Problem Formulator
-  evaluator/        Matrix decision evaluator: model, training, inference
-  data/             DataSource / Query interface, sagax source
-decision_core/      device-independent web decision flow and safety rules
-model_adapter/      LLM and Matrix evaluator adapters
-backend/            FastAPI, authentication, conversations and persistence
-frontend/           React + Vite web application
-benchmark/          Krino Matrix benchmark runner and metrics
-experiments/        reproducible model experiments and reports
-services/
-  llm.py            unified LLM interface over OpenRouter, litellm and the Anthropic SDK
-examples/           runnable demos
+krino/                the Python package
+  schema.py           basic elements
+  contract.py         the clarification / decision / error responses clients get
+  formulator.py       request → decision problem
+  clarifier.py        one key question when needed
+  generator.py        candidate actions
+  ranker.py           ranking by the Matrix evaluator
+  rules.py            explicit safety rules
+  engine.py           one decision turn, and the engine the web app runs
+  evaluator/          the Matrix model: network, training, inference
+  matrix.py           the case format for training and benchmarks
+  llm.py, tracing.py  LLM interface (OpenRouter, litellm, Anthropic SDK) and call records
+  data/               DataSource / Query interface, sagax source
+scripts/              build data, train, benchmark, check datasets, sagax demo
+backend/              FastAPI, authentication, conversations and persistence
+frontend/             React + Vite web application
+experiments/          reproducible model experiments and reports
+tests/                backend and decision-flow tests
 ```
 
 ## Quick Start
@@ -77,12 +80,13 @@ pip install -r requirements.txt
 cp .env.example .env    # fill in LLM providers and the sagax API key
 ```
 
-| Demo | What it runs |
+| Script | What it runs |
 | --- | --- |
-| `python examples/api_formulator_demo.py ["request"]` | Formulator only |
-| `python examples/data_demo.py` | sagax data queries |
-| `python examples/krino_matrix_data.py ...` | Build Krino Matrix datasets labeled by a teacher LLM |
-| `python examples/matrix_train.py data/krino_matrix/zh data/krino_matrix/en` | Train the Matrix evaluator |
+| `python scripts/build_data.py ...` | Build Krino Matrix datasets labeled by a teacher LLM |
+| `python scripts/check_data.py` / `merge_data.py` / `unify_data.py` | Check, merge and unify datasets |
+| `python scripts/train.py data/krino_matrix/zh data/krino_matrix/en` | Train the Matrix evaluator |
+| `python scripts/benchmark.py <checkpoint>` | Score a checkpoint on the test sets |
+| `python scripts/sagax_demo.py` | sagax data queries |
 
 ## Web Decision Assistant (V2.5 P0)
 
@@ -90,8 +94,7 @@ First version of the KRINO MATRIX V2.5 spec: goal → state/constraints → clar
 
 | Directory | Contents |
 |---|---|
-| `decision_core/` | Device-independent decision core: one clarification / decision / error contract, clarifier, card generator, explicit safety rules |
-| `model_adapter/` | Concrete models: traced LLM calls; the KRINO Matrix evaluator (experimental, shows its real selection probabilities; checkpoint set by `KRINO_MATRIX_CHECKPOINT`) |
+| `krino/` | Device-independent decision flow: one clarification / decision / error contract, clarifier, card generator, Matrix ranking (shows its real selection probabilities; checkpoint set by `KRINO_MATRIX_CHECKPOINT`), explicit safety rules |
 | `backend/` | FastAPI: email login, conversations and decision snapshots, feedback, personal memory, usage, call latency and failures; PostgreSQL (SQLite for local dev) |
 | `frontend/` | React + Vite: Today / Chats / Decision / Settings, product demo, stage progress, mobile layout, reduced motion |
 
@@ -107,7 +110,7 @@ Configuration is in the Web section of `.env.example` (`DATABASE_URL`, `KRINO_SE
 
 ## Model Experiments
 
-`core/matrix.py` defines the `krino-matrix/1` case format. The Matrix evaluator has separate goal, constraint and action-selection heads; hard-constraint rules filter unsafe candidates before selection. Training data is expected under `data/krino_matrix/{zh,en}` and checkpoints are kept locally (they are excluded from Git). The current model is trained in-house from the small multilingual encoder `jhu-clsp/mmBERT-base`, with all three task heads initialised from scratch. See the [experiment report](experiments/krino-matrix-v1-mmbert/README.md) for training details and results.
+`krino/matrix.py` defines the `krino-matrix/1` case format. The Matrix evaluator has separate goal, constraint and action-selection heads; hard-constraint rules filter unsafe candidates before selection. Training data is expected under `data/krino_matrix/{zh,en}` and checkpoints are kept locally (they are excluded from Git). The current model is trained in-house from the small multilingual encoder `jhu-clsp/mmBERT-base`, with all three task heads initialised from scratch and uncertainty loss weighting; it is the only checkpoint kept locally, `experiments/krino-matrix-v1-mmbert/checkpoints/mmbert-uncertainty`. See the [experiment report](experiments/krino-matrix-v1-mmbert/README.md) for training details and results.
 
 ## Status
 

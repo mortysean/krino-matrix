@@ -27,10 +27,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))      # run.py sits next
 
 import httpx
 
-from core.matrix import load
+from krino.matrix import load
 from run import EXP, MODEL, MAX_ATTEMPTS, MAX_TOKENS, REASONING, ATTEMPT_TIMEOUT, CROSS_ATTEMPT, PROBE, \
     COST_CASES, CONCURRENCY, TEACHER
-from benchmark.run_krino_matrix import BOOTSTRAP
+from scripts.benchmark import BOOTSTRAP
 
 import numpy as np
 
@@ -39,7 +39,7 @@ PRICING_MODEL = "deepseek/deepseek-v4.1-flash"      # the version LLM_DEFAULT re
 
 def boot(per_case: list[list[float]]) -> list[float]:
     """95% percentile interval of the case mean over the test cases, resampling cases (a case keeps its actions and
-    constraint pairs), the method of benchmark/run_krino_matrix.py's bootstrap(): for the goal and constraints
+    constraint pairs), the method of scripts/benchmark.py's bootstrap(): for the goal and constraints
     accuracies, which score() does not interval itself."""
     x = np.array([np.mean(v) for v in per_case], float)
     idx = np.random.default_rng(0).integers(0, len(x), (BOOTSTRAP, len(x)))
@@ -48,7 +48,7 @@ def boot(per_case: list[list[float]]) -> list[float]:
 
 def boot_items(values: list[int]) -> list[float]:
     """95% percentile interval of a ratio over items (the hard violations the teacher labels), resampling items:
-    that is how benchmark/run_krino_matrix.py reports hard_violation_recall, as a rate over constraint pairs rather
+    that is how scripts/benchmark.py reports hard_violation_recall, as a rate over constraint pairs rather
     than over cases."""
     x = np.array(values, float)
     idx = np.random.default_rng(0).integers(0, len(x), (BOOTSTRAP, len(x)))
@@ -133,10 +133,10 @@ def main():
     out += [f"- 最终失败的 case：{', '.join(f'{name} {len(v)}' for name, v in failed.items())}。", ""]
 
     out += ["## 设置", "",
-            f"- 模型：`.env` 的 `LLM_DEFAULT` 是 `~deepseek/deepseek-flash-latest`，经 `services/llm.py` 的 `LLM()` "
+            f"- 模型：`.env` 的 `LLM_DEFAULT` 是 `~deepseek/deepseek-flash-latest`，经 `krino/llm.py` 的 `LLM()` "
             f"调用，`served_model` = `{served_model}`；teacher 是 `{TEACHER}`。",
             "- 每条 test case 只问一次，temperature 0（重试时同样）。prompt 和输出 schema 直接 import 自 "
-            "`examples/krino_matrix_data.py`（`LABEL_PROMPT`、`GOAL_TASK`、`CONSTRAINTS_TASK`、`BEST_TASK`、"
+            "`scripts/build_data.py`（`LABEL_PROMPT`、`GOAL_TASK`、`CONSTRAINTS_TASK`、`BEST_TASK`、"
             "`teacher_output`、`levels_text`、`constraints_list`、`normalized`），没有复制改写。",
             "- 行动顺序：每条 case 以固定种子 0 打乱一次，`raw/<set>.jsonl` 的 `shown` 字段记录了模型看到的顺序。",
             f"- 调用方设置（不属于评测本身）：`reasoning = {json.dumps(REASONING)}`，`max_tokens = {MAX_TOKENS}`。"

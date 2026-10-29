@@ -2,9 +2,9 @@ import json
 
 from pydantic import BaseModel, Field
 
-from services.llm import LLM
-from core.schema import Problem, constraints_text
-from .types import Answer, Question, clean_id
+from .llm import LLM
+from .schema import Problem, constraints_text
+from .contract import Answer, Question, clean_id
 
 
 # Kept in the user turn rather than the system prompt: some gateways replace the system prompt

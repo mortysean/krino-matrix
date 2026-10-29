@@ -8,10 +8,10 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from decision_core import Answer, CoreInput, CoreResponse, DecisionEngine, ErrorResponse
-from decision_core.engine import ERRORS
-from decision_core.rules import lang_of
-from model_adapter import CallLog, current_log
+from krino.contract import Answer, CoreInput, CoreResponse, ErrorResponse
+from krino.engine import ERRORS, DecisionEngine
+from krino.rules import lang_of
+from krino.tracing import CallLog, current_log
 from .config import log, settings
 from .db import SessionLocal
 from .models import Conversation, Decision, Memory, Message, ModelCall, Turn, now

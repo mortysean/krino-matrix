@@ -1,6 +1,6 @@
 """Try the sagax data channel (needs SAGAX_API_KEY / SAGAX_SECRET_KEY in .env):
 
-    python examples/data_demo.py
+    python scripts/sagax_demo.py
 """
 import sys
 from pathlib import Path
@@ -8,7 +8,7 @@ from pathlib import Path
 # Make the project root importable when this file is run as a script
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from core.data.sagax import sagax
+from krino.data.sagax import sagax
 
 # Edit these to try your own query
 CODES = ["510300.SH", "510500.SH", "588000.SH"]

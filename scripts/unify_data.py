@@ -1,7 +1,7 @@
 """Unify the zh and en Krino Matrix datasets before joint training.
 
-    python tools/unify_matrix.py relabel-en --data data/krino_matrix/en --target-constraints 7
-    python tools/unify_matrix.py resplit --data data/krino_matrix --seed 0
+    python scripts/unify_data.py relabel-en --data data/krino_matrix/en --target-constraints 7
+    python scripts/unify_data.py resplit --data data/krino_matrix --seed 0
 
 relabel-en brings the en set to the zh structure and label semantics in two steps per case:
   1. constraints: the teacher proposes the constraints the state implies (per-case count drawn to match zh's
@@ -25,13 +25,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
-from core.matrix import LEVELS, SPLITS, Labels, MatrixCase, load
-from core.schema import Constraint
-from examples.krino_matrix_data import (
+from krino.matrix import LEVELS, SPLITS, Labels, MatrixCase, load
+from krino.schema import Constraint
+from scripts.build_data import (
     BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, TEACHER_SAMPLES, constraints_list, label, levels_text, mean,
     normalized, retry,
 )
-from services.llm import LLM
+from krino.llm import LLM
 
 VAL_FRACTION = 0.1
 TEST_FRACTION = 0.15
@@ -104,7 +104,7 @@ async def propose(llm: LLM, case: MatrixCase, low: int, high: int) -> list[Const
 
 
 async def relabel_best(llm: LLM, case: MatrixCase) -> MatrixCase:
-    """goal, violations and best from one teacher with one standard, as examples/krino_matrix_data.label does."""
+    """goal, violations and best from one teacher with one standard, as scripts/build_data.label does."""
     actions = list(case.action_space)
     order = [c.id for c in case.constraints]
     shown = random.sample(actions, len(actions))

@@ -30,13 +30,13 @@ Formulator、Clarifier、Generator 调用托管的大模型；评估器是训练
 
 ### 决策流程
 
-`decision_core.DecisionEngine` 把各模块串成一轮完整决策：
+`krino/engine.py` 的 `DecisionEngine` 把各模块串成一轮完整决策：
 
 ```
 请求 ─▶ Formulator ─▶ Clarifier ─▶ Generator ─▶ Ranker ─▶ 安全规则 ─▶ 决策
 ```
 
-Ranker 是基于 `jhu-clsp/mmBERT-base` 训练的 Matrix 评估器（见 `model_adapter/`）。
+Ranker 是基于 `jhu-clsp/mmBERT-base`、用 uncertainty loss 加权训练的 Matrix 评估器（见 `krino/ranker.py`）。
 
 ### 数据源
 
@@ -53,21 +53,24 @@ sagax 是作者自建的数据平台：每日从 tushare、tqsdk 等来源采集
 ## 项目结构
 
 ```
-core/
-  schema.py         基本元素
-  matrix.py         结构化决策样本格式与数据校验
-  formulator.py     Problem Formulator
-  evaluator/        Matrix 决策评估器：模型、训练、推理
-  data/             DataSource / Query 接口，sagax 数据源
-decision_core/      与设备无关的 Web 决策流程和安全规则
-model_adapter/      LLM 与 Matrix 评估器适配器
-backend/            FastAPI、认证、对话与持久化
-frontend/           React + Vite Web 应用
-benchmark/          Krino Matrix 基准测试与指标
-experiments/        可复现的模型实验和报告
-services/
-  llm.py            统一的大模型接口，支持 OpenRouter、litellm 和 Anthropic SDK
-examples/           可运行的示例
+krino/                核心 Python 包
+  schema.py           基本元素
+  contract.py         返回给客户端的 clarification / decision / error 响应
+  formulator.py       请求 → 决策问题
+  clarifier.py        必要时追问一个关键问题
+  generator.py        生成候选行动
+  ranker.py           Matrix 评估器排序
+  rules.py            显式安全规则
+  engine.py           一轮决策的完整流程，以及 Web 使用的引擎
+  evaluator/          Matrix 模型：网络、训练、推理
+  matrix.py           训练与评测用的样本格式
+  llm.py, tracing.py  大模型接口（OpenRouter、litellm、Anthropic SDK）与调用记录
+  data/               DataSource / Query 接口，sagax 数据源
+scripts/              构建数据、训练、评测、检查数据集、sagax 示例
+backend/              FastAPI、认证、对话与持久化
+frontend/             React + Vite Web 应用
+experiments/          可复现的模型实验和报告
+tests/                后端与决策流程测试
 ```
 
 ## 快速开始
@@ -77,12 +80,13 @@ pip install -r requirements.txt
 cp .env.example .env    # 填入大模型服务商和 sagax API key
 ```
 
-| 示例 | 运行内容 |
+| 脚本 | 运行内容 |
 | --- | --- |
-| `python examples/api_formulator_demo.py ["请求"]` | 仅 Formulator |
-| `python examples/data_demo.py` | sagax 数据查询 |
-| `python examples/krino_matrix_data.py ...` | 用教师 LLM 构建并标注 Krino Matrix 数据集 |
-| `python examples/matrix_train.py data/krino_matrix/zh data/krino_matrix/en` | 训练 Matrix 评估器 |
+| `python scripts/build_data.py ...` | 用教师 LLM 构建并标注 Krino Matrix 数据集 |
+| `python scripts/check_data.py` / `merge_data.py` / `unify_data.py` | 检查、合并、统一数据集 |
+| `python scripts/train.py data/krino_matrix/zh data/krino_matrix/en` | 训练 Matrix 评估器 |
+| `python scripts/benchmark.py <checkpoint>` | 在测试集上评测 |
+| `python scripts/sagax_demo.py` | sagax 数据查询 |
 
 ## Web 决策助手（V2.5 P0）
 
@@ -90,8 +94,7 @@ cp .env.example .env    # 填入大模型服务商和 sagax API key
 
 | 目录 | 内容 |
 |---|---|
-| `decision_core/` | 与设备无关的决策核心：统一的 clarification / decision / error 响应、澄清、候选生成、显式安全规则 |
-| `model_adapter/` | 接入具体模型：可追踪调用的 LLM；KRINO Matrix 评估器（实验阶段，显示真实输出的选择倾向；检查点由 `KRINO_MATRIX_CHECKPOINT` 指定） |
+| `krino/` | 与设备无关的决策流程：统一的 clarification / decision / error 响应、澄清、候选生成、Matrix 排序（显示真实输出的选择倾向；检查点由 `KRINO_MATRIX_CHECKPOINT` 指定）、显式安全规则 |
 | `backend/` | FastAPI：邮箱登录、对话与决策快照、反馈、个人记忆、使用量、调用耗时与失败记录；PostgreSQL（本地开发可用 SQLite） |
 | `frontend/` | React + Vite：Today / 对话 / 决策详情 / 设置，演示动画、进度轨迹、移动端适配、减少动效 |
 
@@ -107,7 +110,7 @@ pytest tests                                   # 后端与决策核心测试，�
 
 ## 模型实验
 
-`core/matrix.py` 定义了 `krino-matrix/1` 样本格式。Matrix 评估器分别预测目标达成度、约束违反和行动选择；硬约束规则会在选择前过滤不安全的候选。训练数据放在 `data/krino_matrix/{zh,en}`，模型检查点保存在本地（Git 忽略）。当前模型从小模型 `jhu-clsp/mmBERT-base`（多语言 encoder）自行训练，三个任务头全部从零初始化。训练方式与结果见[实验报告](experiments/krino-matrix-v1-mmbert/README.md)。
+`krino/matrix.py` 定义了 `krino-matrix/1` 样本格式。Matrix 评估器分别预测目标达成度、约束违反和行动选择；硬约束规则会在选择前过滤不安全的候选。训练数据放在 `data/krino_matrix/{zh,en}`，模型检查点保存在本地（Git 忽略）。当前模型从小模型 `jhu-clsp/mmBERT-base`（多语言 encoder）自行训练，三个任务头全部从零初始化，loss 用 uncertainty 加权；本地只保留这一个检查点 `experiments/krino-matrix-v1-mmbert/checkpoints/mmbert-uncertainty`。训练方式与结果见[实验报告](experiments/krino-matrix-v1-mmbert/README.md)。
 
 ## 进度
 

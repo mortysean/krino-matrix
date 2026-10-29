@@ -1,8 +1,8 @@
 import torch
 from pydantic import BaseModel
 
-from ...matrix import Labels
-from ...schema import Problem, Action
+from ..matrix import Labels
+from ..schema import Problem, Action
 from .model import MatrixModel, TASKS
 
 

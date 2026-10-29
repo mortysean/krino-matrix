@@ -9,11 +9,13 @@ sys.path.insert(0, str(ROOT))
 os.environ["KRINO_SECRET_KEY"] = "test-secret-key-for-pytest-only-0123456789"
 os.environ.setdefault("DATABASE_URL", "sqlite:///" + str(ROOT / "data" / "test-krino.db"))
 
-from core.schema import Constraint, Problem, State  # noqa: E402
-from core.formulator import Formulator  # noqa: E402
-from decision_core import CandidateAction, CandidateSpace, Clarifier, CardGenerator, DecisionEngine  # noqa: E402
-from decision_core.ranker import Ranker, Ranking  # noqa: E402
-from decision_core.types import EvaluatorInfo, Question  # noqa: E402
+from krino.schema import Constraint, Problem, State  # noqa: E402
+from krino.formulator import Formulator  # noqa: E402
+from krino.clarifier import Clarifier  # noqa: E402
+from krino.generator import CandidateAction, CandidateSpace, CardGenerator  # noqa: E402
+from krino.engine import DecisionEngine  # noqa: E402
+from krino.ranker import Ranker, Ranking  # noqa: E402
+from krino.contract import EvaluatorInfo, Question  # noqa: E402
 
 
 class FakeFormulator(Formulator):

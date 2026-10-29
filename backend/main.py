@@ -22,7 +22,7 @@ def lazy_engine_factory():
     def factory():
         with lock:
             if not built:
-                from model_adapter import build_engine
+                from krino.engine import build_engine
                 built.append(build_engine())
             return built[0]
     return factory

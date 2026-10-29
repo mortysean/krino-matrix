@@ -7,14 +7,14 @@
 ## 数据与 teacher
 
 - 数据：`data/krino_matrix/zh/test.jsonl`（450 条）、`data/krino_matrix/en/test.jsonl`（225 条），共 675 条。
-- 原标签：`examples/krino_matrix_data.py` 的 `label()` 生成——同一 prompt（`LABEL_PROMPT` + `GOAL_TASK` +
+- 原标签：`scripts/build_data.py` 的 `label()` 生成——同一 prompt（`LABEL_PROMPT` + `GOAL_TASK` +
   `CONSTRAINTS_TASK` + `BEST_TASK`）、`teacher_output` 结构化输出、temperature 0.7、3 次独立采样、取平均。
 - teacher：每条 case 的 `meta.goal_teacher`，全部是 `deepseek/deepseek-v4.1-flash-1017`（OpenRouter）。
 
 ## 方法
 
 1. **重新采样**：对每条 case 调用 `LLM("deepseek/deepseek-v4.1-flash-1017")`，prompt 与输出 schema 直接 import 自
-   `examples/krino_matrix_data.py`（`LABEL_PROMPT`、`GOAL_TASK`、`CONSTRAINTS_TASK`、`BEST_TASK`、`teacher_output`、
+   `scripts/build_data.py`（`LABEL_PROMPT`、`GOAL_TASK`、`CONSTRAINTS_TASK`、`BEST_TASK`、`teacher_output`、
    `levels_text`、`constraints_list`、`normalized`、`mean`、`retry`），校验逻辑与 `label()` 的 `judged()` 相同
    （每个动作的 goal 是 5 个概率、violations 在 [0,1]、best 是分布），失败按 `retry(…, attempts=4)` 重试。
    每次调用独立采样、temperature 0.7，并重新打乱动作展示顺序。区别只在：`label()` 对同一 case 的 3 次运行复用
@@ -29,7 +29,7 @@
    - `teacher-single-s1/-s2/-s3`：每次采样单独作为概率。
    - labels 为上一步的概率；`excluded` = 任一硬约束违反概率 ≥ 0.5 的动作及其约束；`choice` = 未排除动作中 best 最大者，
      全部排除时为 `null`。
-4. **打分**：直接 import `benchmark/run_krino_matrix.py` 的 `score()`，对 `test.jsonl` 的原始标签打分，一行未改。
+4. **打分**：直接 import `scripts/benchmark.py` 的 `score()`，对 `test.jsonl` 的原始标签打分，一行未改。
 5. **纯噪声指标**：只看 3 次新采样彼此——两两之间 best 的 argmax 一致率、goal 期望档位（Σ i·P(level i)）的平均绝对差，
    按 zh / en 分开。
 
@@ -63,7 +63,7 @@ $PY experiments/teacher-ceiling/run.py --sets en
 |---|---|
 | `run.py` | 完整脚本（采样、Assessment、打分、噪声、报告） |
 | `raw/{zh,en}.jsonl` | 每次运行的原始记录，续跑与重新打分的依据 |
-| `results/teacher-relabel.json` | 3 次平均的评测结果，格式同 `benchmark/run_krino_matrix.py` 的输出 |
+| `results/teacher-relabel.json` | 3 次平均的评测结果，格式同 `scripts/benchmark.py` 的输出 |
 | `results/teacher-single-s{1,2,3}.json` | 每次单独采样的评测结果 |
 | `results/report.md` | 中文报告：四个模型的指标表、单次均值 ± 标准差、纯噪声、延迟、调用与失败计数、served_model |
 | `logs/full.log` | 全量运行的日志 |

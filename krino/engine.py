@@ -1,15 +1,22 @@
 """One decision turn: input → Formulator → Clarifier → Generator → Ranker → rules → response."""
+import os
 from collections.abc import Callable
+from pathlib import Path
 
-from core.formulator import Formulator
-from core.schema import Problem
+from .formulator import APIFormulator, Formulator
+from .schema import Problem
 from .clarifier import Clarifier
 from .generator import CardGenerator, CandidateAction
-from .ranker import Ranker, Ranking
+from .ranker import MatrixRanker, Ranker, Ranking
 from .rules import MESSAGES, lang_of, requires_confirmation
-from .types import (
+from .tracing import TracedLLM
+from .contract import (
     ActionCard, ClarificationResponse, CoreInput, CoreResponse, DecisionResponse, ErrorResponse, ProblemView, Stage,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
+# The mmBERT-base Matrix model trained with uncertainty loss weighting; KRINO_MATRIX_CHECKPOINT overrides it
+DEFAULT_CHECKPOINT = ROOT / "experiments/krino-matrix-v1-mmbert/checkpoints/mmbert-uncertainty"
 
 # Exceptions that mean the model endpoint itself is unreachable or refuses us, matched by name so the core does
 # not depend on any one SDK
@@ -157,3 +164,13 @@ class DecisionEngine:
             evaluator=info,
             model_version=f"{self.generator_version()} · {info.version}",
         )
+
+
+def build_engine() -> DecisionEngine:
+    """The engine the web app runs: hosted-LLM formulator, clarifier and generator, Matrix ranker."""
+    path = Path(os.getenv("KRINO_MATRIX_CHECKPOINT") or DEFAULT_CHECKPOINT)
+    if not (path / "matrix_config.json").exists():
+        raise FileNotFoundError(f"no Matrix checkpoint at {path}")
+    llm = TracedLLM()
+    return DecisionEngine(APIFormulator(llm), Clarifier(llm), CardGenerator(llm), MatrixRanker(str(path)),
+                          generator_version=llm.version)
