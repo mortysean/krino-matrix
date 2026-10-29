@@ -1,33 +1,0 @@
-device cuda, 3375 train cases, 450 val cases
-train 3375 cases, val 450; 424 optimizer steps; 324M trainable; weighting uncertainty
-step 20/424 epoch 1 selection 1.5723 total 0.7828 | weights goal 0.500 constraints 0.500 selection 0.475
-step 40/424 epoch 1 selection 1.1847 total 0.5869 | weights goal 0.500 constraints 0.500 selection 0.445
-step 60/424 epoch 1 selection 1.1313 total 0.5617 | weights goal 0.500 constraints 0.500 selection 0.439
-step 80/424 epoch 1 selection 1.0530 total 0.5267 | weights goal 0.500 constraints 0.500 selection 0.459
-step 100/424 epoch 1 selection 1.0792 total 0.5383 | weights goal 0.500 constraints 0.500 selection 0.470
-epoch 1 val selection 1.1076 sum 1.1076
-Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.39s/it]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.39s/it]
-step 120/424 epoch 2 selection 1.0337 total 0.5167 | weights goal 0.500 constraints 0.500 selection 0.474
-step 140/424 epoch 2 selection 1.0030 total 0.5019 | weights goal 0.500 constraints 0.500 selection 0.492
-step 160/424 epoch 2 selection 1.0144 total 0.5072 | weights goal 0.500 constraints 0.500 selection 0.497
-step 180/424 epoch 2 selection 1.0076 total 0.5038 | weights goal 0.500 constraints 0.500 selection 0.499
-step 200/424 epoch 2 selection 0.9813 total 0.4907 | weights goal 0.500 constraints 0.500 selection 0.504
-epoch 2 val selection 1.0755 sum 1.0755
-Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.02s/it]Writing model shards: 100%|██████████| 1/1 [00:04<00:00,  4.02s/it]
-step 220/424 epoch 3 selection 0.9810 total 0.4904 | weights goal 0.500 constraints 0.500 selection 0.507
-step 240/424 epoch 3 selection 0.9361 total 0.4674 | weights goal 0.500 constraints 0.500 selection 0.521
-step 260/424 epoch 3 selection 0.9149 total 0.4560 | weights goal 0.500 constraints 0.500 selection 0.534
-step 280/424 epoch 3 selection 0.9010 total 0.4482 | weights goal 0.500 constraints 0.500 selection 0.539
-step 300/424 epoch 3 selection 0.9378 total 0.4680 | weights goal 0.500 constraints 0.500 selection 0.541
-epoch 3 val selection 1.0980 sum 1.0980
-step 320/424 epoch 4 selection 0.8904 total 0.4423 | weights goal 0.500 constraints 0.500 selection 0.543
-step 340/424 epoch 4 selection 0.8905 total 0.4422 | weights goal 0.500 constraints 0.500 selection 0.546
-step 360/424 epoch 4 selection 0.8856 total 0.4395 | weights goal 0.500 constraints 0.500 selection 0.548
-step 380/424 epoch 4 selection 0.8695 total 0.4306 | weights goal 0.500 constraints 0.500 selection 0.549
-step 400/424 epoch 4 selection 0.8867 total 0.4400 | weights goal 0.500 constraints 0.500 selection 0.550
-step 420/424 epoch 4 selection 0.8821 total 0.4375 | weights goal 0.500 constraints 0.500 selection 0.550
-epoch 4 val selection 1.1031 sum 1.1031
-Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 1449.78it/s]
-Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:03<00:00,  3.11s/it]Writing model shards: 100%|██████████| 1/1 [00:03<00:00,  3.11s/it]
-best epoch 2, temperatures {'goal': 3.25, 'constraints': 5.0, 'selection': 1.0}, saved to /home/seanhuang2004/Krino-Matrix/experiments/krino-matrix-v1/checkpoints/multilingual-selection-only
-peak GPU memory 6.1 GiB

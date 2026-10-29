@@ -77,7 +77,6 @@ class Decision(Base):
     recommended: Mapped[str | None] = mapped_column(String(120), nullable=True)
     scores: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    evaluator_mode: Mapped[str] = mapped_column(String(32))
     model_version: Mapped[str] = mapped_column(String(200))
     response: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)

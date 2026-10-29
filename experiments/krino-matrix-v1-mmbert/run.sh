@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Krino Matrix from mmBERT-base: same data and the same three variants as krino-matrix-v1, but the encoder starts from
-# the pretrained encoder itself and every head starts from scratch, so nothing is inherited from Laya.
+# Krino Matrix from mmBERT-base: three variants, 3 seeds each; the encoder starts from its pretrained weights and every
+# head starts from scratch. See README.md.
 #
 #     bash experiments/krino-matrix-v1-mmbert/run.sh
 #

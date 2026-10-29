@@ -2,8 +2,7 @@ import torch
 from pydantic import BaseModel
 
 from ...matrix import Labels
-from ...schema import State, Problem, Action, Decision
-from ..evaluator import Evaluator
+from ...schema import Problem, Action
 from .model import MatrixModel, TASKS
 
 
@@ -19,7 +18,7 @@ class Assessment(BaseModel):
     choice: str | None
 
 
-class MatrixEvaluator(Evaluator):
+class MatrixEvaluator:
     """Assesses an action space with a MatrixModel in one forward pass.
 
     The decision filters before it selects: an action whose P(violation) of any hard constraint reaches
@@ -64,28 +63,3 @@ class MatrixEvaluator(Evaluator):
         feasible = [a.id for a in actions if a.id not in excluded]
         choice = max(feasible, key=labels.best.get) if feasible else None
         return Assessment(labels=labels, excluded=excluded, choice=choice)
-
-    def decide(
-        self,
-        problem: Problem,
-        actions: list[Action],
-        max_workers: int = 8
-    ) -> list[Decision]:
-        """assess() as decisions: the score is the selection probability; the actions it keeps come first, best
-        first, then the excluded ones, each with the hard constraints it likely breaks."""
-        assessment = self.assess(problem, actions)
-        decisions = [Decision(action=a, score=assessment.labels.best[a.id], excluded_by=assessment.excluded.get(a.id, []))
-                     for a in actions]
-        return sorted(decisions, key=lambda d: (bool(d.excluded_by), -d.score))
-
-    def evaluate(
-        self,
-        state: State,
-        goal: str,
-        action: Action
-    ) -> float:
-        """The expected goal level of one action, scaled to [0, 1]."""
-        if "goal" not in self.tasks:
-            raise ValueError("this model was trained without the goal head")
-        dist = self.assess(Problem(state=state, goal=goal, constraints=[]), [action]).labels.goal[action.id]
-        return sum(i * p for i, p in enumerate(dist)) / (len(dist) - 1)

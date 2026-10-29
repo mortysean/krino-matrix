@@ -40,7 +40,6 @@ export interface ActionCard {
 }
 
 export interface EvaluatorInfo {
-  mode: 'matrix' | 'baseline'
   name: string
   version: string
   experimental: boolean
@@ -135,7 +134,7 @@ export interface Memory { id: string; text: string; source_decision_id: string |
 
 export interface Status {
   model: { configured: boolean; name: string | null }
-  evaluator: { mode: 'matrix' | 'baseline'; experimental: boolean }
+  evaluator: { experimental: boolean }
   usage: {
     turns_today: number; daily_quota: number; calls: number; failed_calls: number
     avg_latency_ms: number | null; input_tokens: number; output_tokens: number

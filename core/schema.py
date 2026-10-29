@@ -42,8 +42,3 @@ class Action(BaseModel):
 class ActionSpace(BaseModel):
     actions: list[Action]
 
-
-class Decision(BaseModel):
-    action: Action
-    score: float
-    excluded_by: list[str] = []     # ids of the hard constraints the action likely breaks; excluded if any

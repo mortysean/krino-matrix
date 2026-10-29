@@ -8,7 +8,7 @@
 - **延迟**：一次调用端到端要多久（并发 1 实测，不受队列影响）；
 - **成本**：一次调用多少 token、折合每千次决策多少钱。
 
-和 `experiments/krino-matrix-v1/` 的小模型结果对照时，请先读报告第一节：`LLM_DEFAULT` 的 `served_model` 解析出来是 `deepseek/deepseek-v4.1-flash-1017`，**就是给这批数据打标签的 teacher**。所以这不是“换一个更强的模型”的对照，而是“用一次 temperature 0 的调用去复原 teacher 三次 temperature 0.7 采样的平均”能到什么程度，是蒸馏上限的直接读数。
+和 `experiments/krino-matrix-v1-mmbert/` 的小模型结果对照时，请先读报告第一节：`LLM_DEFAULT` 的 `served_model` 解析出来是 `deepseek/deepseek-v4.1-flash-1017`，**就是给这批数据打标签的 teacher**。所以这不是“换一个更强的模型”的对照，而是“用一次 temperature 0 的调用去复原 teacher 三次 temperature 0.7 采样的平均”能到什么程度，是蒸馏上限的直接读数。
 
 ## 怎么做的
 
@@ -51,5 +51,5 @@ $PY experiments/llm-zeroshot/report.py                     # 由上面的产物�
 ## 不在本实验里
 
 - 不调 prompt、不做 few-shot、不做 self-consistency：要测的就是“每个决策一次调用”这条部署路径。
-- 不改 `core/`、`benchmark/`、`data/`、`examples/`、`services/`，也不改 `experiments/krino-matrix-v1/` 里除 `results/` 之外的内容。
+- 不改 `core/`、`benchmark/`、`data/`、`examples/`、`services/`，也不改 `experiments/krino-matrix-v1-mmbert/` 里除 `results/` 之外的内容。
 - 只用 OpenRouter 上的 deepseek flash，不换模型、不接别的 provider。

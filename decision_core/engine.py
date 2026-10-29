@@ -1,7 +1,7 @@
 """One decision turn: input → Formulator → Clarifier → Generator → Ranker → rules → response."""
 from collections.abc import Callable
 
-from core.formulator.formulator import Formulator
+from core.formulator import Formulator
 from core.schema import Problem
 from .clarifier import Clarifier
 from .generator import CardGenerator, CandidateAction
@@ -138,8 +138,8 @@ class DecisionEngine:
         if ranking.pending:
             texts = {c.id: c.text for c in problem.constraints}
             warnings.append(msg["pending"].format(items="；".join(texts.get(i, i) for i in ranking.pending)))
+        warnings.append(msg["experimental"])
         info = self.ranker.info
-        warnings.append(msg["baseline"] if info.mode == "baseline" else msg["experimental"])
 
         titles = {a.id: a.title for a in actions}
         evidence = [f"{titles[i]}：{ranking.notes[i]}" if lang == "zh" else f"{titles[i]}: {ranking.notes[i]}"

@@ -4,7 +4,6 @@ from pydantic import Field
 
 from services.llm import LLM
 from core.schema import State, Constraint, Action, ActionSpace, constraints_text
-from core.generator.generator import Generator
 
 
 # Kept in the user turn rather than the system prompt: some gateways replace the system prompt
@@ -46,7 +45,7 @@ class CandidateSpace(ActionSpace):
     actions: list[CandidateAction]
 
 
-class CardGenerator(Generator):
+class CardGenerator:
     """Generates 2 to 4 candidate actions with the short texts an action card needs."""
 
     def __init__(

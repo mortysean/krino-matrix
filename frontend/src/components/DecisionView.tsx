@@ -52,8 +52,8 @@ export function DecisionView({ decision, onChange, onToast }: Props) {
   }
 
   const scores = r.action_scores
-  const strongWarnings = r.warnings.filter(w => !/Baseline|KRINO Matrix/.test(w))
-  const modeNotes = r.warnings.filter(w => /Baseline|KRINO Matrix/.test(w))
+  const strongWarnings = r.warnings.filter(w => !/KRINO Matrix/.test(w))
+  const modeNotes = r.warnings.filter(w => /KRINO Matrix/.test(w))
   const constraintText = Object.fromEntries(r.problem.constraints.map(c => [c.id, c.text]))
 
   return (
@@ -61,7 +61,7 @@ export function DecisionView({ decision, onChange, onToast }: Props) {
       <header className="decision-top">
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <span className="eyebrow">{t('d.next')}</span>
-          <span className={`chip ${r.evaluator.mode === 'baseline' ? 'warn' : 'accent'}`}>{r.evaluator.name}</span>
+          <span className="chip accent">{r.evaluator.name}</span>
         </div>
         <h2 className="h2">{r.best_action ? r.headline : t('d.noRecommendation')}</h2>
         {r.explanation && <p className="why">{r.explanation}</p>}

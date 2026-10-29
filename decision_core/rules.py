@@ -27,7 +27,6 @@ MESSAGES = {
         "unverified": "以下硬约束未经模型逐项验证，请自行确认：{items}",
         "pending": "以下约束模型无法确定是否满足，标记为待确认：{items}",
         "all_excluded": "所有候选都可能违反硬约束，暂无可推荐的行动。可以修改目标或放宽约束后重试。",
-        "baseline": "当前为 Baseline 测试模式：由通用大模型比较候选，非 KRINO 专用评估模型。",
         "experimental": "KRINO Matrix 评估模型仍在实验阶段，尚未认定为生产可用。",
     },
     "en": {
@@ -37,7 +36,6 @@ MESSAGES = {
         "pending": "The model could not tell whether these constraints hold, marked as pending: {items}",
         "all_excluded": "Every candidate may break a hard constraint, so there is no recommendation. "
                         "Edit the goal or relax a constraint and try again.",
-        "baseline": "Baseline test mode: a general LLM compared the candidates, not the KRINO evaluator.",
         "experimental": "The KRINO Matrix evaluator is experimental and not yet approved for production.",
     },
 }

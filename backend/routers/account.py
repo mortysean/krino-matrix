@@ -62,10 +62,9 @@ def status(user: User = Depends(current_user), db: Session = Depends(get_db)):
                        .where(ModelCall.user_id == user.id)).one()
     failed = db.scalar(select(func.count()).select_from(ModelCall)
                        .where(ModelCall.user_id == user.id, ModelCall.ok.is_(False)))
-    evaluator = os.getenv("KRINO_EVALUATOR", "baseline").lower()
     return {
         "model": {"configured": model_configured(), "name": os.getenv("LLM_DEFAULT") or None},
-        "evaluator": {"mode": "matrix" if evaluator == "matrix" else "baseline", "experimental": True},
+        "evaluator": {"experimental": True},
         "usage": {"turns_today": turns_today(db, user.id), "daily_quota": settings.daily_quota,
                   "calls": calls[0], "failed_calls": failed,
                   "avg_latency_ms": int(calls[1] / calls[0]) if calls[0] else None,

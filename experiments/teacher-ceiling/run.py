@@ -644,7 +644,7 @@ def markdown(args, results, stats, counters, env, sets_meta, scored, noise_, par
             "- en 的 `original_gold_accuracy`：与 typed-decisions 原有 action/disposition gold（`meta.previous_best`）的 "
             "argmax 一致率。它与 teacher 标签的一致度是原 gold 与 teacher 的水平，不是本实验新采样引入的差异。",
             "- `results/<模型>.json` 的结构与 `benchmark/run_krino_matrix.py` 写出的完全相同（`model` / `sets` / `environment`），"
-            "额外附带 `teacher_latency_ms`、`unscored_cases` 两个字段；把它们复制到 `experiments/krino-matrix-v1/results/` 后，"
+            "额外附带 `teacher_latency_ms`、`unscored_cases` 两个字段；把它们复制到 `experiments/krino-matrix-v1-mmbert/results/` 后，"
             "主实验的 benchmark 报告会把它们列为额外的模型。", ""]
     return "\n".join(out)
 

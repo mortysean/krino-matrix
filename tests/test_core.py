@@ -19,9 +19,9 @@ def test_decides_after_answer_and_excludes_hard_constraint_breakers():
     assert response.headline == "先做两个数据分析作品"
     assert [a.id for a in response.actions][-1] == "quit_and_study"
     assert response.actions[-1].excluded_by == ["no_quit_now"]
-    # the baseline gives no numbers, so none may be shown
+    # the ranker gave no numbers, so none may be shown
     assert response.action_scores is None and response.confidence is None
-    assert any("Baseline" in w for w in response.warnings)
+    assert any("KRINO Matrix" in w for w in response.warnings)
 
 
 def test_decide_now_skips_questions():

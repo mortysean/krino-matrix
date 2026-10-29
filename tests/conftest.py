@@ -10,7 +10,7 @@ os.environ["KRINO_SECRET_KEY"] = "test-secret-key-for-pytest-only-0123456789"
 os.environ.setdefault("DATABASE_URL", "sqlite:///" + str(ROOT / "data" / "test-krino.db"))
 
 from core.schema import Constraint, Problem, State  # noqa: E402
-from core.formulator.formulator import Formulator  # noqa: E402
+from core.formulator import Formulator  # noqa: E402
 from decision_core import CandidateAction, CandidateSpace, Clarifier, CardGenerator, DecisionEngine  # noqa: E402
 from decision_core.ranker import Ranker, Ranking  # noqa: E402
 from decision_core.types import EvaluatorInfo, Question  # noqa: E402
@@ -49,7 +49,7 @@ class FakeGenerator(CardGenerator):
 
 
 class FakeRanker(Ranker):
-    info = EvaluatorInfo(mode="baseline", name="fake", version="fake/0", experimental=True)
+    info = EvaluatorInfo(name="fake", version="fake/0", experimental=True)
 
     def rank(self, problem, actions):
         ids = [a.id for a in actions]

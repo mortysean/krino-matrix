@@ -10,7 +10,7 @@ from pathlib import Path
 # Make the project root importable when this file is run as a script
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from core.formulator.api_formulator import APIFormulator
+from core.formulator import APIFormulator
 from services.llm import LLM
 
 # Edit these to try your own scenario

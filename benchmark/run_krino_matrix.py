@@ -1,9 +1,8 @@
 """Score Krino Matrix evaluators on the test sets, task by task and on the final decision; write report.md and one
 JSON per model:
 
-    python benchmark/run_krino_matrix.py checkpoints/matrix/multilingual-uncertainty checkpoints/matrix/multilingual-fixed
-    python benchmark/run_krino_matrix.py checkpoints/matrix/multilingual-uncertainty --sets zh=data/krino_matrix/zh en=data/krino_matrix/en
-    python benchmark/run_krino_matrix.py checkpoints/matrix/multilingual-fixed --laya checkpoints/laya/typed-decisions-base
+    python benchmark/run_krino_matrix.py checkpoints/matrix/mmbert-uncertainty checkpoints/matrix/mmbert-fixed
+    python benchmark/run_krino_matrix.py checkpoints/matrix/mmbert-uncertainty --sets zh=data/krino_matrix/zh en=data/krino_matrix/en
 
 Every model assesses every case with MatrixEvaluator.assess (one forward pass), and is scored on the labels the case
 carries; the input-free prior (the mean labels of the training sets) is scored the same way as a floor.
@@ -12,9 +11,6 @@ carries; the input-free prior (the mean labels of the training sets) is scored t
   selection    the selection head alone: accuracy (argmax = gold argmax), KL, Brier, ECE
   decision     after the hard-constraint filter: the choice is the gold best; the choice breaks a hard constraint
                by the gold labels; every action was excluded
-A --laya checkpoint is an original Laya model, not trained on Krino Matrix: it answers each case as one choice
-question over the action space, with the goal and the constraints put into the state next to the facts. It has no
-goal or constraint head and no hard-constraint filter, so it is scored on selection and decision only.
 Accuracies carry a 95% bootstrap interval over the test cases. The report also gives, per set, the paired bootstrap
 difference in decision accuracy of every model from the --reference one (the first model by default), and the
 mean ± std over seeds of every model run with several (directories named <name>-s<seed> group with <name>).
@@ -162,25 +158,6 @@ def prior(train_sets: list[Path]):
     return assess
 
 
-def laya(model_dir: str):
-    """An assess() for an original Laya checkpoint: the action space as one choice question, argmax as the choice."""
-    import laya as laya_lib
-
-    agent = laya_lib.load(model_dir, device="cuda" if torch.cuda.is_available() else "cpu")
-
-    def assess(case) -> Assessment:
-        state = {**case.state, "goal": case.goal,
-                 "constraints": [("hard: " if c.hard else "preference: ") + c.text for c in case.constraints]}
-        question = {"type": "choice", "criteria": {a.id: a.description for a in case.action_space},
-                    "instructions": case.meta.get("question_text") or (
-                        "哪个行动最能实现目标，同时遵守约束？" if case.lang == "zh"
-                        else "Which action best achieves the goal while keeping to the constraints?")}
-        answer = agent.predict(state, {"best": question})["answers"]["best"]
-        best = {a.id: float(answer["probabilities"].get(a.id, 0.0)) for a in case.action_space}
-        return Assessment(labels=Labels(best=best), excluded={}, choice=max(best, key=best.get))
-    return assess
-
-
 def run(assess, sets: dict[str, list], timed: bool) -> dict:
     result = {}
     for name, cases in sets.items():
@@ -283,8 +260,6 @@ def markdown(results: dict[str, dict], env: dict, reference: str | None) -> str:
             "- goal 的排序：同一 case 内 gold 期望档位相差 ≥0.5 的行动对，模型排对的比例。",
             "- constraints 以 0.5 为界；硬约束违反召回 = gold 判为违反的硬约束里，模型也判为违反的比例。",
             "- prior：不看输入，输出训练集的平均标签，选择均匀分布、决策固定选第一个行动，作为下限参照。",
-            "- laya-*：原版 Laya 检查点，没有在 Krino Matrix 上训练；整个行动空间作为一道 choice 题，目标和约束放进 state。"
-            "它没有 goal / constraint 头，也不做硬约束过滤，只评 selection 和 decision。",
             "- *-selection-only：同一基座、同样数据，只训选择头的消融；没有 goal / constraint 头，也不做硬约束过滤。",
             "- 方括号是 95% bootstrap 区间（按 test case 重采样）；*-s1、*-s2 是同一配置的其他种子。",
             "- en 是 typed-decisions test split 转成的 Krino Matrix；goal、constraints、best 三个标签由同一个 teacher 打。"
@@ -295,7 +270,6 @@ def markdown(results: dict[str, dict], env: dict, reference: str | None) -> str:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("models", nargs="*", help="MatrixModel checkpoint directories")
-    parser.add_argument("--laya", nargs="*", default=[], help="original Laya checkpoint directories")
     parser.add_argument("--reference", default=None, help="model the report's paired differences subtract (default: the first)")
     parser.add_argument("--sets", nargs="+", default=[f"{k}={v}" for k, v in SETS.items()], help="name=dataset dir")
     parser.add_argument("--out", default="benchmark/results/krino_matrix")
@@ -310,8 +284,6 @@ if __name__ == "__main__":
     runs = {"prior": (prior([d / "train.jsonl" for d in dirs.values()]), False)}
     for model_dir in args.models:
         runs[Path(model_dir).name] = (model_dir, True)
-    for model_dir in args.laya:
-        runs[f"laya-{Path(model_dir).name}"] = (lambda d=model_dir: laya(d), True)
     results = {}
     for name, (target, timed) in runs.items():
         print(f"{name}:", flush=True)
@@ -319,7 +291,7 @@ if __name__ == "__main__":
             evaluator = MatrixEvaluator(target)
             assess = lambda case: evaluator.assess(case.problem(), case.action_space)
         else:
-            assess = target() if timed else target     # a timed callable loads its model only now
+            assess = target
         r = {"model": name, "sets": run(assess, sets, timed)}
         (out / f"{name}.json").write_text(json.dumps({**r, "environment": env}, ensure_ascii=False, indent=2), encoding="utf-8")
         for s, m in r["sets"].items():

@@ -1,8 +1,19 @@
+from abc import ABC, abstractmethod
+
 from pydantic import BaseModel, Field
 
 from services.llm import LLM
-from ...schema import State, Constraint, Problem
-from ..formulator import Formulator
+from .schema import State, Constraint, Problem
+
+
+class Formulator(ABC):
+
+    @abstractmethod
+    def formulate(
+        self,
+        request: str
+    ) -> Problem:
+        pass
 
 
 # Kept in the user turn rather than the system prompt: some gateways replace the system prompt

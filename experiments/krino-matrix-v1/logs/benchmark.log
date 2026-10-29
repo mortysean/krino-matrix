@@ -1,14 +1,0 @@
-prior:
-  zh: 200/450
-  zh: 400/450
-  en: 200/225
-  zh: decision 0.247  goal 0.288  constraints 0.781  selection 0.247
-  en: decision 0.191  goal 0.369  constraints 0.848  selection 0.378
-multilingual-selection-only:
-Loading weights:   0%|          | 0/134 [00:00<?, ?it/s]Loading weights: 100%|██████████| 134/134 [00:00<00:00, 1943.75it/s]
-  zh: 200/450
-  zh: 400/450
-  en: 200/225
-  zh: decision 0.760  selection 0.760
-  en: decision 0.627  selection 0.627
-wrote /home/seanhuang2004/Krino-Matrix/experiments/krino-matrix-v1/results/report.md

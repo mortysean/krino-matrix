@@ -76,7 +76,7 @@ def save_result(
             user_id=conversation.user_id, conversation_id=conversation.id, objective_input=data.objective,
             answers=[a.model_dump() for a in data.answers], problem=response.problem.model_dump(mode="json"),
             candidates=[a.model_dump() for a in response.actions], recommended=response.best_action,
-            scores=response.action_scores, confidence=response.confidence, evaluator_mode=response.evaluator.mode,
+            scores=response.action_scores, confidence=response.confidence,
             model_version=response.model_version, response=payload["response"],
         )
         db.add(decision)

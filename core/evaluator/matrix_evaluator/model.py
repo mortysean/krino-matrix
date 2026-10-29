@@ -59,10 +59,8 @@ def hub_client(host: str | None):
 class MatrixModel(nn.Module):
     """path is a start point or a directory written by save().
 
-    Three kinds of start point, by what the directory holds:
+    Two kinds of start point, by what the directory holds:
       matrix_config.json   a model save() wrote: that model is resumed, weights and all;
-      rl_agent_config.json a Laya decision checkpoint: its encoder is taken and its head and option scorer start the
-                           refining transformer and the selection head (Laya-trained weights, kept for old experiments);
       anything else        a plain pretrained encoder (a directory, or an HF id such as jhu-clsp/mmBERT-base): the
                            encoder is loaded with AutoModel/AutoTokenizer and every head, the refining transformer
                            and the kind embedding, is initialised from scratch, so nothing is inherited from another
@@ -81,20 +79,10 @@ class MatrixModel(nn.Module):
     ):
         super().__init__()
         config_file = Path(path) / CONFIG_FILE
-        laya_model = None
         if config_file.exists():
             config = json.loads(config_file.read_text(encoding="utf-8"))
             self.tokenizer = AutoTokenizer.from_pretrained(Path(path) / "tokenizer")
             self.encoder = AutoModel.from_pretrained(Path(path) / "encoder", attn_implementation="sdpa")
-        elif (Path(path) / "rl_agent_config.json").exists():
-            # A Laya decision checkpoint: take its encoder, and start the heads from its head and option scorer
-            from laya.train import load_checkpoint
-
-            laya_model, self.tokenizer, _ = load_checkpoint(path)
-            self.encoder = laya_model.encoder
-            config = {"base": str(path), "base_pretrained": False, "max_length": max_length,
-                      "constraint_tokens": constraint_tokens, "action_tokens": action_tokens,
-                      "head_layers": len(laya_model.head.layers), "levels": LEVELS}
         else:
             config = {"base": str(path), "base_pretrained": True, "hf_endpoint": hf_endpoint,
                       "max_length": max_length, "constraint_tokens": constraint_tokens,
@@ -119,9 +107,6 @@ class MatrixModel(nn.Module):
         heads_file = Path(path) / HEADS_FILE
         if heads_file.exists():
             self.load_state_dict(torch.load(heads_file, map_location="cpu", weights_only=True), strict=False)
-        elif laya_model is not None:
-            self.head.load_state_dict(laya_model.head.state_dict())
-            self.selection_head.load_state_dict(laya_model.scorer.state_dict())
 
     # ------------------------------------------------------------------------------------- encoding
 

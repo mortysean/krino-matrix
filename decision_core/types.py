@@ -82,7 +82,6 @@ class ActionCard(BaseModel):
 
 
 class EvaluatorInfo(BaseModel):
-    mode: Literal["matrix", "baseline"]
     name: str
     version: str
     experimental: bool

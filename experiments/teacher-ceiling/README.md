@@ -70,7 +70,7 @@ $PY experiments/teacher-ceiling/run.py --sets en
 
 每个 JSON 与 benchmark 输出同构：`{"model", "sets": {zh/en: {n_cases, goal, constraints, selection, decision, per_case,
 latency_ms, assessments}}, "environment"}`，`assessments` 按 `test.jsonl` 原顺序；另附 `teacher_latency_ms`（单次调用
-p50/p95）和 `unscored_cases` 两个附加字段。四个 JSON 跑完后会复制一份到 `experiments/krino-matrix-v1/results/`，
+p50/p95）和 `unscored_cases` 两个附加字段。把四个 JSON 复制到 `experiments/krino-matrix-v1-mmbert/results/` 后，
 主实验重新生成报告时会把它们作为额外模型列出。
 
 ## 主要结论

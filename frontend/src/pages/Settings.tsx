@@ -148,8 +148,7 @@ export function SettingsPage() {
         <div className="setting-row"><span className="label">{t('s.modelName')}</span>
           <span className="mono">{status ? (status.model.configured ? status.model.name : t('s.notConfigured')) : '…'}</span></div>
         <div className="setting-row"><span className="label">{t('s.evaluator')}</span>
-          <span className={`chip ${status?.evaluator.mode === 'matrix' ? 'accent' : 'warn'}`}>
-            {status?.evaluator.mode === 'matrix' ? t('s.evalMatrix') : t('s.evalBaseline')}</span></div>
+          <span className="chip accent">{t('s.evalMatrix')}</span></div>
         <p className="muted small">{t('s.evalNote')}</p>
         <div className="setting-row"><span className="label">{t('s.byok')}</span><span className="chip">{t('s.notLive')}</span></div>
       </section>

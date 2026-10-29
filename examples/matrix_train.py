@@ -29,7 +29,7 @@ from core.matrix import load
 from core.evaluator.matrix_evaluator import MatrixModel, TrainConfig, train, calibrate
 from core.evaluator.matrix_evaluator.model import TASKS
 
-BASE = "jhu-clsp/mmBERT-base"     # the encoder under Laya's multilingual checkpoint, before any decision training
+BASE = "jhu-clsp/mmBERT-base"     # a small pretrained multilingual encoder, before any decision training
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
