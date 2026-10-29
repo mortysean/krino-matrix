@@ -18,7 +18,7 @@ from torch import nn
 from torch.utils.checkpoint import checkpoint
 from transformers import AutoModel, AutoTokenizer
 
-from krino.common.matrix import LEVELS
+from .dataset import LEVELS
 from krino.common.schema import Problem, Action
 
 CONFIG_FILE = "matrix_config.json"

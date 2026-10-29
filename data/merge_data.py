@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from krino.common.matrix import SPLITS, load
+from model.dataset import SPLITS, load
 
 
 def main(args: argparse.Namespace) -> None:

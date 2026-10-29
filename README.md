@@ -55,6 +55,7 @@ sagax is a data platform built by the author. It collects China market data from
 ```
 krino/                the Python package
   engine.py           one decision turn through every step, and build_engine() for the web app
+  contract.py         the engine's input and the clarification / decision / error responses clients get
   steps/              the three hosted-LLM steps
     formulator.py       request → decision problem
     clarifier.py        one key question when needed
@@ -65,12 +66,11 @@ krino/                the Python package
     rules.py            explicit safety rules
   common/             shared by every part
     schema.py           basic elements
-    contract.py         the clarification / decision / error responses clients get
-    matrix.py           the case format for training and benchmarks
     llm.py, tracing.py  LLM interface (OpenRouter, litellm, Anthropic SDK) and call records
   data/               DataSource / Query interface, sagax source
 model/                the Matrix model
   network.py          the network, shared by training and inference
+  dataset.py          the case format (krino-matrix/1) for training, benchmarks and the data scripts
   training/           training framework: trainer.py (training, calibration), train.py (command), benchmark.py
   inference/          inference framework: MatrixEvaluator, one forward pass, hard-constraint filter, selection
   checkpoints/        trained weights (git-ignored); the web app runs mmbert-uncertainty
@@ -119,7 +119,7 @@ Configuration is in the Web section of `.env.example` (`DATABASE_URL`, `KRINO_SE
 
 ## Model Experiments
 
-`krino/common/matrix.py` defines the `krino-matrix/1` case format. The Matrix evaluator has separate goal, constraint and action-selection heads; hard-constraint rules filter unsafe candidates before selection. Training data is expected under `data/krino_matrix/{zh,en}` and checkpoints are kept locally (they are excluded from Git). The current model is trained in-house from the small multilingual encoder `jhu-clsp/mmBERT-base`, with all three task heads initialised from scratch and uncertainty loss weighting; it is the only checkpoint kept locally, `model/checkpoints/mmbert-uncertainty`. See the [experiment report](experiments/krino-matrix-v1-mmbert/README.md) for training details and results.
+`model/dataset.py` defines the `krino-matrix/1` case format. The Matrix evaluator has separate goal, constraint and action-selection heads; hard-constraint rules filter unsafe candidates before selection. Training data is expected under `data/krino_matrix/{zh,en}` and checkpoints are kept locally (they are excluded from Git). The current model is trained in-house from the small multilingual encoder `jhu-clsp/mmBERT-base`, with all three task heads initialised from scratch and uncertainty loss weighting; it is the only checkpoint kept locally, `model/checkpoints/mmbert-uncertainty`. See the [experiment report](experiments/krino-matrix-v1-mmbert/README.md) for training details and results.
 
 ## Status
 

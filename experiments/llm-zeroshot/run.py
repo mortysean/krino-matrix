@@ -57,7 +57,7 @@ import httpx
 import litellm
 import numpy as np
 
-from krino.common.matrix import Labels, load
+from model.dataset import Labels, load
 from model.inference import Assessment
 from data.build_data import (BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, LABEL_PROMPT, constraints_list,
                                         levels_text, normalized, teacher_output)

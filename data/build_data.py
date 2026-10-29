@@ -1,4 +1,4 @@
-"""Build Krino Matrix datasets (krino/common/matrix.py): every case is state, goal, constraints and action space, labeled
+"""Build Krino Matrix datasets (model/dataset.py): every case is state, goal, constraints and action space, labeled
 for goal, constraints and best by a teacher LLM.
 
     python data/build_data.py legacy data/value_opus data/value_more data/value_ds1017 --out data/krino_matrix/zh
@@ -32,7 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from krino.common.schema import Constraint, Action
-from krino.common.matrix import LEVELS, SPLITS, MatrixCase, Labels, group_split, load
+from model.dataset import LEVELS, SPLITS, MatrixCase, Labels, group_split, load
 from krino.common.llm import LLM
 
 DOMAINS = [

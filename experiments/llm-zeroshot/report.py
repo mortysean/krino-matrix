@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))      # run.py sits next
 
 import httpx
 
-from krino.common.matrix import load
+from model.dataset import load
 from run import EXP, MODEL, MAX_ATTEMPTS, MAX_TOKENS, REASONING, ATTEMPT_TIMEOUT, CROSS_ATTEMPT, PROBE, \
     COST_CASES, CONCURRENCY, TEACHER
 from model.training.benchmark import BOOTSTRAP

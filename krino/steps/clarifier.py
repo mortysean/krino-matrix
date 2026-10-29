@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 from ..common.llm import LLM
 from ..common.schema import Problem, constraints_text
-from ..common.contract import Answer, Question, clean_id
+from ..contract import Answer, Question, clean_id
 
 
 # Kept in the user turn rather than the system prompt: some gateways replace the system prompt

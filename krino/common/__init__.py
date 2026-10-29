@@ -1,1 +1,1 @@
-"""Shared by every part: schema, the client contract, the labeled case format, the LLM client and call tracing."""
+"""Shared by every part: schema (basic elements), the LLM client and its call tracing."""

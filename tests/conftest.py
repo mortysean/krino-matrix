@@ -15,7 +15,7 @@ from krino.steps.clarifier import Clarifier  # noqa: E402
 from krino.steps.generator import CandidateAction, CandidateSpace, CardGenerator  # noqa: E402
 from krino.engine import DecisionEngine  # noqa: E402
 from krino.evaluator.base import Evaluator, Evaluation  # noqa: E402
-from krino.common.contract import EvaluatorInfo, Question  # noqa: E402
+from krino.contract import EvaluatorInfo, Question  # noqa: E402
 
 
 class FakeFormulator(Formulator):

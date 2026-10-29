@@ -22,7 +22,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, model_validator
 
-from .schema import State, Constraint, Problem, Action, ActionSpace
+from krino.common.schema import State, Constraint, Problem, Action, ActionSpace
 
 FORMAT = "krino-matrix/1"
 # The ordered rubric of the goal task; level i is answer i. It measures goal attainment only, so it never mentions

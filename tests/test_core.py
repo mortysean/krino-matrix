@@ -1,5 +1,5 @@
 from conftest import FailingFormulator, FakeGenerator, fake_engine
-from krino.common.contract import Answer, CoreInput
+from krino.contract import Answer, CoreInput
 from krino.steps.generator import CandidateAction
 from krino.evaluator.rules import requires_confirmation
 

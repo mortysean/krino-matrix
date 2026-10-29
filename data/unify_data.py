@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
-from krino.common.matrix import LEVELS, SPLITS, Labels, MatrixCase, load
+from model.dataset import LEVELS, SPLITS, Labels, MatrixCase, load
 from krino.common.schema import Constraint
 from data.build_data import (
     BEST_TASK, CONSTRAINTS_TASK, GOAL_TASK, TEACHER_SAMPLES, constraints_list, label, levels_text, mean,

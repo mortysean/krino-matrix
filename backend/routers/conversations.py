@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from krino.common.contract import Answer, ErrorResponse
+from krino.contract import Answer, ErrorResponse
 from krino.evaluator.rules import lang_of
 from ..config import settings
 from ..db import get_db

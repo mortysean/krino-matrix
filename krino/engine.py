@@ -11,7 +11,7 @@ from .evaluator.rules import MESSAGES, lang_of, requires_confirmation
 from .steps.clarifier import Clarifier
 from .steps.formulator import APIFormulator, Formulator
 from .steps.generator import CardGenerator, CandidateAction
-from .common.contract import (
+from .contract import (
     ActionCard, ClarificationResponse, CoreInput, CoreResponse, DecisionResponse, ErrorResponse, ProblemView, Stage,
 )
 

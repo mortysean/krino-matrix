@@ -55,6 +55,7 @@ sagax 是作者自建的数据平台：每日从 tushare、tqsdk 等来源采集
 ```
 krino/                核心 Python 包
   engine.py           一轮决策的完整流程，以及 Web 使用的 build_engine()
+  contract.py         引擎的输入，以及返回给客户端的 clarification / decision / error 响应
   steps/              调用大模型的三个步骤
     formulator.py       请求 → 决策问题
     clarifier.py        必要时追问一个关键问题
@@ -65,12 +66,11 @@ krino/                核心 Python 包
     rules.py            显式安全规则
   common/             各部分共享
     schema.py           基本元素
-    contract.py         返回给客户端的 clarification / decision / error 响应
-    matrix.py           训练与评测用的样本格式
     llm.py, tracing.py  大模型接口（OpenRouter、litellm、Anthropic SDK）与调用记录
   data/               DataSource / Query 接口，sagax 数据源
 model/                Matrix 模型
   network.py          网络结构（训练和推理共用）
+  dataset.py          样本格式（krino-matrix/1），训练、评测和数据脚本共用
   training/           训练框架：trainer.py（训练与校准）、train.py（训练命令）、benchmark.py（评测）
   inference/          推理框架：MatrixEvaluator，一次前向、硬约束过滤、再选择
   checkpoints/        训练好的权重（git 忽略），Web 使用 mmbert-uncertainty
@@ -119,7 +119,7 @@ bash scripts/test.sh           # 后端与决策流程测试，不调用模型
 
 ## 模型实验
 
-`krino/common/matrix.py` 定义了 `krino-matrix/1` 样本格式。Matrix 评估器分别预测目标达成度、约束违反和行动选择；硬约束规则会在选择前过滤不安全的候选。训练数据放在 `data/krino_matrix/{zh,en}`，模型检查点保存在本地（Git 忽略）。当前模型从小模型 `jhu-clsp/mmBERT-base`（多语言 encoder）自行训练，三个任务头全部从零初始化，loss 用 uncertainty 加权；本地只保留这一个检查点 `model/checkpoints/mmbert-uncertainty`。训练方式与结果见[实验报告](experiments/krino-matrix-v1-mmbert/README.md)。
+`model/dataset.py` 定义了 `krino-matrix/1` 样本格式。Matrix 评估器分别预测目标达成度、约束违反和行动选择；硬约束规则会在选择前过滤不安全的候选。训练数据放在 `data/krino_matrix/{zh,en}`，模型检查点保存在本地（Git 忽略）。当前模型从小模型 `jhu-clsp/mmBERT-base`（多语言 encoder）自行训练，三个任务头全部从零初始化，loss 用 uncertainty 加权；本地只保留这一个检查点 `model/checkpoints/mmbert-uncertainty`。训练方式与结果见[实验报告](experiments/krino-matrix-v1-mmbert/README.md)。
 
 ## 进度
 

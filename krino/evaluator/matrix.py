@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ..common.contract import EvaluatorInfo
+from ..contract import EvaluatorInfo
 from ..common.schema import Problem, Action
 from .base import Evaluator, Evaluation
 
