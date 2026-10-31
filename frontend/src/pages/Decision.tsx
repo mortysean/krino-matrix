@@ -22,14 +22,14 @@ export function DecisionPage() {
   return (
     <div className="page narrow stack" style={{ gap: 20 }}>
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <Link to={`/c/${decision.conversation_id}`} className="small muted">← {t('nav.chats')}</Link>
-        <span className="small muted">{new Date(decision.created_at).toLocaleString(getLocale() === 'zh' ? 'zh-CN' : 'en')}</span>
+        <Link to={`/c/${decision.conversation_id}`} className="kicker link">← {t('c.backToTrip')}</Link>
+        <span className="kicker">{new Date(decision.created_at).toLocaleString(getLocale() === 'zh' ? 'zh-CN' : 'en')}</span>
       </div>
-      <div className="bubble-user" style={{ justifySelf: 'start' }}>{decision.objective_input}</div>
+      <div className="bubble-user">{decision.objective_input}</div>
       {decision.answers.length > 0 && (
         <div className="stack" style={{ gap: 4 }}>
           {decision.answers.map(a => (
-            <p key={a.question_id} className="small muted">{a.question} → {a.skipped ? t('q.skipped') : [...a.values, a.text].filter(Boolean).join('；')}</p>
+            <p key={a.question_id} className="kicker">{a.question} → {a.skipped ? t('q.skipped') : [...a.values, a.text].filter(Boolean).join('；')}</p>
           ))}
         </div>
       )}

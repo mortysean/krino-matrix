@@ -91,7 +91,7 @@ cp .env.example .env    # 填入大模型服务商和 sagax API key
 
 | 命令 | 运行内容 |
 | --- | --- |
-| `bash scripts/serve.sh` | 构建前端并启动 Web 应用（`--dev` 只启动 API，配合 `npm run dev`） |
+| `bash scripts/serve.sh [start\|stop\|restart\|status\|logs\|fg]` | 在后台启动 Web 应用（日志在 `.run/serve.log`）：前端在 `WEB_PORT`（6180），API 在 `API_PORT`（6181）；`--dev` 热更新，`fg` 留在前台 |
 | `bash scripts/test.sh` | 后端与决策流程测试，不调用模型 |
 | `bash scripts/train.sh [输出目录] [种子]` | 按当前配置训练 Matrix 模型（mmBERT-base、uncertainty 加权） |
 | `bash scripts/benchmark.sh [检查点 ...]` | 在测试集上评测，默认评测 `model/checkpoints/mmbert-uncertainty` |
@@ -100,22 +100,30 @@ cp .env.example .env    # 填入大模型服务商和 sagax API key
 
 ## Web 决策助手（V2.5 P0）
 
-按《KRINO MATRIX V2.5 精简需求》实现的第一版：输入目标 → 提取状态/约束 → 必要时澄清（最多 3 问，可跳过）→ 生成 2–4 个候选 → 评估排序 → 行动卡 → 选择与反馈。
+说出你在纠结的事，Krino 缺信息时一次问一个问题，然后给出一个建议。不满意可以让它再想想、换个思路，或者先歇会儿，它会按新的情况重新给建议。
+
+设置里可以调 Krino 的说话方式（`krino/style.py`）：回复风格（默认“飞行员手册”：动词开头、短句、具体数字、不用术语；或聊天、详细）、人格（冷静、元气、温柔、傲娇，只影响 Krino 自己说的那句话和提问语气，不进入评估模型读取的行动描述）、对话风格（直接最多问一句、适中、细致）。
+
+页面背后仍是《KRINO MATRIX V2.5 精简需求》的第一版：输入目标 → 提取状态/约束 → 逐步澄清，一次一问、不限轮数，直到足以给出贴合的建议（可跳过；随时可点“直接告诉我吧”直接决策；`KRINO_MAX_QUESTIONS` 可设上限）→ 生成 2–4 个候选 → 评估排序 → 只把推荐的那一步放在前面，其余选项折起来。
 
 | 目录 | 内容 |
 |---|---|
 | `krino/` | 与设备无关的决策流程：统一的 clarification / decision / error 响应、澄清、候选生成、Matrix 评估（显示真实输出的选择倾向；检查点由 `KRINO_MATRIX_CHECKPOINT` 指定）、显式安全规则 |
 | `backend/` | FastAPI：邮箱登录、对话与决策快照、反馈、个人记忆、使用量、调用耗时与失败记录；PostgreSQL（本地开发可用 SQLite） |
-| `frontend/` | React + Vite：Today / 对话 / 决策详情 / 设置，演示动画、进度轨迹、移动端适配、减少动效 |
+| `frontend/` | React + Vite，黑白风格：现在 / 记录 / 设置；一段对话显示你的问题和 Krino 的建议；Krino 形象由线稿生成（`frontend/tools/lineart.py`），KRINO 商标为带动效的 SVG，移动端适配、减少动效 |
 
 ```bash
 pip install -r requirements.txt
-bash scripts/serve.sh          # 打开 http://localhost:8000
-# 开发时前端热更新：bash scripts/serve.sh --dev 与 (cd frontend && npm run dev) 同时运行
+bash scripts/serve.sh                                  # 打开 http://127.0.0.1:6180（API 在 :6181）
+WEB_PORT=3000 API_PORT=8100 bash scripts/serve.sh      # 换端口
+WEB_HOST=0.0.0.0 bash scripts/serve.sh                 # 让其他机器也能访问前端
+KRINO_API=http://10.0.0.5:8000 bash scripts/serve.sh   # 只启动前端，连接别处的后端
+bash scripts/serve.sh start --dev                      # 前后端都热更新
+bash scripts/serve.sh stop                             # 另有 restart、status、logs；fg 在前台运行
 bash scripts/test.sh           # 后端与决策流程测试，不调用模型
 ```
 
-配置见 `.env.example` 的 Web 部分（`DATABASE_URL`、`KRINO_SECRET_KEY`、`KRINO_MATRIX_CHECKPOINT` 等）。邮件服务尚未接入，找回密码的链接写在服务器日志中；余额、充值和 BYOK 在设置中标为未上线。
+前端在自己的端口启动，`/api` 请求由前端转发给后端，所以登录 cookie 保持同源，不需要配置 CORS。配置见 `.env.example` 的 Web 部分（`DATABASE_URL`、`KRINO_SECRET_KEY`、`KRINO_MATRIX_CHECKPOINT` 等）。邮件服务尚未接入，找回密码的链接写在服务器日志中；余额、充值和 BYOK 在设置中标为未上线。
 
 ## 模型实验
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, ApiError, type Memory, type Status } from '../api'
+import { api, ApiError, type Memory, type Pace, type Persona, type Status, type Style, type Tone } from '../api'
 import { useAuth } from '../auth'
 import { Toast, useToast } from '../components/States'
 import { errorText, getLocale, setLocale, t, type Locale } from '../i18n'
@@ -26,13 +26,23 @@ export function SettingsPage() {
   const [pw, setPw] = useState({ current: '', next: '' })
   const [pwError, setPwError] = useState<string | null>(null)
   const [locale, setLoc] = useState<Locale>(getLocale())
+  const [style, setStyleState] = useState<Style | null>(null)
 
   useEffect(() => {
     api.status().then(setStatus, () => {})
     api.memories().then(setMemories, () => {})
+    api.style().then(setStyleState, () => {})
   }, [])
 
   const fail = (e: unknown) => showToast(errorText(e instanceof ApiError ? e.message : 'generic'))
+
+  const changeStyle = async (next: Partial<Style>) => {
+    if (!style) return
+    const before = style
+    const updated = { ...style, ...next }
+    setStyleState(updated)
+    try { await api.setStyle(updated); showToast(t('s.saved')) } catch (err) { setStyleState(before); fail(err) }
+  }
 
   const addMemory = async (e: FormEvent) => {
     e.preventDefault()
@@ -105,6 +115,27 @@ export function SettingsPage() {
           <button className="btn">{t('s.changePassword')}</button>
           {pwError && <p className="form-error" style={{ width: '100%' }}>{pwError}</p>}
         </form>
+      </section>
+
+      <section className="panel section stack">
+        <h2>{t('s.krino')}</h2>
+        <p className="muted small">{t('s.krinoNote')}</p>
+        {style && (
+          <>
+            <div className="setting-row style-row"><span className="label">{t('s.tone')}</span>
+              <Seg<Tone> value={style.tone} onChange={v => changeStyle({ tone: v })}
+                options={[['pilot', t('s.tone.pilot')], ['chat', t('s.tone.chat')], ['detailed', t('s.tone.detailed')]]} />
+              <p className="sample">{t(`s.tone.${style.tone}.eg`)}</p></div>
+            <div className="setting-row style-row"><span className="label">{t('s.persona')}</span>
+              <Seg<Persona> value={style.persona} onChange={v => changeStyle({ persona: v })}
+                options={[['calm', t('s.persona.calm')], ['genki', t('s.persona.genki')], ['gentle', t('s.persona.gentle')], ['tsundere', t('s.persona.tsundere')]]} />
+              <p className="sample">{t(`s.persona.${style.persona}.eg`)}</p></div>
+            <div className="setting-row style-row"><span className="label">{t('s.pace')}</span>
+              <Seg<Pace> value={style.pace} onChange={v => changeStyle({ pace: v })}
+                options={[['direct', t('s.pace.direct')], ['balanced', t('s.pace.balanced')], ['thorough', t('s.pace.thorough')]]} />
+              <p className="sample">{t(`s.pace.${style.pace}.eg`)}</p></div>
+          </>
+        )}
       </section>
 
       <section className="panel section stack">

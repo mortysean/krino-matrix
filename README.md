@@ -91,7 +91,7 @@ cp .env.example .env    # fill in LLM providers and the sagax API key
 
 | Command | What it runs |
 | --- | --- |
-| `bash scripts/serve.sh` | Build the frontend and serve the web app (`--dev`: API only, next to `npm run dev`) |
+| `bash scripts/serve.sh [start\|stop\|restart\|status\|logs\|fg]` | Start the web app in the background (log in `.run/serve.log`): frontend on `WEB_PORT` (6180), API on `API_PORT` (6181); `--dev` for hot reload, `fg` to stay in the foreground |
 | `bash scripts/test.sh` | Backend and decision-flow tests, no model calls |
 | `bash scripts/train.sh [out_dir] [seed]` | Train a Matrix model with the current recipe (mmBERT-base, uncertainty weighting) |
 | `bash scripts/benchmark.sh [checkpoint ...]` | Score on the test sets; default `model/checkpoints/mmbert-uncertainty` |
@@ -100,22 +100,30 @@ cp .env.example .env    # fill in LLM providers and the sagax API key
 
 ## Web Decision Assistant (V2.5 P0)
 
-First version of the KRINO MATRIX V2.5 spec: goal → state/constraints → clarifying questions when needed (at most 3, skippable) → 2–4 candidates → evaluation → action cards → choice and feedback.
+Say what you are stuck on. When a fact is missing, Krino asks one question at a time, then gives one pick. Not quite right? Ask it to think again, try another angle, or take a break, and it picks again from the new situation.
+
+Settings change how Krino talks (`krino/style.py`): reply style (default "pilot checklist": verb first, short sentences, concrete numbers, no jargon; or chatty, detailed), personality (calm, genki, gentle, tsundere; it only colours Krino's own line and the wording of questions, never the action descriptions the evaluator reads), and conversation style (direct asks at most one question, balanced, thorough).
+
+The engine behind the screen is still the first version of the KRINO MATRIX V2.5 spec: goal → state/constraints → clarifying questions one at a time, as many as help narrow it down (skippable; "Just tell me" decides at any point; `KRINO_MAX_QUESTIONS` sets a cap) → 2–4 candidates → evaluation → one recommended action, with the others folded away.
 
 | Directory | Contents |
 |---|---|
 | `krino/` | Device-independent decision flow: one clarification / decision / error contract, clarifier, card generator, Matrix evaluation (shows its real selection probabilities; checkpoint set by `KRINO_MATRIX_CHECKPOINT`), explicit safety rules |
 | `backend/` | FastAPI: email login, conversations and decision snapshots, feedback, personal memory, usage, call latency and failures; PostgreSQL (SQLite for local dev) |
-| `frontend/` | React + Vite: Today / Chats / Decision / Settings, product demo, stage progress, mobile layout, reduced motion |
+| `frontend/` | React + Vite, black and white: Now / History / Settings; a chat shows your question and Krino's pick; the Krino figure drawn from line art (`frontend/tools/lineart.py`), the KRINO trademark as an animated SVG, mobile layout, reduced motion |
 
 ```bash
 pip install -r requirements.txt
-bash scripts/serve.sh          # open http://localhost:8000
-# frontend hot reload: run bash scripts/serve.sh --dev and (cd frontend && npm run dev) together
+bash scripts/serve.sh                                  # open http://127.0.0.1:6180 (API on :6181)
+WEB_PORT=3000 API_PORT=8100 bash scripts/serve.sh      # other ports
+WEB_HOST=0.0.0.0 bash scripts/serve.sh                 # frontend reachable from other machines
+KRINO_API=http://10.0.0.5:8000 bash scripts/serve.sh   # frontend only, against a backend elsewhere
+bash scripts/serve.sh start --dev                      # hot reload for both
+bash scripts/serve.sh stop                             # also: restart, status, logs; fg runs in the foreground
 bash scripts/test.sh           # backend and decision-flow tests, no model calls
 ```
 
-Configuration is in the Web section of `.env.example` (`DATABASE_URL`, `KRINO_SECRET_KEY`, `KRINO_MATRIX_CHECKPOINT`, ...). Email delivery is not wired up yet, so password reset links go to the server log; balance, top-up and BYOK are marked as not live in Settings.
+The frontend runs on its own port and proxies `/api` to the backend, so login cookies stay same-origin and no CORS is needed. Configuration is in the Web section of `.env.example` (`DATABASE_URL`, `KRINO_SECRET_KEY`, `KRINO_MATRIX_CHECKPOINT`, ...). Email delivery is not wired up yet, so password reset links go to the server log; balance, top-up and BYOK are marked as not live in Settings.
 
 ## Model Experiments
 

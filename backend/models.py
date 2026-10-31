@@ -26,6 +26,14 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
+class UserSettings(Base):
+    """How Krino talks to this user (krino.style.Style as JSON); a missing row means the defaults."""
+    __tablename__ = "user_settings"
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    style: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
 class PasswordReset(Base):
     __tablename__ = "password_resets"
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)

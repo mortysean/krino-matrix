@@ -1,25 +1,22 @@
 import type { Stage } from '../api'
 import { t } from '../i18n'
-import { Mark } from './Logo'
+import { KrinoFace } from './Krino'
 
 const STAGES: Stage[] = ['understand', 'clarify', 'compare']
 
-/** The real stage the core reports. No percentages: the track only says which stage is running. */
+/** The real stage the core reports, in one line. No percentages: it only says which stage is running. */
 export function Progress({ stage }: { stage: Stage | null }) {
   const current = stage ? STAGES.indexOf(stage) : 0
   return (
-    <div className="panel progress" role="status" aria-live="polite">
-      <div className="row">
-        <Mark size={22} spinning />
-        <span className="muted small">{t('stage.working')} · {t(`stage.${STAGES[current]}`)}</span>
-      </div>
-      <div className="progress-track">
+    <div className="ai thinking-row" role="status" aria-live="polite">
+      <KrinoFace mood="thinking" />
+      <div className="stages">
         {STAGES.map((s, i) => (
-          <div key={s} className={`progress-step ${i < current ? 'done' : i === current ? 'active' : ''}`}>
-            <div className="bar" />
-            <span>{t(`stage.${s}`)}</span>
-          </div>
+          <span key={s} className={`stage ${i < current ? 'done' : i === current ? 'active' : ''}`}>
+            {t(`stage.${s}`)}{i === current && <i className="dots"><b>.</b><b>.</b><b>.</b></i>}
+          </span>
         ))}
+        <span className="scanbar" />
       </div>
     </div>
   )

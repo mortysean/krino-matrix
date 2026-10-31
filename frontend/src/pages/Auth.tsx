@@ -2,8 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, ApiError } from '../api'
 import { useAuth } from '../auth'
-import { Demo } from '../components/Demo'
+import { KrinoFigure } from '../components/Krino'
 import { Logo } from '../components/Logo'
+import { Reveal } from '../components/Reveal'
 import { errorText, t } from '../i18n'
 
 function codeOf(e: unknown) {
@@ -33,15 +34,15 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   }
 
   return (
-    <div className="auth">
-      <div style={{ width: 'min(1040px, 100%)', display: 'grid', gap: 32, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', alignItems: 'center' }}>
-        <div className="stack" style={{ gap: 22 }}>
-          <Logo />
-          <h1 className="h1">{t('app.tagline')}</h1>
-          <Demo />
-        </div>
-        <form className="panel auth-card auth-form" onSubmit={submit} style={{ justifySelf: 'center' }}>
-          <h2 className="h2">{mode === 'login' ? t('auth.login') : t('auth.register')}</h2>
+    <div className="auth split">
+      <div className="auth-art">
+        <Logo size={40} />
+        <Reveal as="h1" className="display" text={t('app.tagline')} />
+        <KrinoFigure className="auth-figure" />
+      </div>
+      <div className="auth-side">
+        <form className="auth-card" onSubmit={submit}>
+          <span className="kicker">// {mode === 'login' ? t('auth.login') : t('auth.register')}</span>
           <div className="field">
             <label htmlFor="email">{t('auth.email')}</label>
             <input id="email" className="input" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
@@ -54,9 +55,9 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           </div>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="btn primary lg" disabled={busy}>{mode === 'login' ? t('auth.login') : t('auth.register')}</button>
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <Link className="small" to={mode === 'login' ? '/register' : '/login'}>{mode === 'login' ? t('auth.toRegister') : t('auth.toLogin')}</Link>
-            {mode === 'login' && <Link className="small muted" to="/reset">{t('auth.forgot')}</Link>}
+          <div className="row between">
+            <Link className="kicker link" to={mode === 'login' ? '/register' : '/login'}>{mode === 'login' ? t('auth.toRegister') : t('auth.toLogin')} →</Link>
+            {mode === 'login' && <Link className="kicker link" to="/reset">{t('auth.forgot')}</Link>}
           </div>
         </form>
       </div>
@@ -95,9 +96,9 @@ export function ResetPage() {
 
   return (
     <div className="auth">
-      <form className="panel auth-card" onSubmit={submit}>
-        <Logo />
-        <h2 className="h2">{t('auth.resetTitle')}</h2>
+      <form className="auth-card" onSubmit={submit}>
+        <Logo size={40} />
+        <span className="kicker">// {t('auth.resetTitle')}</span>
         {sent ? <p>{t('auth.resetSent')}</p> : (
           <>
             <div className="field">
@@ -110,7 +111,7 @@ export function ResetPage() {
           </>
         )}
         {!token && <p className="muted small">{t('auth.resetMailNote')}</p>}
-        <Link className="small" to="/login">{t('auth.back')}</Link>
+        <Link className="kicker link" to="/login">← {t('auth.back')}</Link>
       </form>
     </div>
   )

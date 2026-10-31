@@ -30,7 +30,7 @@ class FakeClarifier(Clarifier):
     def __init__(self):
         pass
 
-    def clarify(self, request, problem, answers):
+    def clarify(self, request, problem, answers, style=None):
         if answers:
             return None
         return Question(id="sql_level", text="你现在的 SQL 水平？", kind="single", options=["入门", "熟练"])
@@ -40,7 +40,7 @@ class FakeGenerator(CardGenerator):
     def __init__(self, actions=None):
         self.actions = actions
 
-    def generate(self, state, goal, constraints):
+    def generate(self, state, goal, constraints, style=None):
         actions = self.actions if self.actions is not None else [
             CandidateAction(id="build_portfolio", title="先做两个数据分析作品", description="用公开数据做两个项目。",
                             why="作品最能证明能力。"),

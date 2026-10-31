@@ -11,3 +11,4 @@ data/*
 !data/README.md
 experiments/*/checkpoints/
 .backup/
+.run/

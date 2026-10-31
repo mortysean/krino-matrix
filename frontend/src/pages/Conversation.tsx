@@ -4,7 +4,7 @@ import {
   api, ApiError, streamTurn, type Conversation, type Decision, type ErrorResponse, type Message, type Stage, type TurnInput,
 } from '../api'
 import { DecisionView } from '../components/DecisionView'
-import { IconArrow, IconChevron } from '../components/icons'
+import { GoalInput } from '../components/GoalInput'
 import { Progress } from '../components/Progress'
 import { QuestionCard } from '../components/QuestionCard'
 import { Empty, ErrorBox, Toast, useToast } from '../components/States'
@@ -14,6 +14,17 @@ const NETWORK_ERROR = (): ErrorResponse => ({
   type: 'error', code: 'call_failed', message: t('err.network'), retryable: true, suggestions: ['retry'],
 })
 
+// the prefix of a follow-up sent by the buttons under a decision; the older wording stays so past chats still show their question
+const REPLAN_PREFIXES = ['还是关于：', 'Still about:', '目的地仍然是：', 'Destination unchanged:']
+
+function shownDestination(messages: Message[], title: string) {
+  const goals = messages.filter(m => m.kind === 'objective').map(m => m.text)
+  for (let i = goals.length - 1; i >= 0; i--) {
+    if (!REPLAN_PREFIXES.some(prefix => goals[i].startsWith(prefix))) return goals[i]
+  }
+  return title
+}
+
 export function ConversationPage() {
   const { id } = useParams()
   const location = useLocation()
@@ -22,12 +33,10 @@ export function ConversationPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [stage, setStage] = useState<Stage | null>(null)
   const [running, setRunning] = useState(false)
-  const [localError, setLocalError] = useState<ErrorResponse | null>(null)   // a turn that never reached the server
-  const [draft, setDraft] = useState('')
+  const [localError, setLocalError] = useState<ErrorResponse | null>(null)
+  const [retarget, setRetarget] = useState(false)
   const [toast, showToast] = useToast()
-  const started = useRef<string | null>(null)        // conversation id this page already started or loaded
-  const composer = useRef<HTMLTextAreaElement>(null)
-  const bottom = useRef<HTMLDivElement>(null)
+  const started = useRef<string | null>(null)
 
   const load = useCallback(async (cid: string) => {
     try {
@@ -80,104 +89,59 @@ export function ConversationPage() {
     load(id)
   }, [id, location.state, load, navigate, run])
 
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }, [conv?.messages.length, running])
-
-  const cidNow = conv?.id || undefined
-  const send = (text: string) => {
-    if (!text.trim() || running) return
-    setDraft('')
-    setConv(c => c && { ...c, messages: [...c.messages, { id: `local-${Date.now()}`, role: 'user', kind: c.pending_question ? 'answer' : 'objective', text, created_at: '' }] })
-    run({ conversation_id: cidNow, text })
-  }
-
   const updateDecision = (d: Decision) =>
     setConv(c => c && { ...c, messages: c.messages.map(m => m.decision?.id === d.id ? { ...m, decision: d } : m) })
-
-  const edit = () => {
-    const last = [...(conv?.messages ?? [])].reverse().find(m => m.kind === 'objective')
-    setDraft(last?.text ?? '')
-    composer.current?.focus()
-  }
 
   if (loadError) return <div className="page narrow"><Empty><p>{loadError}</p><Link className="btn" to="/">{t('nav.today')}</Link></Empty></div>
   if (!conv) return <div className="page narrow"><Progress stage={null} /></div>
 
+  const destination = shownDestination(conv.messages, conv.title)
+  const cidNow = conv.id || undefined
+  const replan = (note: string) => {
+    if (running || !cidNow) return
+    setRetarget(false)
+    run({ conversation_id: cidNow, text: t('c.replan', { goal: destination, note }) })
+  }
+  const changeGoal = (text: string) => {
+    setRetarget(false)
+    run({ conversation_id: cidNow, text })
+  }
+
   const messages = conv.messages
-  const lastDecisionIndex = messages.map(m => m.kind).lastIndexOf('decision')
+  const latest = [...messages].reverse().find(m => m.kind === 'decision' && m.decision)
+  const last = messages[messages.length - 1]
+  const pendingQuestion = !running && last?.kind === 'clarification' && last.response?.type === 'clarification' && conv.pending_question
+    ? last.response : null
+  const lastError = !running && last?.kind === 'error' && last.response?.type === 'error' ? last.response : null
 
   return (
-    <div className="page narrow">
-      <div className="thread">
-        {messages.map((m, i) => (
-          <MessageView key={m.id} m={m} last={i === messages.length - 1} latestDecision={i === lastDecisionIndex}
-            busy={running} pending={conv.pending_question} onToast={showToast} onDecision={updateDecision}
-            onAnswer={a => run({ conversation_id: cidNow, answer: a })}
-            onDecideNow={() => run({ conversation_id: cidNow, decide_now: true })}
-            onRetry={() => run({ conversation_id: cidNow, retry: true })} onEdit={edit} />
-        ))}
-        {running && <Progress stage={stage} />}
-        {localError && !running && <ErrorBox error={localError} active onRetry={() => run({ conversation_id: cidNow, retry: true })} onEdit={edit} />}
-        <div ref={bottom} />
-      </div>
+    <div className="page narrow trip">
+      <header className="trip-head">
+        <span className="kicker">// {t('c.destination')}</span>
+        <p className="trip-dest">{destination}</p>
+        <button className="link-btn" disabled={running} onClick={() => setRetarget(v => !v)}>{t('c.changeGoal')}</button>
+        {retarget && <GoalInput initial={destination} onSubmit={changeGoal} busy={running} autoFocus />}
+      </header>
 
-      <div className="panel composer">
-        <label htmlFor="composer" className="sr-only">{t('c.continue')}</label>
-        <textarea id="composer" ref={composer} className="textarea" rows={1} value={draft} disabled={running}
-          placeholder={conv.pending_question ? t('c.answerHere') : t('c.continue')}
-          onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(draft) } }} />
-        <button className="btn primary" onClick={() => send(draft)} disabled={running || !draft.trim()} aria-label={t('c.send')}>
-          <IconArrow size={17} />
-        </button>
-      </div>
+      {running && <Progress stage={stage} />}
+      {pendingQuestion && (
+        <QuestionCard question={pendingQuestion.question} busy={running}
+          onAnswer={a => run({ conversation_id: cidNow, answer: a })}
+          onDecideNow={() => run({ conversation_id: cidNow, decide_now: true })} />
+      )}
+      {!running && !pendingQuestion && !lastError && !localError && latest?.decision && (
+        <DecisionView decision={latest.decision} onChange={updateDecision} onToast={showToast}
+          onAskNow={() => replan(t('c.noteNow'))}
+          onDetour={() => replan(t('c.noteDetour'))}
+          onRest={() => replan(t('c.noteRest'))} />
+      )}
+      {(lastError || localError) && (
+        <ErrorBox error={(localError ?? lastError)!} active
+          onRetry={() => run({ conversation_id: cidNow, retry: true })}
+          onEdit={() => setRetarget(true)} />
+      )}
       <Toast text={toast} />
     </div>
   )
 }
 
-interface MessageProps {
-  m: Message
-  last: boolean
-  latestDecision: boolean
-  busy: boolean
-  pending: Conversation['pending_question']
-  onAnswer: Parameters<typeof QuestionCard>[0]['onAnswer']
-  onDecideNow: () => void
-  onRetry: () => void
-  onEdit: () => void
-  onToast: (s: string) => void
-  onDecision: (d: Decision) => void
-}
-
-function MessageView({ m, last, latestDecision, busy, pending, onAnswer, onDecideNow, onRetry, onEdit, onToast, onDecision }: MessageProps) {
-  if (m.kind === 'objective') return <div className="bubble-user">{m.text}</div>
-  if (m.kind === 'answer') {
-    const skipped = m.answer?.skipped
-    return <div className={`bubble-user ${skipped ? 'skipped' : ''}`}>{skipped ? t('q.skipped') : m.text}</div>
-  }
-  if (m.kind === 'clarification' && m.response?.type === 'clarification') {
-    if (last && pending) {
-      return <QuestionCard question={m.response.question} asked={m.response.asked} max={m.response.max_questions}
-        busy={busy} onAnswer={onAnswer} onDecideNow={onDecideNow} />
-    }
-    return <div className="bubble-note">{m.response.question.text}</div>
-  }
-  if (m.kind === 'error' && m.response?.type === 'error') {
-    return <ErrorBox error={m.response} active={last && !busy} onRetry={onRetry} onEdit={onEdit} />
-  }
-  if (m.kind === 'decision' && m.decision) {
-    if (latestDecision) return <DecisionView decision={m.decision} onChange={onDecision} onToast={onToast} />
-    return (
-      <Link to={`/d/${m.decision.id}`} className="list-item">
-        <div className="grow">
-          <div className="sub">{t('d.next')}</div>
-          <div className="title">{m.decision.response.headline}</div>
-        </div>
-        <IconChevron size={16} />
-      </Link>
-    )
-  }
-  return null
-}

@@ -11,6 +11,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from .common.schema import Action, Constraint
+from .style import Style
 
 CORE_VERSION = "decision-core/0.1"
 
@@ -37,7 +38,8 @@ class CoreInput(BaseModel):
     answers: list[Answer] = []                      # clarification answers so far in this decision
     memories: list[str] = []                        # facts the user confirmed about themselves
     history: list[str] = []                         # short summaries of earlier decisions in the conversation
-    max_questions: int = 3
+    max_questions: int | None = None                # cap on follow-up questions; None lets the clarifier decide
+    style: Style = Style()                          # how Krino talks: reply style, personality, conversation style
     source: str = "web"
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     context: dict[str, Any] = {}
@@ -67,7 +69,7 @@ class ClarificationResponse(BaseModel):
     question: Question
     problem: ProblemView
     asked: int                      # questions asked so far in this decision, including this one
-    max_questions: int
+    max_questions: int | None       # None: no cap, the user can ask for a decision at any point
 
 
 class ActionCard(BaseModel):
@@ -77,6 +79,7 @@ class ActionCard(BaseModel):
     why: str = ""                   # one sentence
     difference: str = ""            # what sets it apart from the others
     risks: list[str] = []
+    say: str = ""                   # one line Krino says when handing over this action, in her personality
     excluded_by: list[str] = []     # hard constraints the evaluator judged likely broken
     requires_confirmation: bool = False
 

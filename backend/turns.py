@@ -12,14 +12,23 @@ from krino.contract import Answer, CoreInput, CoreResponse, ErrorResponse
 from krino.engine import ERRORS, DecisionEngine
 from krino.evaluator.rules import lang_of
 from krino.common.tracing import CallLog, current_log
+from krino.style import Style
 from .config import log, settings
 from .db import SessionLocal
-from .models import Conversation, Decision, Memory, Message, ModelCall, Turn, now
+from .models import Conversation, Decision, Memory, Message, ModelCall, Turn, UserSettings, now
 
 QUOTA_MESSAGE = {
     "zh": "今天的可用次数已用完，明天会自动恢复。已保存的历史和决策不受影响。",
     "en": "You have used today's runs. They reset tomorrow; saved history and decisions are unaffected.",
 }
+
+
+def user_style(db: Session, user_id: str) -> Style:
+    row = db.get(UserSettings, user_id)
+    try:
+        return Style.model_validate(row.style) if row else Style()
+    except ValueError:      # a stored option that no longer exists
+        return Style()
 
 
 def turns_today(db: Session, user_id: str) -> int:
@@ -59,7 +68,8 @@ def core_input(db: Session, conversation: Conversation, decide_now: bool) -> Cor
     memories = list(db.scalars(select(Memory.text).where(Memory.user_id == conversation.user_id)
                                .order_by(Memory.created_at)))
     return CoreInput(objective=current[0].text, answers=answers, memories=memories, history=history[-5:],
-                     max_questions=len(answers) if decide_now else settings.max_questions)
+                     max_questions=len(answers) if decide_now else settings.max_questions,
+                     style=user_style(db, conversation.user_id))
 
 
 def save_result(

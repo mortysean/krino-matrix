@@ -6,11 +6,12 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from krino.common.tracing import model_configured
+from krino.style import Style
 from ..config import settings
 from ..db import get_db
-from ..models import Conversation, ModelCall, User
+from ..models import Conversation, ModelCall, User, UserSettings, now
 from ..security import COOKIE, current_user, hash_password, verify_password
-from ..turns import turns_today
+from ..turns import turns_today, user_style
 from .auth import check_password
 
 router = APIRouter(prefix="/api/account", tags=["account"])
@@ -33,6 +34,22 @@ def change_password(body: PasswordChange, user: User = Depends(current_user), db
     user.password_hash = hash_password(body.new)
     db.commit()
     return {"ok": True}
+
+
+@router.get("/style")
+def get_style(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """How Krino talks to this user: reply style (tone), personality (persona), conversation style (pace)."""
+    return user_style(db, user.id)
+
+
+@router.put("/style")
+def set_style(body: Style, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    row = db.get(UserSettings, user.id) or UserSettings(user_id=user.id)
+    row.style = body.model_dump()
+    row.updated_at = now()
+    db.add(row)
+    db.commit()
+    return body
 
 
 @router.delete("/history")

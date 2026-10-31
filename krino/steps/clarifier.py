@@ -5,15 +5,20 @@ from pydantic import BaseModel, Field
 from ..common.llm import LLM
 from ..common.schema import Problem, constraints_text
 from ..contract import Answer, Question, clean_id
+from ..style import PACES, Style, persona, voice
 
 
 # Kept in the user turn rather than the system prompt: some gateways replace the system prompt
 PROMPT = """You are the clarification step of a decision assistant. The assistant will propose a few candidate \
-next actions and recommend one. Decide whether ONE missing piece of information would likely change which action \
-gets recommended. Ask about it only if so.
+next actions and recommend one. The user is narrowing down, step by step, what they really want, one question per \
+turn and with no fixed number of turns. Decide whether ONE more piece of information would likely change which \
+action gets recommended, or make the recommendation clearly more specific to this user. Ask about it only if so.
 
 Rules:
-- Ask nothing when the request already allows a sensible recommendation. Most requests need no question.
+- Build on the answers so far: each question should narrow things down further, not restart or repeat.
+- Ask nothing once the request and answers already allow a specific, well-fitted recommendation; the user can \
+also ask for a decision at any point.
+- How readily to ask: {pace}
 - Never ask about something already stated, already answered, or skipped below.
 - Never ask for preferences that would not change the recommendation, or for details only needed later.
 - The question must be short, in the same language as the request.
@@ -21,6 +26,12 @@ Rules:
 use "text" only when options cannot cover the likely answers. Do not include an "other" option, it is added for you.
 - required: true only when no reasonable recommendation is possible without it.
 - why: one short line, same language, on how the answer could change the recommendation.
+- Write the question and options in the writing style below. The question may carry a touch of Krino's \
+personality; the options stay plain.
+
+{voice}
+
+{persona}
 
 Request:
 {request}
@@ -61,9 +72,11 @@ class Clarifier:
         self,
         request: str,
         problem: Problem,
-        answers: list[Answer]
+        answers: list[Answer],
+        style: Style = Style()
     ) -> Question | None:
         result = self.llm.structured(PROMPT.format(
+            pace=PACES[style.pace], voice=voice(style), persona=persona(style),
             request=request,
             state=json.dumps(problem.state.data, ensure_ascii=False, indent=2),
             goal=problem.goal,

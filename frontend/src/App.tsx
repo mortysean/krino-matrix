@@ -12,7 +12,7 @@ import { SettingsPage } from './pages/Settings'
 import { TodayPage } from './pages/Today'
 
 function Background() {
-  return <div className="bg" aria-hidden="true"><div className="glow" /></div>
+  return <div className="bg" aria-hidden="true"><div className="dots" /><div className="grain" /></div>
 }
 
 function RequireUser({ children }: { children: ReactNode }) {

@@ -1,7 +1,7 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { t } from '../i18n'
-import { IconAgents, IconChats, IconLogout, IconPlus, IconSettings, IconToday } from './icons'
+import { IconChats, IconLogout, IconPlus, IconSettings, IconToday } from './icons'
 import { Logo } from './Logo'
 
 const NAV = [
@@ -13,25 +13,25 @@ const NAV = [
 export function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   return (
     <div className="shell">
       <aside className="side" aria-label="Navigation">
-        <div className="brand"><Logo /></div>
-        <button className="btn new-btn" onClick={() => navigate('/')}><IconPlus size={16} />{t('nav.new')}</button>
-        {NAV.map(n => (
+        <div className="brand"><Logo size={36} /></div>
+        <button className="btn primary new-btn" onClick={() => navigate('/')}><IconPlus size={16} />{t('nav.new')}</button>
+        {NAV.map((n, i) => (
           <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-            <n.icon />{t(n.label)}
+            <span className="nav-n">0{i + 1}</span><n.icon size={17} />{t(n.label)}
           </NavLink>
         ))}
-        {/* Reserved for P2: no market or install actions until they work */}
-        <span className="nav-item disabled" aria-disabled="true"><IconAgents />{t('nav.agents')}<span className="soon">{t('nav.soon')}</span></span>
         <div className="spacer" />
         <div className="who" title={user?.email}>{user?.email}</div>
-        <button className="nav-item btn ghost" style={{ justifyContent: 'flex-start' }} onClick={logout}><IconLogout />{t('nav.logout')}</button>
+        <button className="nav-item btn ghost" onClick={logout}><IconLogout size={17} />{t('nav.logout')}</button>
       </aside>
       <main className="main">
-        <div className="mobile-top"><Logo size={24} /></div>
-        <Outlet />
+        <div className="mobile-top"><Logo size={26} /></div>
+        {/* keyed by section so each page plays its entrance; /c/new → /c/<id> must not remount mid-turn */}
+        <div key={pathname.split('/')[1]} className="route"><Outlet /></div>
       </main>
       <nav className="tabs" aria-label="Navigation">
         {NAV.map(n => (

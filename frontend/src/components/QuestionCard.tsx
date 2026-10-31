@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import type { Answer, Question } from '../api'
 import { t } from '../i18n'
+import { IconArrow } from './icons'
+import { KrinoFace } from './Krino'
+import { Reveal } from './Reveal'
 
 interface Props {
   question: Question
@@ -13,61 +16,68 @@ interface Props {
 
 const OTHER = '__other__'
 
-/** One key question at a time: single or multiple choice with "other", or free text. Skippable unless required. */
-export function QuestionCard({ question, asked, max, busy, onAnswer, onDecideNow }: Props) {
+/** One key question. A single choice answers on click; multiple choice and free text confirm with the arrow. */
+export function QuestionCard({ question, busy, onAnswer, onDecideNow }: Props) {
   const [picked, setPicked] = useState<string[]>([])
   const [other, setOther] = useState('')
   const multi = question.kind === 'multi'
-  const hasOther = picked.includes(OTHER) || question.kind === 'text'
+  const typing = picked.includes(OTHER) || question.kind === 'text'
 
-  const toggle = (v: string) => setPicked(p => multi ? (p.includes(v) ? p.filter(x => x !== v) : [...p, v]) : [v])
   const values = picked.filter(v => v !== OTHER)
-  const ready = values.length > 0 || (hasOther && other.trim().length > 0)
+  const ready = values.length > 0 || (typing && other.trim().length > 0)
+  const answer = (vals: string[], text: string) =>
+    onAnswer({ question_id: question.id, values: vals, text, skipped: false })
 
-  const submit = () => {
-    if (!ready || busy) return
-    onAnswer({ question_id: question.id, values, text: hasOther ? other.trim() : '', skipped: false })
+  const pick = (o: string) => {
+    if (busy) return
+    if (!multi && o !== OTHER) { answer([o], ''); return }
+    setPicked(p => multi ? (p.includes(o) ? p.filter(x => x !== o) : [...p, o]) : [o])
   }
+  const submit = () => { if (ready && !busy) answer(values, typing ? other.trim() : '') }
 
   return (
-    <div className="panel section question" role="group" aria-labelledby={`q-${question.id}`}>
-      {asked && max ? <span className="eyebrow">{t('q.progress', { n: asked, max })}</span> : null}
-      <div className="stack" style={{ gap: 6 }}>
-        <h3 className="h3" id={`q-${question.id}`}>{question.text}</h3>
-        {question.why && <p className="muted small">{question.why}</p>}
-      </div>
+    <div className="ai ask" role="group" aria-label={question.text}>
+      <KrinoFace />
+      <div className="ask-body">
+        <span className="kicker">// {t('q.where')}</span>
+        <Reveal as="h3" className="ask-q" text={question.text} />
 
-      {question.kind !== 'text' && (
-        <div className="options" role={multi ? 'group' : 'radiogroup'}>
-          {[...question.options, OTHER].map(o => (
-            <button key={o} type="button" role={multi ? 'checkbox' : 'radio'} aria-checked={picked.includes(o)}
-              className={`option ${picked.includes(o) ? 'on' : ''}`} onClick={() => toggle(o)} disabled={busy}>
-              <span className={`tick ${multi ? 'square' : 'round'}`} />
-              <span>{o === OTHER ? t('q.other') : o}</span>
+        {question.kind !== 'text' && (
+          <div className="opts" role={multi ? 'group' : 'radiogroup'}>
+            {[...question.options, OTHER].map((o, i) => (
+              <button key={o} type="button" role={multi ? 'checkbox' : 'radio'} aria-checked={picked.includes(o)}
+                className={`opt ${picked.includes(o) ? 'on' : ''}`} style={{ '--i': i } as React.CSSProperties}
+                onClick={() => pick(o)} disabled={busy}>
+                {o === OTHER ? t('q.other') : o}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {(typing || (multi && values.length > 0)) && (
+          <div className="ask-input">
+            {typing && (
+              <input className="input line" value={other} autoFocus disabled={busy}
+                placeholder={question.kind === 'text' ? t('q.textPlaceholder') : t('q.otherPlaceholder')}
+                onChange={e => setOther(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } }} />
+            )}
+            <button className="btn primary round sm" onClick={submit} disabled={!ready || busy} aria-label={t('q.submit')}>
+              <IconArrow size={16} />
             </button>
-          ))}
-        </div>
-      )}
-      {hasOther && (
-        <textarea className="textarea" rows={2} value={other} autoFocus
-          placeholder={question.kind === 'text' ? t('q.textPlaceholder') : t('q.otherPlaceholder')}
-          onChange={e => setOther(e.target.value)} disabled={busy}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit() } }} />
-      )}
+          </div>
+        )}
 
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <div className="row">
-          <button className="btn primary" onClick={submit} disabled={!ready || busy}>{t('q.submit')}</button>
+        <div className="ask-foot">
           {!question.required && (
-            <button className="btn ghost" disabled={busy}
+            <button className="link-btn" disabled={busy}
               onClick={() => onAnswer({ question_id: question.id, values: [], text: '', skipped: true })}>
               {t('q.skip')}
             </button>
           )}
+          <button className="link-btn" onClick={onDecideNow} disabled={busy}>{t('q.decideNow')} →</button>
         </div>
-        <button className="btn ghost sm" onClick={onDecideNow} disabled={busy}>{t('q.decideNow')}</button>
       </div>
-      {question.required && <p className="muted small">{t('q.required')}</p>}
     </div>
   )
 }

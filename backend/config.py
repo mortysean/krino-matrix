@@ -18,7 +18,8 @@ class Settings:
     session_days = int(os.getenv("KRINO_SESSION_DAYS", "14"))
     cookie_secure = os.getenv("KRINO_COOKIE_SECURE", "false").lower() == "true"     # true behind HTTPS
     daily_quota = int(os.getenv("KRINO_DAILY_QUOTA", "50"))                         # turns per user per day
-    max_questions = int(os.getenv("KRINO_MAX_QUESTIONS", "3"))
+    # cap on follow-up questions per decision; unset or 0 means no cap (the clarifier stops when it has enough)
+    max_questions = int(os.getenv("KRINO_MAX_QUESTIONS") or 0) or None
     login_attempts = int(os.getenv("KRINO_LOGIN_ATTEMPTS", "5"))                   # failures per window
     login_window_s = int(os.getenv("KRINO_LOGIN_WINDOW_S", "600"))
     frontend_dist = ROOT / "frontend" / "dist"

@@ -1,73 +1,52 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, type Decision } from '../api'
-import { Demo } from '../components/Demo'
 import { GoalInput } from '../components/GoalInput'
-import { IconChevron } from '../components/icons'
-import { Empty } from '../components/States'
+import { IconArrow } from '../components/icons'
+import { KrinoFigure } from '../components/Krino'
+import { Reveal } from '../components/Reveal'
 import { t } from '../i18n'
 
 export function TodayPage() {
   const navigate = useNavigate()
   const [recent, setRecent] = useState<Decision[] | null>(null)
+  const [typing, setTyping] = useState(false)
 
-  useEffect(() => { api.decisions(5).then(setRecent, () => setRecent([])) }, [])
+  useEffect(() => { api.decisions(4).then(setRecent, () => setRecent([])) }, [])
 
   const start = (text: string) => navigate('/c/new', { state: { text } })
-  // The next step: the latest decision the user chose but has not finished or reported on
-  const next = recent?.find(d => d.feedback?.chosen_action && d.feedback.status !== 'done' && !d.feedback.executed)
-  const nextTitle = next?.response.actions.find(a => a.id === next.feedback?.chosen_action)?.title
 
   return (
-    <div className="page">
+    <div className="today">
       <section className="hero">
-        <div className="stack" style={{ gap: 14 }}>
-          <h1 className="h1">{t('app.question')}</h1>
-          <p className="lead">{t('app.tagline')}</p>
+        <div className="hero-text">
+          <span className="kicker">// {t('app.assistant')}</span>
+          <Reveal as="h1" className="display" text={t('app.question')} />
+          <p className="lede">{t('app.tagline')}</p>
+          <GoalInput onSubmit={start} autoFocus onTyping={setTyping} />
         </div>
-        <GoalInput onSubmit={start} autoFocus />
+        <KrinoFigure mood={typing ? 'thinking' : 'idle'} className="hero-figure" />
       </section>
 
-      <div className="home-grid">
-        {next && nextTitle && (
-          <section className="stack">
-            <span className="eyebrow">{t('today.next')}</span>
-            <Link to={`/d/${next.id}`} className="list-item">
-              <div className="grow">
-                <div className="title">{nextTitle}</div>
-                <div className="sub">{next.response.problem.objective}</div>
-              </div>
-              <span className="chip warn">{t('today.pending')}</span>
-              <IconChevron size={16} />
-            </Link>
-          </section>
-        )}
-
-        {recent && recent.length === 0 && <Demo />}
-
-        <section className="stack">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <span className="eyebrow">{t('today.recent')}</span>
-            {recent && recent.length > 0 && <Link to="/chats" className="small muted">{t('today.all')}</Link>}
+      {recent && recent.length > 0 && (
+        <section className="recent">
+          <div className="row between">
+            <span className="kicker">// {t('today.recent')}</span>
+            <Link to="/chats" className="kicker link">{t('today.all')} →</Link>
           </div>
-          {recent === null ? null : recent.length === 0 ? <Empty>{t('today.empty')}</Empty> : (
-            <div className="list">
-              {recent.map(d => (
-                <Link key={d.id} to={`/d/${d.id}`} className="list-item">
-                  <div className="grow">
-                    <div className="title">{d.response.headline}</div>
-                    <div className="sub">{d.response.problem.objective}</div>
-                  </div>
-                  {d.feedback?.status && <span className="chip">{t(`d.${d.feedback.status === 'chosen' ? 'chosen' : d.feedback.status}`)}</span>}
-                  <IconChevron size={16} />
+          <ol className="rows">
+            {recent.map((d, i) => (
+              <li key={d.id} style={{ '--i': i } as React.CSSProperties}>
+                <Link to={`/c/${d.conversation_id}`} className="row-link">
+                  <span className="n">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="grow ellipsis">{d.objective_input}</span>
+                  <IconArrow size={16} className="go" />
                 </Link>
-              ))}
-            </div>
-          )}
+              </li>
+            ))}
+          </ol>
         </section>
-
-        {recent && recent.length > 0 && <Demo />}
-      </div>
+      )}
     </div>
   )
 }

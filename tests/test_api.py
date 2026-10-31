@@ -122,3 +122,12 @@ def test_password_reset(client, caplog):
     assert client.post("/api/auth/reset/confirm", json={"token": token, "password": "newpassword2"}).status_code == 400
     client.post("/api/auth/logout")
     assert client.post("/api/auth/login", json={"email": "a@example.com", "password": "newpassword1"}).status_code == 200
+
+
+def test_style_settings(client):
+    register(client)
+    assert client.get("/api/account/style").json() == {"tone": "pilot", "persona": "calm", "pace": "balanced"}
+    r = client.put("/api/account/style", json={"tone": "chat", "persona": "tsundere", "pace": "direct"})
+    assert r.status_code == 200
+    assert client.get("/api/account/style").json() == {"tone": "chat", "persona": "tsundere", "pace": "direct"}
+    assert client.put("/api/account/style", json={"tone": "shout"}).status_code == 422

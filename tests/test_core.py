@@ -1,5 +1,5 @@
 from conftest import FailingFormulator, FakeGenerator, fake_engine
-from krino.contract import Answer, CoreInput
+from krino.contract import Answer, CoreInput, Question
 from krino.steps.generator import CandidateAction
 from krino.evaluator.rules import requires_confirmation
 
@@ -48,3 +48,39 @@ def test_money_actions_need_confirmation():
     response = fake_engine(generator=FakeGenerator(actions=[action])).run(CoreInput(objective="理财", max_questions=0))
     assert response.actions[0].requires_confirmation
     assert any("确认" in w for w in response.warnings)
+
+
+def test_style_reaches_the_steps_and_direct_pace_caps_questions():
+    from krino.style import Style
+    seen = {}
+
+    class Recording(FakeGenerator):
+        def generate(self, state, goal, constraints, style=None):
+            seen["style"] = style
+            return super().generate(state, goal, constraints, style)
+
+    style = Style(tone="chat", persona="genki", pace="direct")
+    answer = Answer(question_id="sql_level", question="你现在的 SQL 水平？", values=["入门"])
+    # direct allows one question: after one answer it decides even if the clarifier would ask again
+    engine = fake_engine(generator=Recording())
+    engine.clarifier.clarify = lambda *args: Question(id="more", text="还有呢？", kind="text")
+    response = engine.run(CoreInput(objective="我想转行做数据分析", answers=[answer], style=style))
+    assert response.type == "decision" and seen["style"] == style
+
+
+def test_generator_retries_a_degenerate_reply():
+    from krino.steps.generator import CandidateAction, CandidateSpace, CardGenerator
+    from krino.common.schema import State
+    junk = CandidateSpace(actions=[CandidateAction(id="ok", title="好的", description="好的")])
+    good = CandidateSpace(actions=[
+        CandidateAction(id="eat_noodles", title="去吃一碗牛肉面", description="走到附近面馆，点一碗牛肉面。"),
+        CandidateAction(id="eat_salad", title="点一份鸡肉沙拉", description="打开外卖软件，点一份鸡肉沙拉。"),
+    ])
+    replies = iter([junk, good])
+
+    class LLM:
+        def structured(self, prompt, schema):
+            return next(replies)
+
+    actions = CardGenerator(LLM()).generate(State(data={}), "今天下午吃什么", []).actions
+    assert [a.id for a in actions] == ["eat_noodles", "eat_salad"]

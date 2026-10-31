@@ -25,7 +25,7 @@ export interface ClarificationResponse {
   question: Question
   problem: ProblemView
   asked: number
-  max_questions: number
+  max_questions: number | null
 }
 
 export interface ActionCard {
@@ -35,6 +35,7 @@ export interface ActionCard {
   why: string
   difference: string
   risks: string[]
+  say?: string        // one line Krino says when handing over this action, in her personality
   excluded_by: string[]
   requires_confirmation: boolean
 }
@@ -132,6 +133,11 @@ export interface User { id: string; email: string; created_at: string }
 
 export interface Memory { id: string; text: string; source_decision_id: string | null; updated_at: string }
 
+export type Tone = 'pilot' | 'chat' | 'detailed'
+export type Persona = 'calm' | 'genki' | 'gentle' | 'tsundere'
+export type Pace = 'direct' | 'balanced' | 'thorough'
+export interface Style { tone: Tone; persona: Persona; pace: Pace }
+
 export interface Status {
   model: { configured: boolean; name: string | null }
   evaluator: { experimental: boolean }
@@ -193,6 +199,8 @@ export const api = {
   deleteMemory: (id: string) => request('DELETE', `/api/memories/${id}`),
 
   status: () => request<Status>('GET', '/api/account/status'),
+  style: () => request<Style>('GET', '/api/account/style'),
+  setStyle: (style: Style) => request<Style>('PUT', '/api/account/style', style),
   changePassword: (current: string, next: string) => request('POST', '/api/account/password', { current, new: next }),
   deleteHistory: () => request('DELETE', '/api/account/history'),
   deleteAccount: (password: string) => request('DELETE', '/api/account', { password }),

@@ -11,6 +11,7 @@ from .evaluator.rules import MESSAGES, lang_of, requires_confirmation
 from .steps.clarifier import Clarifier
 from .steps.formulator import APIFormulator, Formulator
 from .steps.generator import CardGenerator, CandidateAction
+from .style import PACE_LIMIT
 from .contract import (
     ActionCard, ClarificationResponse, CoreInput, CoreResponse, DecisionResponse, ErrorResponse, ProblemView, Stage,
 )
@@ -101,15 +102,17 @@ class DecisionEngine:
         request = compose_request(data)
         problem = self.formulator.formulate(request)
 
-        if len(data.answers) < data.max_questions:
+        limits = [n for n in (data.max_questions, PACE_LIMIT[data.style.pace]) if n is not None]
+        limit = min(limits) if limits else None
+        if limit is None or len(data.answers) < limit:
             on_stage("clarify")
-            question = self.clarifier.clarify(request, problem, data.answers)
+            question = self.clarifier.clarify(request, problem, data.answers, data.style)
             if question:
                 return ClarificationResponse(question=question, problem=problem_view(problem),
-                                             asked=len(data.answers) + 1, max_questions=data.max_questions)
+                                             asked=len(data.answers) + 1, max_questions=limit)
 
         on_stage("compare")
-        actions = self.generator.generate(problem.state, problem.goal, problem.constraints).actions
+        actions = self.generator.generate(problem.state, problem.goal, problem.constraints, data.style).actions
         if not actions:
             return ErrorResponse(code="no_actions", message=ERRORS[lang]["no_actions"], suggestions=["edit", "retry"])
         evaluation = self.evaluator.evaluate(problem, actions)
@@ -130,7 +133,7 @@ class DecisionEngine:
             a = by_id[action_id]
             cards.append(ActionCard(
                 id=a.id, title=a.title, description=a.description, why=a.why, difference=a.difference,
-                risks=a.risks, excluded_by=evaluation.excluded.get(a.id, []),
+                risks=a.risks, say=a.say, excluded_by=evaluation.excluded.get(a.id, []),
                 requires_confirmation=requires_confirmation(f"{a.title} {a.description}"),
             ))
 
