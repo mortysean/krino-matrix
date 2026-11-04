@@ -1,10 +1,10 @@
-"""KRINO Matrix decision flow; the Matrix model behind the evaluator lives in model/.
+"""KRINO Matrix 模型的评估接口；模型本身在 model/。
 
-  engine.py   one decision turn through every step, and build_engine() for the web app
-  contract.py the engine's input and its three responses (clarification, decision, error), for every client
-  steps/      the three hosted-LLM steps: formulator (request → problem), clarifier (one question or none),
-              generator (candidate actions)
-  evaluator/  the Evaluator interface, the Matrix-model evaluator, and the explicit safety rules
-  common/     shared by every part: schema (basic elements), LLM client and call tracing
-  data/       DataSource / Query interface and the sagax source
+KRINO WORLD 只把这里当作内部的互动策略后端使用（backend/app/policy.py，KRINO_POLICY=matrix）。
+旧的决策导航流程（engine.py、steps/）已归档到 archive/decision-nav/。
+
+  contract.py  评估器信息等数据结构
+  evaluator/   Evaluator 接口、Matrix 模型评估器、显式安全规则
+  common/      基础数据结构（Problem / Action / Constraint）、LLM 客户端与调用记录
+  data/        DataSource / Query 接口与 sagax 数据源
 """

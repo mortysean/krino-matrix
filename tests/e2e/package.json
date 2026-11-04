@@ -1,0 +1,7 @@
+{
+  "name": "krino-world-e2e",
+  "private": true,
+  "type": "module",
+  "description": "浏览器端到端测试：真实启动的 KRINO WORLD + 无头 Chromium",
+  "dependencies": { "playwright-core": "1.56.1" }
+}

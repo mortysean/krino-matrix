@@ -12,3 +12,13 @@ data/*
 experiments/*/checkpoints/
 .backup/
 .run/
+# 默认 VRM 由 scripts/fetch_vrm.py 下载，不进 git
+frontend/assets/vrm/*.vrm
+frontend/assets/vrm/*.part
+# KRINO WORLD：本地数据库、运行日志、测试依赖与截图
+.pgdata/
+.pytest_cache/
+tests/e2e/node_modules/
+tests/e2e/shots/
+archive/decision-nav/frontend/node_modules/
+archive/decision-nav/frontend/dist/

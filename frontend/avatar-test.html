@@ -1,0 +1,50 @@
+<!doctype html>
+<!-- 开发用页面：单独检查 3D 形象（js/avatar.js）。正式页面不引用它。
+     用法：/static/avatar-test.html?vrm=/static/assets/vrm/default.vrm&expr=happy&anim=wave，vrm=none 看内置形象 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avatar Test</title>
+  <style>
+    :root { --ink: #131319; --text: #ececf1; --muted: #8b8c9a; --line: #2c2c38; }
+    html, body { margin: 0; height: 100%; background: var(--ink); color: var(--text); font: 13px/1.5 system-ui, sans-serif; }
+    #stage { position: absolute; inset: 0 0 48px 0; background: radial-gradient(ellipse at 50% 30%, #1d1d6a 0%, var(--ink) 70%); }
+    #bar { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; display: flex; gap: 6px; align-items: center; padding: 0 10px; border-top: 1px solid var(--line); overflow-x: auto; }
+    button { background: #22222c; color: var(--text); border: 1px solid #3a3a48; padding: 4px 8px; cursor: pointer; }
+    #status { color: var(--muted); margin-left: auto; white-space: nowrap; }
+  </style>
+  <script type="importmap">
+  { "imports": { "three": "/static/vendor/three/three.module.js",
+                 "three/addons/": "/static/vendor/three/addons/",
+                 "@pixiv/three-vrm": "/static/vendor/three-vrm/three-vrm.module.min.js" } }
+  </script>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="bar"></div>
+  <script type="module">
+    import { createAvatar, EXPRESSIONS, ANIMATIONS } from "/static/js/avatar.js";
+    const q = new URLSearchParams(location.search);
+    const status = document.createElement("span"); status.id = "status";
+    const av = createAvatar(document.getElementById("stage"), {
+      color: q.get("color") || "#1414a8", preserveDrawingBuffer: true,
+      onStatus: (s) => { status.textContent = `${s.state} · ${s.kind} · ${s.message}`; window.__status = s; },
+    });
+    window.av = av;
+    const bar = document.getElementById("bar");
+    for (const a of ANIMATIONS) { const b = document.createElement("button"); b.textContent = a; b.onclick = () => av.play(a); bar.append(b); }
+    const sel = document.createElement("select");
+    sel.innerHTML = EXPRESSIONS.map((e) => `<option>${e}</option>`).join(""); sel.onchange = () => av.setExpression(sel.value); bar.append(sel);
+    const talk = document.createElement("button"); talk.textContent = "talk"; let on = false;
+    talk.onclick = () => { on = !on; av.speaking(on); }; bar.append(talk, status);
+    const url = q.get("vrm") === "none" ? null : (q.get("vrm") || "/static/assets/vrm/default.vrm");
+    av.load(url).then(() => {
+      if (q.get("expr")) av.setExpression(q.get("expr"));
+      if (q.get("anim")) av.play(q.get("anim"));
+      if (q.get("talk")) av.speaking(true);
+      window.__ready = true;
+    });
+  </script>
+</body>
+</html>

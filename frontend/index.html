@@ -1,14 +1,203 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#f2f2ef" />
-    <title>KRINO MATRIX</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KRINO WORLD</title>
+  <link rel="icon" href="/static/assets/kujira-head.png">
+  <link rel="stylesheet" href="/static/style.css">
+  <script type="importmap">
+  { "imports": { "three": "/static/vendor/three/three.module.js",
+                 "three/addons/": "/static/vendor/three/addons/",
+                 "@pixiv/three-vrm": "/static/vendor/three-vrm/three-vrm.module.min.js" } }
+  </script>
+</head>
+<body>
+  <div id="grain" aria-hidden="true"></div>
+
+  <!-- 开场 -->
+  <div id="boot" class="boot">
+    <div class="boot-plate" data-mascot="print"></div>
+    <div class="boot-line mono"><span>KRINO WORLD</span><span class="boot-count">LOADING</span></div>
+  </div>
+
+  <!-- 登录 -->
+  <section id="auth" class="auth hidden">
+    <div class="auth-art" data-mascot="hero" data-talk></div>
+    <div class="auth-side">
+      <div class="eyebrow mono">KRINO MATRIX — KRINO WORLD</div>
+      <h1>KRINO WORLD</h1>
+      <p class="lead">和会记得你的 AI 角色一起，创造、互动、分享。</p>
+      <form id="auth-form">
+        <label class="field"><span class="mono">USERNAME</span><input name="username" autocomplete="username" required></label>
+        <label class="field"><span class="mono">PASSWORD</span><input name="password" type="password" autocomplete="current-password" required minlength="6"></label>
+        <div class="row">
+          <button type="submit" data-action="login">进入</button>
+          <button type="submit" data-action="register" class="ghost">注册</button>
+        </div>
+        <p id="auth-error" class="error"></p>
+      </form>
+      <p class="fine mono">这里的所有角色都是人工智能 · ALL CHARACTERS ARE AI</p>
+    </div>
+  </section>
+
+  <!-- 主界面 -->
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark" data-mascot="head"></span>
+        <div>
+          <div class="brand-name">KRINO WORLD</div>
+          <div class="brand-sub mono">BY KRINO MATRIX</div>
+        </div>
+      </div>
+      <div class="section-title mono">CAST</div>
+      <div id="char-list" class="char-list"></div>
+      <div class="section-title mono">INDEX</div>
+      <nav class="nav">
+        <button data-view="chat" class="active"><em class="mono">01</em>互动</button>
+        <button data-view="persona"><em class="mono">02</em>人格</button>
+        <button data-view="memory"><em class="mono">03</em>记忆<i id="nav-ask-dot" class="dot-badge hidden"></i></button>
+        <button data-view="workshop"><em class="mono">04</em>创意工坊</button>
+        <button data-view="glasses"><em class="mono">05</em>眼镜</button>
+        <button data-view="settings"><em class="mono">06</em>设置</button>
+      </nav>
+      <div class="sidebar-foot">
+        <span class="me mono"><i class="dot"></i><span id="me-name"></span></span>
+        <button id="logout" class="link small">退出</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- 01 互动 -->
+      <section id="view-chat" class="view">
+        <header class="chat-head">
+          <div class="chat-title">
+            <span id="chat-avatar"></span>
+            <div>
+              <div class="name"><span id="chat-name"></span> <span class="ai-badge" title="这是人工智能角色">AI</span></div>
+              <div id="chat-tagline" class="muted small"></div>
+            </div>
+            <span id="demo-badge" class="badge demo hidden" title="没有配置模型密钥：回复和记忆整理都是离线模板，只用来演示流程">演示模式</span>
+          </div>
+          <div class="chat-actions">
+            <div class="mode-switch" id="input-mode">
+              <button data-input="text" class="active">文字</button>
+              <button data-input="voice">语音</button>
+            </div>
+            <select id="session-select" title="历史会话"></select>
+            <button id="new-session" class="ghost small">新会话</button>
+            <button id="end-session" class="ghost small" title="结束并写下这次的回忆">结束</button>
+            <button id="drawer-toggle" class="small">她记得的<i id="drawer-dot" class="dot-badge hidden"></i></button>
+          </div>
+        </header>
+        <div id="net-banner" class="net-banner hidden"></div>
+        <div class="chat-body">
+          <div class="stage3d" id="stage3d">
+            <div class="avatar-host" id="avatar-host"></div>
+            <div class="stage-status mono" id="stage-status">LOADING</div>
+            <div class="stage-say hidden" id="stage-say"></div>
+            <div class="gestures" id="gestures"></div>
+          </div>
+          <div class="chat-col">
+            <div id="messages" class="messages"></div>
+            <div id="img-chip" class="img-chip hidden"></div>
+            <form id="chat-form" class="chat-form">
+              <button type="button" id="img-btn" class="voice-btn" title="发一张图片给她看">图</button>
+              <input type="file" id="img-file" accept="image/png,image/jpeg,image/webp" class="hidden">
+              <textarea id="chat-input" rows="2" placeholder="说点什么…（Enter 发送，Shift+Enter 换行）"></textarea>
+              <button type="button" id="mic-btn" class="voice-btn hidden" title="按一下开始说，再按一下结束">按住说话</button>
+              <button type="submit" id="send-btn">发送</button>
+            </form>
+          </div>
+          <aside id="drawer" class="drawer hidden">
+            <div class="drawer-head">
+              <div class="tabs" id="drawer-tabs">
+                <button data-dtab="mem" class="active">记得的事</button>
+                <button data-dtab="ask">想问你的<span id="ask-count" class="count"></span></button>
+                <button data-dtab="bond">你们</button>
+              </div>
+              <button id="drawer-close" class="link small" title="收起">✕</button>
+            </div>
+            <div class="drawer-body" id="drawer-body"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- 02 人格 -->
+      <section id="view-persona" class="view hidden">
+        <header class="page-head">
+          <div class="eyebrow mono">02 — PERSONA</div>
+          <h2>人格 · <span class="char-label"></span> <span id="persona-ver" class="badge"></span></h2>
+          <p class="muted">人格配置和你们之间的私人记忆分开保存：导出、发布都只带人格配置。每次保存都会留一个版本，可以恢复。</p>
+        </header>
+        <div class="tabs" id="persona-tabs">
+          <button data-ptab="form" class="active">表单</button>
+          <button data-ptab="md">Markdown</button>
+          <button data-ptab="json">JSON</button>
+          <button data-ptab="cast">我的角色</button>
+        </div>
+        <div id="persona-body"></div>
+      </section>
+
+      <!-- 03 记忆 -->
+      <section id="view-memory" class="view hidden">
+        <header class="page-head">
+          <div class="eyebrow mono">03 — MEMORY</div>
+          <h2>记忆与关系 · <span class="char-label"></span></h2>
+          <p class="muted">只属于你和她。现实里的事、她推测的事、一起编的故事分开标注；可以随时确认、修改、删除。</p>
+        </header>
+        <div id="memory-page"></div>
+      </section>
+
+      <!-- 04 创意工坊 -->
+      <section id="view-workshop" class="view hidden">
+        <header class="page-head">
+          <div class="eyebrow mono">04 — WORKSHOP</div>
+          <h2>创意工坊</h2>
+          <p class="muted">大家分享的角色。导入后是你自己的一份，你们的记忆不会被作者或别人看到。</p>
+        </header>
+        <div class="tabs" id="ws-tabs">
+          <button data-wtab="browse" class="active">浏览</button>
+          <button data-wtab="mine">我发布的</button>
+          <button data-wtab="publish">发布</button>
+          <button data-wtab="review" class="hidden" id="ws-review-tab">审核</button>
+        </div>
+        <div id="ws-body"></div>
+      </section>
+
+      <!-- 05 眼镜 -->
+      <section id="view-glasses" class="view hidden">
+        <header class="page-head">
+          <div class="eyebrow mono">05 — KRINO GLASSES</div>
+          <h2>眼镜模拟器</h2>
+          <p class="muted">用浏览器的摄像头、麦克风和一块模拟镜片，提前体验 KRINO GLASSES：你看到的画面、你说的话作为设备输入，角色的行为以 AR 显示事件出现在镜片上。真机接入后走同一套接口。</p>
+        </header>
+        <div id="glasses-page"></div>
+      </section>
+
+      <!-- 06 设置 -->
+      <section id="view-settings" class="view hidden">
+        <header class="page-head"><div class="eyebrow mono">06 — CONFIG</div><h2>设置</h2></header>
+        <div id="settings-page"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 弹窗 -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <h3 id="modal-title"></h3>
+      <div id="modal-body"></div>
+      <div class="row right">
+        <button id="modal-cancel" class="ghost">取消</button>
+        <button id="modal-ok">确定</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/static/mascot.js"></script>
+  <script type="module" src="/static/js/main.js"></script>
+</body>
 </html>

@@ -1,139 +1,114 @@
-# Krino Matrix
+# KRINO WORLD
 
 [English](README.md) | **简体中文**
 
-Krino Matrix 致力于解放人的认知资源。
+KRINO WORLD 是 KRINO MATRIX 旗下以 ACG 虚拟人物为核心的 AI 角色平台：创建或导入人格，用文字、语音和 3D 形象和角色互动；角色会积累经过你确认的共同经历，表现出稳定而可以演化的人格。默认官方角色是 **WHALE GIRL（鲸鱼娘）**。所有角色都标注为人工智能。
 
-我们希望通过人工智能理解复杂状态、生成可行方案并评估行动价值，降低人们在信息处理、分析和决策上的认知负担，让每个人都能将有限的认知资源投入更有创造性、更有价值的事情中。
-
-## 核心概念
-
-### 基本元素
-
-| 元素 | 说明 |
+| 品牌 | 说明 |
 | --- | --- |
-| `State` | 当前状态 |
-| `Problem` | 决策问题：`State` + 目标 + 约束 |
-| `Action` | 单个候选行动 |
-| `ActionSpace` | 候选行动的集合 |
-
-### 核心模块
-
-| 模块 | 输入 → 输出 | 作用 |
-| --- | --- | --- |
-| Problem Formulator | 自然语言请求 → `Problem` | 把用户的请求转化为决策问题 |
-| Clarifier | 请求 + `Problem` → 一个问题或不问 | 只追问可能改变推荐结果的那一条缺失信息 |
-| Action Generator | `State` + 目标 + 约束 → `ActionSpace` | 生成候选行动 |
-| Action Evaluator | `Problem` + `ActionSpace` → 排序 | KRINO Matrix 模型：给候选行动排序，排除违反硬约束的行动 |
-
-Formulator、Clarifier、Generator 调用托管的大模型；评估器是训练好的 Matrix 模型。
-
-### 决策流程
-
-`krino/engine.py` 的 `DecisionEngine` 把各模块串成一轮完整决策：
-
-```
-请求 ─▶ Formulator ─▶ Clarifier ─▶ Generator ─▶ Evaluator ─▶ 安全规则 ─▶ 决策
-```
-
-Evaluator 使用基于 `jhu-clsp/mmBERT-base`、用 uncertainty loss 加权训练的 Matrix 模型（决策流程里的一步在 `krino/evaluator/`，模型推理本身在 `model/inference/`）。
-
-### 数据源
-
-`DataSource` 提供一组 `Query`，每个 `Query` 有名称、说明和参数结构，可以作为工具交给大模型调用。数据源暂未接入决策流程。
-
-内置数据源：
-
-| 数据源 | 覆盖范围 |
-| --- | --- |
-| `SagaxSource`（[sagax 数据平台](https://www.sagax.cn/data/v1/)） | A 股股票（选股、估值、财务、资金流向）、指数、ETF、期货、期权、专题报表、宏观指标、新闻、公告和研报 |
-
-sagax 是作者自建的数据平台：每日从 tushare、tqsdk 等来源采集中国市场数据，财务数据按时点（PIT）口径保存，通过 HTTP API 和 Python SDK `sagax-data` 对外提供。数据表、指标和示例见 [sagax 官网](https://www.sagax.cn/data/v1/)；查询需要 API key 和 secret。
-
-## 项目结构
-
-```
-krino/                核心 Python 包
-  engine.py           一轮决策的完整流程，以及 Web 使用的 build_engine()
-  contract.py         引擎的输入，以及返回给客户端的 clarification / decision / error 响应
-  steps/              调用大模型的三个步骤
-    formulator.py       请求 → 决策问题
-    clarifier.py        必要时追问一个关键问题
-    generator.py        生成候选行动
-  evaluator/          评估与安全
-    base.py             Evaluator 接口
-    matrix.py           调用 Matrix 模型评估（model/inference）
-    rules.py            显式安全规则
-  common/             各部分共享
-    schema.py           基本元素
-    llm.py, tracing.py  大模型接口（OpenRouter、litellm、Anthropic SDK）与调用记录
-  data/               DataSource / Query 接口，sagax 数据源
-model/                Matrix 模型
-  network.py          网络结构（训练和推理共用）
-  dataset.py          样本格式（krino-matrix/1），训练、评测和数据脚本共用
-  training/           训练框架：trainer.py（训练与校准）、train.py（训练命令）、benchmark.py（评测）
-  inference/          推理框架：MatrixEvaluator，一次前向、硬约束过滤、再选择
-  checkpoints/        训练好的权重（git 忽略），Web 使用 mmbert-uncertainty
-data/                 构建与检查数据集的脚本、sagax 示例；数据集和数据库本身 git 忽略
-scripts/              常用 bash 脚本：训练、评测、启动 Web、测试
-backend/              FastAPI、认证、对话与持久化
-frontend/             React + Vite Web 应用
-experiments/          可复现的模型实验和报告
-tests/                后端与决策流程测试
-```
+| KRINO MATRIX | 母品牌 |
+| KRINO WORLD | 软件平台（本仓库的 `backend/` + `frontend/`） |
+| KRINO GLASSES | 未来的硬件：第一人称视觉、听觉与 AR 显示。现在提供统一的设备接口和浏览器模拟器 |
+| KRINO CORE | 底层系统：人格、记忆、互动策略（KRINO Evaluator） |
 
 ## 快速开始
 
+需要：Python 3.11（推荐 `krino_matrix` conda 环境）、PostgreSQL 14+（`initdb` / `pg_ctl` 在 PATH 里，或设置 `PG_BIN`）、Node 18+（只有端到端测试需要）。
+
 ```bash
-pip install -r requirements.txt
-cp .env.example .env    # 填入大模型服务商和 sagax API key
+scripts/world.sh setup            # 装依赖、复制 .env、初始化本地数据库（.pgdata/，端口 5433）并迁移、下载默认 3D 模型
+# 编辑 .env：填 OPENROUTER_API_KEY（或 LLM_OPENROUTER_API_KEY）；没有密钥可以设 LLM_PROVIDER=mock 离线演示
+scripts/world.sh run              # 前台运行，打开 http://127.0.0.1:8630
+scripts/world.sh run --reload     # 开发：改后端代码自动重启
+scripts/world.sh start | stop | status | logs    # 后台运行（日志 .run/world.log）
 ```
 
-| 命令 | 运行内容 |
+数据库：
+
+```bash
+scripts/world.sh db init | start | stop | status
+scripts/world.sh db migrate                  # 升级到最新表结构（服务启动时也会自动执行，AUTO_MIGRATE=0 关闭）
+scripts/world.sh db revision "说明"          # 改了 models.py 之后生成迁移
+scripts/world.sh db psql                     # 进数据库
+```
+
+测试：
+
+```bash
+scripts/world.sh test                         # 后端：单元 + 接口验收 + 设备（独立的测试库，离线 mock 模型）
+LLM_PROVIDER=mock scripts/world.sh start      # 端到端测试需要先启动服务
+scripts/world.sh e2e                          # 浏览器端到端（tests/e2e，截图在 tests/e2e/shots/）
+```
+
+环境变量全部在 [`.env.example`](.env.example) 的 KRINO WORLD 一节：数据库、LLM / VLM / STT / TTS、互动策略、创意工坊管理员与审核、上传上限。
+
+## 功能
+
+| 页面 | 内容 |
 | --- | --- |
-| `bash scripts/serve.sh [start\|stop\|restart\|status\|logs\|fg]` | 在后台启动 Web 应用（日志在 `.run/serve.log`）：前端在 `WEB_PORT`（6180），API 在 `API_PORT`（6181）；`--dev` 热更新，`fg` 留在前台 |
-| `bash scripts/test.sh` | 后端与决策流程测试，不调用模型 |
-| `bash scripts/train.sh [输出目录] [种子]` | 按当前配置训练 Matrix 模型（mmBERT-base、uncertainty 加权） |
-| `bash scripts/benchmark.sh [检查点 ...]` | 在测试集上评测，默认评测 `model/checkpoints/mmbert-uncertainty` |
-| `python data/build_data.py ...` | 用教师 LLM 构建并标注数据集，其余数据脚本见 [data/README.md](data/README.md) |
-| `python data/sagax_demo.py` | sagax 数据查询 |
+| 01 互动 | 3D VRM 角色居中（眨眼、视线、呼吸、表情、口型、预设动作）；文字 / 语音切换，回复流式显示；用户可以主动触发挥手、摸摸头、击掌等有限的预设互动；发图片给她看；聊天历史和“她记得的”侧栏；模型加载失败自动换内置形象，断网有提示并保留输入 |
+| 02 人格 | 名称、简介、背景、性格、价值倾向、语言风格、兴趣、行为偏好、世界观、角色关系、互动边界、开场白、设定笔记；互动风格（话量、表情丰富度、主动程度、爱讲故事）、可用表情与动作、音色；表单 / Markdown / JSON 三种编辑；版本与恢复；导入导出；描述生成；上传 VRM 形象 |
+| 03 记忆 | 记忆列表（现实事件 / 模型推断 / 虚构故事分开标注）、确认待定记忆、修改（保留更正历史）、不再记住、彻底删除；关系阶段、称呼、里程碑、她对你的印象、会过期的“此刻”；导出记忆包 |
+| 04 创意工坊 | 浏览、搜索、分类、标签、排序；详情预览；导入、下载人设包；发布自己的角色或直接上传文件；版本更新；评分、评论；举报与自动隐藏；管理员审核 |
+| 05 眼镜 | KRINO GLASSES 模拟器：摄像头 / 麦克风 / 头部姿态作为设备输入，角色行为以 AR 事件显示在模拟镜片上 |
+| 06 设置 | LLM / VLM / STT / TTS 服务状态；语音、互动、隐私偏好；KRINO Evaluator 开关与测试；眼镜连接状态；运行状态（接口延迟、错误、事件） |
 
-## Web 决策助手（V2.5 P0）
+### 互动怎么决定：KRINO Evaluator
 
-说出你在纠结的事，Krino 缺信息时一次问一个问题，然后给出一个建议。不满意可以让它再想想、换个思路，或者先歇会儿，它会按新的情况重新给建议。
+KRINO Evaluator 现在只作为内部的互动策略（Interaction Policy），不向用户展示排名。每次事件（你说话、做了一个互动动作、安静了一阵、分享了画面）它在七种行为里选择：
 
-设置里可以调 Krino 的说话方式（`krino/style.py`）：回复风格（默认“飞行员手册”：动词开头、短句、具体数字、不用术语；或聊天、详细）、人格（冷静、元气、温柔、傲娇，只影响 Krino 自己说的那句话和提问语气，不进入评估模型读取的行动描述）、对话风格（直接最多问一句、适中、细致）。
+`NO_ACTION` 保持安静 · `RESPOND` 回应 · `STORY` 幻想剧情 · `PERCEIVE` 多模态理解 · `EMOTE` 表情 · `ANIMATE` 预设动作 · `REMEMBER` 建议记住
 
-页面背后仍是《KRINO MATRIX V2.5 精简需求》的第一版：输入目标 → 提取状态/约束 → 逐步澄清，一次一问、不限轮数，直到足以给出贴合的建议（可跳过；随时可点“直接告诉我吧”直接决策；`KRINO_MAX_QUESTIONS` 可设上限）→ 生成 2–4 个候选 → 评估排序 → 只把推荐的那一步放在前面，其余选项折起来。
+| `KRINO_POLICY` | 说明 |
+| --- | --- |
+| `rules`（默认） | 规则策略，参数来自角色的互动风格和你的设置。输出标注“规则策略（非模型输出）” |
+| `matrix` | KRINO Matrix 3-Head 模型（`model/checkpoints/mmbert-uncertainty`），沿用原接口。**权重没有针对互动行为训练**，输出只作实验对照；不可用时自动回退规则策略 |
+| `off` | 只回应，不做额外动作 |
 
-| 目录 | 内容 |
-|---|---|
-| `krino/` | 与设备无关的决策流程：统一的 clarification / decision / error 响应、澄清、候选生成、Matrix 评估（显示真实输出的选择倾向；检查点由 `KRINO_MATRIX_CHECKPOINT` 指定）、显式安全规则 |
-| `backend/` | FastAPI：邮箱登录、对话与决策快照、反馈、个人记忆、使用量、调用耗时与失败记录；PostgreSQL（本地开发可用 SQLite） |
-| `frontend/` | React + Vite，黑白风格：现在 / 记录 / 设置；一段对话显示你的问题和 Krino 的建议；Krino 形象由线稿生成（`frontend/tools/lineart.py`），KRINO 商标为带动效的 SVG，移动端适配、减少动效 |
+无论哪种策略，硬约束都在代码里强制（你要求安静就不说话、没授权摄像头就不请求画面……）。详见 [docs/world/ARCHITECTURE.md](docs/world/ARCHITECTURE.md)。
 
-```bash
-pip install -r requirements.txt
-bash scripts/serve.sh                                  # 打开 http://127.0.0.1:6180（API 在 :6181）
-WEB_PORT=3000 API_PORT=8100 bash scripts/serve.sh      # 换端口
-WEB_HOST=0.0.0.0 bash scripts/serve.sh                 # 让其他机器也能访问前端
-KRINO_API=http://10.0.0.5:8000 bash scripts/serve.sh   # 只启动前端，连接别处的后端
-bash scripts/serve.sh start --dev                      # 前后端都热更新
-bash scripts/serve.sh stop                             # 另有 restart、status、logs；fg 在前台运行
-bash scripts/test.sh           # 后端与决策流程测试，不调用模型
+### 语音与视觉
+
+- **STT / TTS**：默认用浏览器自带的识别和朗读（Chrome / Edge 支持识别；Chrome 会把音频发给浏览器厂商的服务）。配置 `STT_PROVIDER=openai` / `TTS_PROVIDER=openai` 和 OpenAI 兼容的地址后由服务端转发，密钥不进浏览器。
+- **VLM**：默认 `mock`，只读颜色和亮度，回复里明确标“模拟视觉”；配置 `VLM_PROVIDER=openai` 使用真实的视觉模型。
+
+### 3D 形象
+
+默认形象是 pixiv 的 VRM 示例模型（VRM Public License 1.0，允许再分发），由 `scripts/fetch_vrm.py` 下载到 `frontend/assets/vrm/`（不进 git，许可信息见同目录 `LICENSE.md`）。下载不到、浏览器不支持 WebGL 或模型加载失败时，自动换成内置的程序化形象或平面立绘。用户可以在“人格”页上传自己的 `.vrm`（VRM 0.x / 1.0，≤ 40MB）。Three.js 0.186.1 与 @pixiv/three-vrm 3.5.5 已放在 `frontend/vendor/`（MIT）。
+
+## 目录
+
+```
+backend/            KRINO WORLD 后端（FastAPI + PostgreSQL + alembic），结构见 docs/world/ARCHITECTURE.md
+frontend/           KRINO WORLD 前端（沿用鲸鱼娘的视觉；原生 ES 模块，无构建）
+tests/e2e/          浏览器端到端测试
+scripts/world.sh    运行、数据库、测试
+scripts/fetch_vrm.py  下载默认 3D 模型
+model/              KRINO Matrix 3-Head 模型（训练、推理）
+krino/              模型的评估接口与基础数据结构
+data/ experiments/  模型的数据脚本与实验记录
+archive/            已下线的决策导航（见 archive/README.md）
 ```
 
-前端在自己的端口启动，`/api` 请求由前端转发给后端，所以登录 cookie 保持同源，不需要配置 CORS。配置见 `.env.example` 的 Web 部分（`DATABASE_URL`、`KRINO_SECRET_KEY`、`KRINO_MATRIX_CHECKPOINT` 等）。邮件服务尚未接入，找回密码的链接写在服务器日志中；余额、充值和 BYOK 在设置中标为未上线。
+## KRINO Matrix 模型
 
-## 模型实验
+`model/dataset.py` 定义 `krino-matrix/1` 样本格式；网络有目标、约束、行动选择三个头，从 `jhu-clsp/mmBERT-base` 训练。训练与评测：
 
-`model/dataset.py` 定义了 `krino-matrix/1` 样本格式。Matrix 评估器分别预测目标达成度、约束违反和行动选择；硬约束规则会在选择前过滤不安全的候选。训练数据放在 `data/krino_matrix/{zh,en}`，模型检查点保存在本地（Git 忽略）。当前模型从小模型 `jhu-clsp/mmBERT-base`（多语言 encoder）自行训练，三个任务头全部从零初始化，loss 用 uncertainty 加权；本地只保留这一个检查点 `model/checkpoints/mmbert-uncertainty`。训练方式与结果见[实验报告](experiments/krino-matrix-v1-mmbert/README.md)。
+```bash
+bash scripts/train.sh [out_dir] [seed]
+bash scripts/benchmark.sh [checkpoint ...]
+```
 
-## 进度
+训练细节与结果见[实验报告](experiments/krino-matrix-v1-mmbert/README.md)。
 
-- 已实现：Formulator、Clarifier、Generator、决策引擎、sagax 数据源
-- 已实现，实验阶段：`MatrixEvaluator` 一次前向预测目标达成度、约束违反和行动选择；Web 应用需要训练好的检查点才能给候选排序。
+## 当前状态与已知限制
 
-## 许可证
+- 离线 mock 模式下的回复和记忆提取是模板和正则，只用于演示和测试，界面上标“演示模式”。
+- Matrix 策略是实验性的（见上）；规则策略是默认。
+- 眼镜只有浏览器模拟器；真机适配器是占位，等 SDK。
+- 记忆检索是 PostgreSQL 全文检索（jieba 分词 + 中文二元组），没有用向量；pgvector 留作后续，表结构里的 `search_text` 可以平滑扩展。
+- 单进程运行（眼镜模拟器的 WebSocket 连接在进程内）。
 
-[Apache License 2.0](LICENSE)
+## 许可
+
+[Apache License 2.0](LICENSE)。第三方：three.js（MIT）、@pixiv/three-vrm（MIT）、默认 VRM 模型（VRM Public License 1.0）。

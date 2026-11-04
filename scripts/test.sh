@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
-# Backend and decision-flow tests; no model is called.
+# 后端测试（KRINO WORLD），等同于 scripts/world.sh test。不调用真实模型。
 #
-#     bash scripts/test.sh [pytest args]
-set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PY="${PYTHON:-$HOME/anaconda3/envs/krino_matrix/bin/python}"
-[ -x "$PY" ] || PY=python
-cd "$ROOT"
-
-exec "$PY" -m pytest tests "$@"
+#     bash scripts/test.sh [pytest 参数]
+exec "$(dirname "${BASH_SOURCE[0]}")/world.sh" test "$@"
