@@ -8,6 +8,7 @@
 # 装在服务器用户的主目录下：~/krino-world。配置在 ~/krino-world/.env（第一次从本机的 .env 和模板生成，之后不覆盖，改了要手动同步）。
 # 需要：本机能免密 SSH 登录，服务器用户能 sudo。sudo 要密码时用环境变量传进来（从标准输入交给 sudo，不落盘）：
 #   SUDO_PASS=... scripts/deploy.sh cn sean@111.229.152.63
+# 只改 Caddy（不重装）：  SUDO_PASS=... scripts/deploy.sh cn sean@... caddy
 # 国内版自动用国内镜像（腾讯云 PyPI、阿里云 PyTorch、hf-mirror）和系统自带的 Python 3.10，国外源在境内太慢。
 set -euo pipefail
 EDITION="${1:?用法：$0 cn|global user@host}"
@@ -19,8 +20,9 @@ log() { echo "[deploy:$EDITION] $*" >&2; }
 
 case "$EDITION" in
   global) SITES="app.krinomatrix.com, api.krinomatrix.com"; LANDING=1; OTHER=https://cn.krinomatrix.com
-          MIRRORS="" ;;
+          CADDY="WWW_TO=https://app.krinomatrix.com PEER_ACME=${CN_IP:-111.229.152.63}:80"; MIRRORS="" ;;
   cn)     SITES="cn.krinomatrix.com, api-cn.krinomatrix.com"; LANDING=0; OTHER=https://app.krinomatrix.com
+          CADDY="WWW_TO=https://cn.krinomatrix.com"
           MIRRORS="PYTHON=python3.10 PIP_INDEX=https://mirrors.cloud.tencent.com/pypi/simple TORCH_FIND=https://mirrors.aliyun.com/pytorch-wheels/cpu/ HF_ENDPOINT=https://hf-mirror.com NO_SPACY=1" ;;
   *) echo "版本只能是 cn 或 global"; exit 1 ;;
 esac
@@ -30,6 +32,7 @@ log "同步代码到 $TARGET:$DEST"
 rsync -az --delete --exclude-from=- "$ROOT/" "$TARGET:$DEST/" <<'EOF'
 .git/
 .claude/
+*.log
 .env
 .env.*
 !.env.example
@@ -82,6 +85,7 @@ EOF
 fi
 
 log "安装与配置（服务器上执行 scripts/server_setup.sh）"
-RUN="cd $DEST && sudo -S -p '' env DEST='$DEST' SITES='$SITES' LANDING=$LANDING APP_USER=\$(whoami) $MIRRORS bash scripts/server_setup.sh"
+STEP="server_setup"; [ "${3:-}" = caddy ] && STEP="caddy_setup"
+RUN="cd $DEST && sudo -S -p '' env DEST='$DEST' SITES='$SITES' LANDING=$LANDING APP_USER=\$(whoami) $CADDY $MIRRORS bash scripts/$STEP.sh"
 printf '%s\n' "${SUDO_PASS:-}" | "${SSH[@]}" "$RUN"
 log "完成。站点：$SITES$( [ "$LANDING" = 1 ] && echo '，krinomatrix.com')"

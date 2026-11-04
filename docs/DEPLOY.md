@@ -18,9 +18,12 @@ KRINO WORLD 有两个版本，代码是同一套，用 `SITE_EDITION` 区分：
 
 | 域名 | 服务器 | 内容 |
 | --- | --- | --- |
-| `krinomatrix.com`、`www.` | 海外 | 品牌首页（`app/landing/`），两个入口按钮 |
+| `krinomatrix.com` | 海外 | 品牌首页（`app/landing/`），两个入口按钮 |
+| `www.krinomatrix.com` | 按线路：境内 → 国内，默认 → 海外 | 302 跳到所在服务器的版本（cn. 或 app.） |
 | `app.krinomatrix.com`、`api.` | 海外 | 海外版 |
 | `cn.krinomatrix.com`、`api-cn.` | 国内 | 国内版 |
+
+`www` 在 DNSPod 里是两条 A 记录：线路「境内」→ 国内 IP，线路「默认」→ 海外 IP。证书机构从境外验证，国内服务器的 www 证书验证请求会先到海外服务器，由它转给国内服务器（`scripts/caddy_setup.sh` 的 `PEER_ACME`），所以海外服务器要一直在线。只改 Caddy：`scripts/deploy.sh cn|global user@host caddy`。
 
 每个版本的页脚都有指向另一个版本的链接（`OTHER_EDITION_URL`），用了代理或 VPN 被分错的人也能手动切换。
 
