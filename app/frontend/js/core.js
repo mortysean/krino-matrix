@@ -115,9 +115,8 @@ export async function download(url, name) {
 
 export const curChar = () => S.chars.find((c) => c.id === S.charId);
 
-// 角色头像：有立绘就用立绘的头部，否则钴蓝方块加首字
 // 头像：角色有立绘就用立绘的头部，否则钴蓝方块加首字
-const HEADS = { "/static/assets/whale-girl.png": "/static/assets/whale-girl-head.png" };
+const HEADS = { "/static/assets/whale-girl.png": "/static/assets/whale-girl-head.png", "/static/assets/krino.png": "/static/assets/krino-head.png" };
 export function avaHTML(c, cls = "") {
   if (!c) return "";
   const src = c.portrait?.kind === "image" ? HEADS[c.portrait.src] || c.portrait.src : null;
