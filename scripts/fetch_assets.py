@@ -4,7 +4,7 @@
     python scripts/fetch_assets.py tts          # 只下本地语音模型（Kokoro-82M 中文版，Apache-2.0，约 360MB）
     python scripts/fetch_assets.py live2d       # 只下 Live2D 示例模型 Hiyori（Live2D 免费素材许可，见下）
 
-Hugging Face 主站连不上时自动换 hf-mirror.com；可以用 HF_ENDPOINT 指定。只用标准库。
+Hugging Face 主站连不上时自动换 hf-mirror.com；可以用 HF_ENDPOINT 指定。境内用 MODEL_SOURCE=modelscope 从魔搭下载语音模型。只用标准库。
 
 Live2D 示例模型 Hiyori 来自 Live2D 官方 CubismWebSamples，适用《Live2D 免费素材使用许可协议》：
 个人和年销售额低于 1000 万日元的小企业可以商用；必须保留版权标注；原始文件不能再分发，所以不进 git。
@@ -55,14 +55,28 @@ def hf_endpoint() -> str:
     raise SystemExit("连不上 Hugging Face 和 hf-mirror.com，请检查网络或设置 HF_ENDPOINT")
 
 
+MODELSCOPE = "https://modelscope.cn"
+MODELSCOPE_REPO = "AI-ModelScope/Kokoro-82M-v1.1-zh"  # 同一份模型在魔搭的镜像，境内快得多
+
+
+def _wanted(name: str) -> bool:
+    return name in ("config.json", "kokoro-v1_1-zh.pth") or name.startswith(("voices/zf_", "voices/zm_", "voices/af_", "voices/bf_"))
+
+
 def fetch_tts() -> None:
     out = MODELS / "kokoro-zh"
-    ep = hf_endpoint()
-    info = json.loads(get(f"{ep}/api/models/{KOKORO_REPO}", timeout=30))
-    files = [s["rfilename"] for s in info["siblings"]
-             if s["rfilename"] in ("config.json", "kokoro-v1_1-zh.pth") or s["rfilename"].startswith(("voices/zf_", "voices/zm_", "voices/af_", "voices/bf_"))]
+    if os.getenv("MODEL_SOURCE") == "modelscope":
+        info = json.loads(get(f"{MODELSCOPE}/api/v1/models/{MODELSCOPE_REPO}/repo/files?Recursive=true", timeout=30))
+        files = [f["Path"] for f in info["Data"]["Files"] if f["Type"] == "blob" and _wanted(f["Path"])]
+        url = lambda f: f"{MODELSCOPE}/models/{MODELSCOPE_REPO}/resolve/master/{f}"  # noqa: E731
+    else:
+        ep = hf_endpoint()
+        info = json.loads(get(f"{ep}/api/models/{KOKORO_REPO}", timeout=30))
+        files = [s["rfilename"] for s in info["siblings"] if _wanted(s["rfilename"])]
+        url = lambda f: f"{ep}/{KOKORO_REPO}/resolve/main/{f}"  # noqa: E731
     for i, f in enumerate(files, 1):
-        save(f"{ep}/{KOKORO_REPO}/resolve/main/{f}", out / f)
+        if not (out / f).exists():  # 已经下好的跳过，断了可以接着下
+            save(url(f), out / f)
         print(f"\r语音模型 {i}/{len(files)}", end="", flush=True)
     (out / "SOURCE.md").write_text(f"来源：https://huggingface.co/{KOKORO_REPO}\n许可：Apache-2.0\n", encoding="utf-8")
     print(f"\n语音模型就绪：{out}")

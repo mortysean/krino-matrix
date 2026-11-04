@@ -53,8 +53,11 @@ as_app "${PIP[@]}" -r requirements.txt
 if [ -z "${NO_SPACY:-}" ]; then  # 英文发音规则（海外版的 Kokoro 英文音色）要用
   as_app .venv/bin/python -c "import spacy; spacy.load('en_core_web_sm')" 2>/dev/null || as_app .venv/bin/python -m spacy download en_core_web_sm || true
 fi
-as_app env ${HF_ENDPOINT:+HF_ENDPOINT="$HF_ENDPOINT"} .venv/bin/python scripts/fetch_assets.py || log "素材下载失败：语音会退回浏览器朗读"
+[ -n "${SKIP_ASSETS:-}" ] || as_app env ${HF_ENDPOINT:+HF_ENDPOINT="$HF_ENDPOINT"} ${MODEL_SOURCE:+MODEL_SOURCE="$MODEL_SOURCE"} .venv/bin/python scripts/fetch_assets.py || log "素材下载失败：语音会退回浏览器朗读"
 (cd app/backend && as_app ../../.venv/bin/python -m alembic upgrade head)
+# 自检：真的加载一遍后端和中文分词词典（只看 /api/health 发现不了包里缺文件）
+(cd app/backend && as_app ../../.venv/bin/python -c "import app.main, jieba; jieba.lcut('自检一下中文分词')" 2>&1 | grep -vE "Building prefix|Loading model|Prefix dict" || true)
+(cd app/backend && as_app ../../.venv/bin/python -c "import app.main, jieba; jieba.lcut('自检')" >/dev/null 2>&1) || { log "自检失败：Python 环境不完整，删掉 .venv 重新部署"; exit 1; }
 
 # ---------- 服务 ----------
 cat > /etc/systemd/system/krino-world.service <<EOF

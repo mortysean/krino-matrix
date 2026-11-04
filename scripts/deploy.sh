@@ -23,7 +23,7 @@ case "$EDITION" in
           CADDY="WWW_TO=https://app.krinomatrix.com PEER_ACME=${CN_IP:-111.229.152.63}:80"; MIRRORS="" ;;
   cn)     SITES="cn.krinomatrix.com, api-cn.krinomatrix.com"; LANDING=0; OTHER=https://app.krinomatrix.com
           CADDY="WWW_TO=https://cn.krinomatrix.com"
-          MIRRORS="PYTHON=python3.10 PIP_INDEX=https://mirrors.cloud.tencent.com/pypi/simple TORCH_FIND=https://mirrors.aliyun.com/pytorch-wheels/cpu/ HF_ENDPOINT=https://hf-mirror.com NO_SPACY=1" ;;
+          MIRRORS="PYTHON=python3.10 PIP_INDEX=https://mirrors.cloud.tencent.com/pypi/simple TORCH_FIND=https://mirrors.aliyun.com/pytorch-wheels/cpu/ HF_ENDPOINT=https://hf-mirror.com MODEL_SOURCE=modelscope NO_SPACY=1" ;;
   *) echo "版本只能是 cn 或 global"; exit 1 ;;
 esac
 
@@ -32,6 +32,7 @@ log "同步代码到 $TARGET:$DEST"
 rsync -az --delete --exclude-from=- "$ROOT/" "$TARGET:$DEST/" <<'EOF'
 .git/
 .claude/
+.venv/
 *.log
 .env
 .env.*
@@ -86,6 +87,6 @@ fi
 
 log "安装与配置（服务器上执行 scripts/server_setup.sh）"
 STEP="server_setup"; [ "${3:-}" = caddy ] && STEP="caddy_setup"
-RUN="cd $DEST && sudo -S -p '' env DEST='$DEST' SITES='$SITES' LANDING=$LANDING APP_USER=\$(whoami) $CADDY $MIRRORS bash scripts/$STEP.sh"
+RUN="cd $DEST && sudo -S -p '' env DEST='$DEST' SITES='$SITES' LANDING=$LANDING APP_USER=\$(whoami) $CADDY $MIRRORS ${SKIP_ASSETS:+SKIP_ASSETS=1} bash scripts/$STEP.sh"
 printf '%s\n' "${SUDO_PASS:-}" | "${SSH[@]}" "$RUN"
 log "完成。站点：$SITES$( [ "$LANDING" = 1 ] && echo '，krinomatrix.com')"
