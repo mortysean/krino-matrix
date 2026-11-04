@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # KRINO WORLD 统一管理脚本。不需要先 conda activate。
 #
-#   scripts/world.sh setup                  首次：装依赖、建 .env、初始化数据库、下载默认 3D 模型
+#   scripts/world.sh setup                  首次：装依赖、建 .env、初始化数据库、下载语音模型和 Live2D 示例
 #   scripts/world.sh run [--reload]         前台运行（--reload：改后端代码自动重启）
 #   scripts/world.sh start|stop|status|logs 后台运行（日志在 .run/world.log）
 #   scripts/world.sh db init|start|stop|status|migrate|revision "说明"|psql
 #   scripts/world.sh test [pytest 参数]     后端测试（独立的测试库 krino_world_test，离线 mock 模型）
-#   scripts/world.sh e2e                    浏览器端到端测试（需要服务在跑，见 tests/e2e/README.md）
+#   scripts/world.sh e2e                    浏览器端到端测试（需要服务在跑，见 app/e2e/README.md）
 #
 # 环境变量：PYTHON（默认 krino_matrix conda 环境）、PG_BIN（PostgreSQL 可执行文件目录）、PGPORT（默认 5433）
 #           HOST / PORT 覆盖 .env；WORLD_MANAGE_PG=0 时 run 不启动/停止数据库
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUN="$ROOT/.run"
-PGDATA="${PGDATA:-$ROOT/.pgdata}"
+PGDATA="${PGDATA:-$ROOT/data/pgdata}"
 PGPORT="${PGPORT:-5433}"
 export PGDATA PGPORT
 mkdir -p "$RUN"
@@ -79,7 +79,7 @@ db_init() {
   log "PostgreSQL 就绪：端口 $PGPORT，库 krino_world / krino_world_test"
 }
 
-db_migrate() { (cd "$ROOT/backend" && "$PY" -m alembic upgrade head); }
+db_migrate() { (cd "$ROOT/app/backend" && "$PY" -m alembic upgrade head); }
 
 cmd_db() {
   case "${1:-}" in
@@ -89,7 +89,7 @@ cmd_db() {
     status) "$(pg_bin)/pg_ctl" -D "$PGDATA" status ;;
     migrate) db_migrate ;;
     revision) [ -n "${2:-}" ] || { log "用法：$0 db revision \"说明\""; exit 1; }
-              (cd "$ROOT/backend" && "$PY" -m alembic revision --autogenerate -m "$2") ;;
+              (cd "$ROOT/app/backend" && "$PY" -m alembic revision --autogenerate -m "$2") ;;
     psql) shift; PSQL -d krino_world "$@" ;;
     *) echo "用法: $0 db init|start|stop|status|migrate|revision \"说明\"|psql"; exit 1 ;;
   esac
@@ -103,7 +103,7 @@ cmd_run() {
   local started=0
   if [ "${WORLD_MANAGE_PG:-1}" = 1 ] && ! pg_running; then pg_start; started=1; fi
   log "KRINO WORLD：$(urls)"
-  cd "$ROOT/backend"
+  cd "$ROOT/app/backend"
   set +e
   "$PY" -m uvicorn app.main:app --host "$HOST" --port "$PORT" --workers 1 "${reload[@]}"
   local rc=$?
@@ -152,14 +152,14 @@ cmd_status() {
 # ---------- 测试 ----------
 cmd_test() {
   pg_running || pg_start
-  cd "$ROOT/backend"
+  cd "$ROOT/app/backend"
   TEST_DATABASE_URL="${TEST_DATABASE_URL:-postgresql+psycopg://krino:krino@localhost:$PGPORT/krino_world_test}" \
     "$PY" -m pytest -q "$@"
 }
 
 cmd_e2e() {
   load_env
-  cd "$ROOT/tests/e2e"
+  cd "$ROOT/app/e2e"
   [ -d node_modules ] || npm install --silent
   WORLD_URL="http://$HOST:$PORT" node run.mjs "$@"
 }
@@ -168,7 +168,7 @@ cmd_setup() {
   "$PY" -m pip install -q -r "$ROOT/requirements.txt"
   [ -f "$ROOT/.env" ] || { cp "$ROOT/.env.example" "$ROOT/.env"; log "已创建 .env，请填写 OPENROUTER_API_KEY（或设 LLM_PROVIDER=mock）"; }
   db_init
-  "$PY" "$ROOT/scripts/fetch_vrm.py" || log "默认 3D 模型下载失败，将使用内置形象（之后可以再运行 scripts/fetch_vrm.py）"
+  "$PY" "$ROOT/scripts/fetch_assets.py" || log "素材下载失败：语音会退回浏览器朗读，Live2D 示例不可用（之后可以再运行 scripts/fetch_assets.py）"
 }
 
 case "${1:-}" in

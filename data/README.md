@@ -15,6 +15,7 @@
 | 路径 | 内容 |
 |---|---|
 | `krino_matrix/{zh,en}/` | 训练数据，每种语言 `train.jsonl` / `val.jsonl` / `test.jsonl` |
-| `krino.db` | Web 应用的本地 SQLite 数据库（没有配置 `DATABASE_URL` 时使用） |
-| `test-krino.db` | 测试用数据库 |
+| `pgdata/` | KRINO WORLD 的 PostgreSQL 数据目录（`scripts/world.sh db init` 创建） |
+| `models/kokoro-zh/` | 本地语音模型（`scripts/fetch_assets.py tts`） |
+| `models/live2d/` | Live2D 示例模型（`scripts/fetch_assets.py live2d`），通过 `/models/` 提供给前端 |
 | `benchmark/` | `scripts/benchmark.sh` 的评测输出 |

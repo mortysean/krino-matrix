@@ -1,0 +1,178 @@
+// KRINO WORLD 浏览器端到端测试。对着一个已经启动的服务（建议 LLM_PROVIDER=mock）跑一遍主要流程，截图存到 shots/。
+//   WORLD_URL=http://127.0.0.1:8630 node run.mjs
+// 浏览器：CHROME=/path/to/chrome（默认 Playwright 缓存里的 Chromium）。没有 GPU 时用 SwiftShader 软件渲染 WebGL。
+import { chromium } from "playwright-core";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import { homedir } from "node:os";
+
+const URL_ = process.env.WORLD_URL || "http://127.0.0.1:8630";
+const SHOTS = new URL("./shots/", import.meta.url).pathname;
+mkdirSync(SHOTS, { recursive: true });
+
+function findChrome() {
+  if (process.env.CHROME) return process.env.CHROME;
+  const base = homedir() + "/.cache/ms-playwright";
+  for (const d of existsSync(base) ? readdirSync(base).filter((x) => x.startsWith("chromium-")).sort().reverse() : []) {
+    const p = `${base}/${d}/chrome-linux64/chrome`;
+    if (existsSync(p)) return p;
+  }
+  throw new Error("找不到 Chromium：设置 CHROME=/path/to/chrome");
+}
+
+const results = [];
+const errors = [];
+async function step(name, fn) {
+  const t0 = Date.now();
+  try { await fn(); results.push({ name, ok: true, ms: Date.now() - t0 }); console.log(`  ✓ ${name} (${Date.now() - t0}ms)`); }
+  catch (e) { results.push({ name, ok: false, error: e.message }); console.log(`  ✗ ${name}\n      ${e.message.split("\n")[0]}`); }
+}
+const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
+
+const browser = await chromium.launch({
+  executablePath: findChrome(),
+  args: ["--no-proxy-server", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist",
+    "--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
+});
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ["camera", "microphone"] });
+const page = await ctx.newPage();
+page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
+page.on("console", (m) => { if (m.type() === "error" && !/favicon|ERR_ABORTED|ERR_INTERNET_DISCONNECTED/.test(m.text())) errors.push("console: " + m.text()); });
+// 截图前等所有一次性的 CSS 动画（页面切换、卡片入场）播完；颗粒、呼吸这类无限循环的不等
+const shot = async (name) => {
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity),
+    null, { timeout: 5000 }).catch(() => {});
+  await page.screenshot({ path: SHOTS + name + ".png" });
+};
+const user = "e2e" + Date.now().toString(36);
+
+console.log(`KRINO WORLD e2e → ${URL_}`);
+
+await step("注册并进入，默认角色是鲸鱼娘", async () => {
+  await page.goto(URL_);
+  await page.waitForSelector("#auth:not(.hidden)", { timeout: 15000 });
+  await shot("01-auth");
+  await page.fill("[name=username]", user);
+  await page.fill("[name=password]", "secret123");
+  await page.click("[data-action=register]");
+  await page.waitForSelector("#app:not(.hidden)", { timeout: 15000 });
+  await page.waitForFunction(() => document.querySelector("#chat-name")?.textContent === "鲸鱼娘", null, { timeout: 10000 })
+    .catch(async () => { throw new Error("默认角色名不对：" + await page.textContent("#chat-name")); });
+  expect(await page.locator(".nav button").count() === 4, "导航应该只有 4 项");
+});
+
+await step("2D 立绘显示", async () => {
+  await page.waitForFunction(() => document.querySelector(".portrait img")?.complete && document.querySelector(".portrait img").naturalWidth > 0, null, { timeout: 15000 });
+  expect((await page.getAttribute(".portrait img", "src")).includes("whale-girl"), "不是鲸鱼娘立绘");
+  await shot("02-home");
+});
+
+await step("一键开场白 → 流式回复 → 自动朗读", async () => {
+  await page.click(".starters button >> nth=0");
+  await page.waitForFunction(() => !document.querySelector(".typing") && document.querySelectorAll(".msg.assistant .bubble").length >= 1, null, { timeout: 30000 });
+  const reply = await page.textContent(".msg.assistant:last-of-type .bubble");
+  expect(reply && !reply.includes("<state>"), "回复为空或带标签");
+  await page.waitForSelector(".msg.assistant .speak-btn", { timeout: 10000 }).catch(() => { throw new Error("回复旁没有朗读按钮"); });
+  await shot("03-chat");
+});
+
+await step("点喇叭朗读（服务端语音）", async () => {
+  const resp = page.waitForResponse((r) => r.url().endsWith("/api/voice/tts"), { timeout: 20000 });
+  await page.click("#voice-toggle"); await page.click("#voice-toggle");  // 关再开：确认开关可用
+  await page.click(".msg.assistant:last-of-type .speak-btn");
+  const r = await resp;
+  expect(r.status() === 200 && (r.headers()["content-type"] || "").includes("audio"), "朗读接口失败：" + r.status());
+});
+
+await step("预设互动（摸摸头）", async () => {
+  const before = await page.locator(".msg").count();
+  await page.click('#gestures [data-g="pat_head"]');
+  await page.waitForFunction((n) => document.querySelectorAll(".msg").length > n, before, { timeout: 20000 });
+  await shot("04-gesture");
+});
+
+await step("她记得的：说过的称呼被记下", async () => {
+  await page.fill("#chat-input", "以后叫我小林吧");
+  await page.press("#chat-input", "Enter");
+  await page.waitForFunction(() => !document.querySelector(".typing") && document.querySelectorAll(".msg.assistant").length >= 3, null, { timeout: 30000 });
+  await page.waitForTimeout(2500);
+  await page.click("#drawer-toggle");
+  await page.waitForSelector("#drawer:not(.hidden) .mem-card", { timeout: 15000 });
+  expect((await page.textContent("#drawer .mem-list")).includes("小林"), "没记下称呼");
+  await shot("05-drawer");
+  await page.click("#drawer-close");
+});
+
+await step("角色页：改说话方式 → 表达变化；换 Live2D 形象", async () => {
+  await page.click('.nav [data-view="persona"]');
+  await page.waitForSelector("[data-p=speech]");
+  await shot("06-persona");
+  await page.fill("[data-p=speech]", "- 口头禅「收到，领航员出发」");
+  await page.click('.portrait-opt[data-portrait*="live2d"]');
+  await page.click("#p-save");
+  await page.waitForFunction(() => !document.querySelector("#toast").classList.contains("hidden"), null, { timeout: 10000 });
+  await page.click('.nav [data-view="chat"]');
+  await page.waitForSelector(".portrait canvas", { timeout: 30000 });
+  await page.waitForTimeout(2500);
+  await shot("07-live2d");
+  await page.fill("#chat-input", "在做什么呢");
+  await page.press("#chat-input", "Enter");
+  await page.waitForFunction(() => /领航员出发/.test(document.querySelector(".msg.assistant:last-of-type .bubble")?.textContent || ""), null, { timeout: 30000 });
+  // 换回立绘
+  await page.click('.nav [data-view="persona"]');
+  await page.waitForSelector('.portrait-opt[data-portrait*="whale-girl"]');
+  await page.click('.portrait-opt[data-portrait*="whale-girl"]');
+  await page.click("#p-save");
+  await page.waitForTimeout(800);
+});
+
+await step("工坊：没有重复，一键领养后直接去聊天", async () => {
+  await page.click('.nav [data-view="workshop"]');
+  await page.waitForSelector("#ws-grid .ws-card");
+  const titles = await page.locator("#ws-grid .ws-card h3").allTextContents();
+  expect(titles.length >= 5 && new Set(titles).size === titles.length, "工坊有重复：" + titles.join(","));
+  await shot("08-workshop");
+  await page.locator("#ws-grid [data-adopt]").first().click();
+  await page.waitForSelector("#view-chat:not(.hidden)", { timeout: 15000 });
+  expect((await page.textContent("#chat-name")) !== "鲸鱼娘", "领养后没切到新角色");
+  await shot("09-adopted");
+});
+
+await step("设置：开关即时保存，高级里有眼镜模拟器", async () => {
+  await page.click('.nav [data-view="settings"]');
+  await page.waitForSelector(".settings-simple");
+  await page.click("#adv summary");
+  await page.waitForSelector("#g-connect", { timeout: 15000 });
+  await page.click("#g-connect");
+  await page.waitForFunction(() => /已连接/.test(document.querySelector("#g-state")?.textContent || ""), null, { timeout: 10000 });
+  await page.fill("#g-text", "你好呀");
+  await page.click("#g-say");
+  await page.waitForSelector("#lens .ar-subtitle", { timeout: 30000 });
+  await shot("10-settings-glasses");
+  await page.click("#g-connect");
+  expect(!/sk-|api_key/i.test(await page.textContent("#settings-page")), "页面上出现了密钥");
+});
+
+await step("断网提示", async () => {
+  await page.click('.nav [data-view="chat"]');
+  await ctx.setOffline(true);
+  await page.fill("#chat-input", "断网了吗");
+  await page.press("#chat-input", "Enter");
+  await page.waitForSelector("#net-banner:not(.hidden)", { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector("#chat-input").value === "断网了吗", null, { timeout: 5000 })
+    .catch(() => { throw new Error("失败后没有把输入还给用户"); });
+  await ctx.setOffline(false);
+  await page.waitForSelector("#net-banner.hidden", { state: "attached", timeout: 15000 });
+});
+
+await step("窄屏布局", async () => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(500);
+  expect(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), "窄屏横向溢出");
+  await shot("11-mobile");
+});
+
+await browser.close();
+const failed = results.filter((r) => !r.ok);
+if (errors.length) console.log("\n页面错误：\n" + [...new Set(errors)].map((e) => "  " + e).join("\n"));
+console.log(`\n${results.length - failed.length}/${results.length} 通过 · 截图在 ${SHOTS}`);
+process.exit(failed.length || errors.length ? 1 : 0);

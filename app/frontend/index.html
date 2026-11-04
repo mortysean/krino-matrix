@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KRINO WORLD</title>
+  <link rel="icon" href="/static/assets/whale-girl-head.png">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="grain" aria-hidden="true"></div>
+
+  <div id="boot" class="boot">
+    <div class="boot-plate" data-mascot="print"></div>
+    <div class="boot-line mono"><span>KRINO WORLD</span><span class="boot-count">LOADING</span></div>
+  </div>
+
+  <!-- 登录：一个表单，两个按钮 -->
+  <section id="auth" class="auth hidden">
+    <div class="auth-art"><img src="/static/assets/whale-girl.png" alt=""></div>
+    <div class="auth-side">
+      <div class="eyebrow mono">KRINO MATRIX — KRINO WORLD</div>
+      <h1>KRINO WORLD</h1>
+      <p class="lead">和会记得你的 AI 角色聊天。</p>
+      <form id="auth-form">
+        <label class="field"><span class="mono">USERNAME</span><input name="username" autocomplete="username" required></label>
+        <label class="field"><span class="mono">PASSWORD</span><input name="password" type="password" autocomplete="current-password" required minlength="6"></label>
+        <div class="row">
+          <button type="submit" data-action="login">进入</button>
+          <button type="submit" data-action="register" class="ghost">注册</button>
+        </div>
+        <p id="auth-error" class="error"></p>
+      </form>
+      <p class="fine mono">这里的所有角色都是人工智能 · ALL CHARACTERS ARE AI</p>
+    </div>
+  </section>
+
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark"><img src="/static/assets/whale-girl-head.png" alt=""></span>
+        <div><div class="brand-name">KRINO WORLD</div><div class="brand-sub mono">BY KRINO MATRIX</div></div>
+      </div>
+      <div class="section-title mono">CAST</div>
+      <div id="char-list" class="char-list"></div>
+      <nav class="nav">
+        <button data-view="chat" class="active"><em class="mono">01</em>聊天</button>
+        <button data-view="persona"><em class="mono">02</em>角色</button>
+        <button data-view="workshop"><em class="mono">03</em>工坊</button>
+        <button data-view="settings"><em class="mono">04</em>设置</button>
+      </nav>
+      <div class="sidebar-foot">
+        <span class="me mono"><i class="dot"></i><span id="me-name"></span></span>
+        <button id="logout" class="link small">退出</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- 01 聊天：左边是她，右边是对话。底部一行：图片 · 输入 · 麦克风 · 发送 -->
+      <section id="view-chat" class="view">
+        <div id="net-banner" class="net-banner hidden"></div>
+        <div class="chat-body">
+          <div class="stage2d" id="stage">
+            <div class="stage-host" id="stage-host"></div>
+            <div class="stage-top">
+              <span id="chat-name" class="stage-name"></span><span class="ai-badge" title="这是人工智能角色">AI</span>
+              <span id="demo-badge" class="badge demo hidden" title="没有配置模型密钥：回复是离线模板">演示</span>
+            </div>
+            <button id="voice-toggle" class="stage-voice" title="自动朗读她的回复"></button>
+            <div class="stage-say hidden" id="stage-say"></div>
+            <div class="gestures" id="gestures"></div>
+          </div>
+          <div class="chat-col">
+            <div class="chat-tools">
+              <button id="new-session" class="link small" title="开始新的话题（上一段会自动写成回忆）">＋ 新话题</button>
+              <button id="drawer-toggle" class="link small">她记得的<i id="drawer-dot" class="dot-badge hidden"></i></button>
+            </div>
+            <div id="messages" class="messages"></div>
+            <div id="img-chip" class="img-chip hidden"></div>
+            <form id="chat-form" class="chat-form">
+              <button type="button" id="img-btn" class="icon-btn" title="发一张图片给她看"></button>
+              <input type="file" id="img-file" accept="image/png,image/jpeg,image/webp" class="hidden">
+              <textarea id="chat-input" rows="1" placeholder="说点什么…"></textarea>
+              <button type="button" id="mic-btn" class="icon-btn" title="点一下开始说，再点一下发送"></button>
+              <button type="submit" id="send-btn">发送</button>
+            </form>
+          </div>
+          <aside id="drawer" class="drawer hidden">
+            <div class="drawer-head">
+              <div class="tabs" id="drawer-tabs">
+                <button data-dtab="mem" class="active">记得的事</button>
+                <button data-dtab="ask">想问你的<span id="ask-count" class="count"></span></button>
+                <button data-dtab="bond">你们</button>
+              </div>
+              <button id="drawer-close" class="link small" title="收起">✕</button>
+            </div>
+            <div class="drawer-body" id="drawer-body"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- 02 角色 -->
+      <section id="view-persona" class="view hidden"><div id="persona-page"></div></section>
+      <!-- 03 工坊 -->
+      <section id="view-workshop" class="view hidden"><div id="ws-page"></div></section>
+      <!-- 04 设置 -->
+      <section id="view-settings" class="view hidden"><div id="settings-page"></div></section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <h3 id="modal-title"></h3>
+      <div id="modal-body"></div>
+      <div class="row right">
+        <button id="modal-cancel" class="ghost">取消</button>
+        <button id="modal-ok">确定</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/static/mascot.js"></script>
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

@@ -16,7 +16,7 @@
 
 仍在使用、没有归档的部分：
 - `model/`：KRINO Matrix 3-Head 模型（训练、推理）。
-- `krino/evaluator/`、`krino/common/`：模型的评估接口和基础数据结构。KRINO WORLD 的互动策略（`backend/app/policy.py`）在 `KRINO_POLICY=matrix` 时通过 `krino.evaluator.matrix` 调用模型。
+- `krino/evaluator/`、`krino/common/`：模型的评估接口和基础数据结构。KRINO WORLD 的互动策略（`app/backend/app/policy.py`）在 `KRINO_POLICY=matrix` 时通过 `krino.evaluator.matrix` 调用模型。
 
 ## 鲸鱼娘（Whale Girl）的成人设备控制
 
