@@ -121,7 +121,14 @@ cmd_stop() {
   if [ -f "$RUN/world.pid" ]; then
     local pid; pid="$(cat "$RUN/world.pid")"
     pkill -P "$pid" 2>/dev/null || true; kill "$pid" 2>/dev/null || true
-    rm -f "$RUN/world.pid"; log "已停止"
+    rm -f "$RUN/world.pid"
+    load_env
+    local i  # 等端口真正空出来，否则紧接着的 start 会把旧进程当成新启动的
+    for i in $(seq 1 20); do
+      curl -s --noproxy '*' -o /dev/null "http://$HOST:$PORT/api/health" || break
+      sleep 0.5
+    done
+    log "已停止"
   else
     log "没有在运行"
   fi
