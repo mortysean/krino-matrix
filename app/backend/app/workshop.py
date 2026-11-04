@@ -82,17 +82,11 @@ def card(db: Session, i: WorkshopItem, user: User, inst: WorkshopInstall | None 
 
 # ---------- 发布 ----------
 
-_official_hash: str | None = None
-
-
 def official_hash() -> str:
-    """没改过的官方角色的内容哈希。"""
-    global _official_hash
-    if _official_hash is None:
-        o = personas.OFFICIAL
-        _official_hash = package_hash(persona_io.to_package(o["persona"], personas.validate_behavior(o["behavior"]),
-                                                            persona_io._clean_lore(o["lore"]), personas.OFFICIAL_SLUG, 1))
-    return _official_hash
+    """没改过的官方角色的内容哈希（按当前站点版本）。"""
+    o = personas.official()
+    return package_hash(persona_io.to_package(o["persona"], personas.validate_behavior(o["behavior"]),
+                                              persona_io._clean_lore(o["lore"]), personas.OFFICIAL_SLUG, 1))
 
 
 def _check_rate(db: Session, user: User) -> None:

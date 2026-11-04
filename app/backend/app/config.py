@@ -13,7 +13,10 @@ ROOT_DIR = Path(__file__).resolve().parents[3]  # 仓库根目录（app/backend/
 
 
 def _load_dotenv() -> None:
-    env_file = ROOT_DIR / ".env"
+    # ENV_FILE 可以指定别的配置文件（例如本机同时跑海外版：ENV_FILE=.env.global）；环境变量优先于文件
+    env_file = Path(os.environ["ENV_FILE"]) if os.getenv("ENV_FILE") else ROOT_DIR / ".env"
+    if not env_file.is_absolute():
+        env_file = ROOT_DIR / env_file
     if not env_file.exists():
         return
     for line in env_file.read_text(encoding="utf-8").splitlines():
@@ -53,6 +56,12 @@ DEFAULT_LLM = "~deepseek/deepseek-flash-latest"  # OpenRouter 上最新的 DeepS
 
 @dataclass
 class Settings:
+    # 站点版本：cn = 国内版（中文、带中文商标和备案号）| global = 海外版（英文）。两个版本是两套独立部署，各用各的数据库
+    edition: str = field(default_factory=lambda: _env("SITE_EDITION", "cn"))
+    icp_number: str = field(default_factory=lambda: _env("ICP_NUMBER", ""))          # 国内版页脚的 ICP 备案号
+    police_number: str = field(default_factory=lambda: _env("POLICE_RECORD_NUMBER", ""))  # 公安联网备案号（可选）
+    # 另一个版本的网址（页脚的切换链接）：按 IP 分流不一定准，用了代理的人要能手动切过去
+    other_edition_url: str = field(default_factory=lambda: _env("OTHER_EDITION_URL", ""))
     database_url: str = field(default_factory=lambda: _env(
         "DATABASE_URL", "postgresql+psycopg://krino:krino@localhost:5433/krino_world"))
     frontend_dir: Path = ROOT_DIR / "app" / "frontend"
@@ -83,10 +92,12 @@ class Settings:
     stt_base_url: str = field(default_factory=lambda: _env("STT_BASE_URL", ""))
     stt_api_key: str | None = field(default_factory=lambda: os.getenv("STT_API_KEY") or None)
     max_audio_bytes: int = field(default_factory=lambda: _int("MAX_AUDIO_BYTES", 10 * 1024 * 1024))
-    # TTS：local = 本地 Kokoro（默认，免费离线）| openai = OpenAI 兼容接口 | browser = 浏览器朗读 | mock = 测试
-    tts_provider: str = field(default_factory=lambda: _env("TTS_PROVIDER", "local"))
+    # TTS：qwen = Qwen3-TTS 语音服务（默认，最像真人，需要显卡；不可用时自动退回 Kokoro）| local = 只用本地 Kokoro
+    #      | openai = OpenAI 兼容接口 | browser = 浏览器朗读 | mock = 测试
+    tts_provider: str = field(default_factory=lambda: _env("TTS_PROVIDER", "qwen"))
+    qwen_tts_url: str = field(default_factory=lambda: _env("QWEN_TTS_URL", "http://127.0.0.1:8640"))  # app/tts/server.py
     kokoro_dir: str = field(default_factory=lambda: _env("KOKORO_DIR", ""))
-    tts_default_voice: str = field(default_factory=lambda: _env("TTS_DEFAULT_VOICE", "zf_001"))
+    tts_default_voice: str = field(default_factory=lambda: _env("TTS_DEFAULT_VOICE", ""))  # 空 = 按语言默认
     tts_model: str = field(default_factory=lambda: _env("TTS_MODEL", "tts-1"))
     tts_base_url: str = field(default_factory=lambda: _env("TTS_BASE_URL", ""))
     tts_api_key: str | None = field(default_factory=lambda: os.getenv("TTS_API_KEY") or None)
@@ -110,6 +121,13 @@ class Settings:
 
 
 settings = Settings()
+if settings.edition not in ("cn", "global"):
+    raise SystemExit(f"SITE_EDITION 只能是 cn 或 global，现在是 {settings.edition!r}")
+
+
+def locale() -> str:
+    """界面和角色用的语言：国内版中文，海外版英文。"""
+    return "en" if settings.edition == "global" else "zh"
 
 
 def model_choices() -> list[dict]:
@@ -144,11 +162,19 @@ def service_status() -> dict:
 
 def _tts_status(svc) -> dict:
     s = settings
-    if s.tts_provider == "local":
+    if s.tts_provider == "qwen":
+        from .voice import _qwen_voices
+
+        if _qwen_voices():
+            return svc("qwen", "Qwen3-TTS 1.7B", True, "按人设设计的音色：" + "、".join(_qwen_voices()))
+    if s.tts_provider in ("local", "qwen"):
         from .tts_local import available
 
         ok, why = available()
-        return svc("local", "Kokoro-82M 中文", ok, "本地合成，免费离线" if ok else why + "；暂时用浏览器朗读")
+        note = "本地合成，免费离线" if ok else why + "；暂时用浏览器朗读"
+        if s.tts_provider == "qwen":
+            note = "Qwen3-TTS 语音服务没有启动，暂时用 Kokoro（scripts/world.sh tts 启动）"
+        return svc("local", "Kokoro-82M", ok, note)
     return svc(s.tts_provider, s.tts_model if s.tts_provider == "openai" else "",
                s.tts_provider in ("browser", "mock") or bool(s.tts_base_url),
                {"browser": "浏览器自带语音合成", "mock": "测试用，返回提示音"}.get(s.tts_provider, ""))

@@ -1,4 +1,6 @@
 // 共用的小工具：状态、接口调用、弹窗、提示。各页面模块只依赖这里，互相之间不直接引用。
+import { getLocale, t, tr } from "./i18n.js";
+export { t, tr };
 export const $ = (s, root = document) => root.querySelector(s);
 export const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -14,6 +16,7 @@ export const S = {
   charId: storeGet("krino_char"),
   view: "chat",
   online: true,
+  site: { edition: "cn", locale: "zh" },  // /api/site：国内版 / 海外版
 };
 
 // 简单的事件总线：角色切换、登录变化时通知各页面
@@ -44,23 +47,23 @@ export async function api(path, opts = {}) {
     res = await fetch(path, { method: opts.method || (body ? "POST" : "GET"), headers, body, signal: opts.signal });
   } catch (e) {
     if (e.name === "AbortError") throw e;
-    setOnline(false, "连不上服务器，正在重试…");
-    throw new ApiError("网络连接失败，请检查网络后重试", 0);
+    setOnline(false, t("连不上服务器，正在重试…"));
+    throw new ApiError(t("网络连接失败，请检查网络后重试"), 0);
   }
   setOnline(true);
-  if (res.status === 401 && S.token) { bus.emit("logout"); throw new ApiError("登录已过期", 401); }
+  if (res.status === 401 && S.token) { bus.emit("logout"); throw new ApiError(t("登录已过期"), 401); }
   if (opts.raw) {
     if (!res.ok) throw new ApiError(await errText(res), res.status);
     return res;
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(typeof data.detail === "string" ? data.detail : errDetail(data.detail) || `请求失败（${res.status}）`, res.status);
+  if (!res.ok) throw new ApiError(typeof data.detail === "string" ? data.detail : errDetail(data.detail) || t("请求失败（{status}）", { status: res.status }), res.status);
   return data;
 }
 
 async function errText(res) {
-  const t = await res.text();
-  try { const d = JSON.parse(t).detail; return typeof d === "string" ? d : errDetail(d); } catch { return t.slice(0, 200) || `请求失败（${res.status}）`; }
+  const body = await res.text();
+  try { const d = JSON.parse(body).detail; return typeof d === "string" ? d : errDetail(d); } catch { return body.slice(0, 200) || t("请求失败（{status}）", { status: res.status }); }
 }
 function errDetail(d) {
   if (Array.isArray(d)) return d.map((x) => `${(x.loc || []).slice(1).join(".")}: ${x.msg}`).join("；");
@@ -72,18 +75,20 @@ setInterval(async () => {
   if (S.online) return;
   try { const r = await fetch("/api/health"); if (r.ok) setOnline(true); } catch { /* 还没恢复 */ }
 }, 5000);
-window.addEventListener("offline", () => setOnline(false, "网络已断开"));
+window.addEventListener("offline", () => setOnline(false, t("网络已断开")));
 window.addEventListener("online", () => fetch("/api/health").then(() => setOnline(true)).catch(() => {}));
 
+// 提示：消息先过一遍 tr()，中文原文和后端拼好的句子都能在海外版翻成英文
 export function toast(msg, ms = 2400) {
-  const t = $("#toast");
-  t.textContent = msg; t.classList.remove("hidden");
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.add("hidden"), ms);
+  const el = $("#toast");
+  el.textContent = tr(String(msg ?? "")); el.classList.remove("hidden");
+  clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.add("hidden"), ms);
 }
-export const fail = (e) => toast("✕ " + (e?.message || e), 4000);
+export const fail = (e) => toast("✕ " + tr(e?.message || String(e)), 4000);
 
 // 弹窗：onOk 返回 false 时不关闭；返回 Promise，取消时为 null
 export function modal(title, html, onOk, { okText = "确定", wide = false, cancel = true } = {}) {
+  title = tr(title); okText = tr(okText);
   $("#modal-cancel").classList.toggle("hidden", !cancel);
   $("#modal .modal-card").classList.toggle("wide", wide);
   $("#modal-title").textContent = title;
@@ -120,5 +125,5 @@ export function avaHTML(c, cls = "") {
   return `<span class="ava ${cls}" style="--c:${esc(c.color)}">${inner}</span>`;
 }
 
-export const fmtTime = (t) => (t ? new Date(t).toLocaleString([], { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
+export const fmtTime = (ts) => (ts ? new Date(ts).toLocaleString(getLocale() === "en" ? "en-US" : "zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
 export const ripple = (el) => window.Mascot?.ripple(el);

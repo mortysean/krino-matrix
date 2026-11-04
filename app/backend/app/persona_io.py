@@ -34,9 +34,9 @@ FIELDS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "background": ("背景", "背景", ("背景", "介绍", "简介", "身份", "description", "background")),
     "personality": ("性格", "性格", ("性格", "personality")),
     "values": ("价值倾向", "价值倾向", ("价值倾向", "价值观", "信念", "values")),
-    "speech": ("语言风格", "语言风格", ("语言风格", "说话方式", "表达风格", "语气", "speech")),
+    "speech": ("语言风格", "语言风格", ("语言风格", "说话方式", "表达风格", "语气", "speech", "speaking style")),
     "interests": ("兴趣", "兴趣", ("兴趣", "爱好", "interests", "hobbies")),
-    "preferences": ("行为偏好", "行为偏好", ("行为偏好", "习惯", "preferences")),
+    "preferences": ("行为偏好", "行为偏好", ("行为偏好", "习惯", "preferences", "habits")),
     "worldview": ("世界观", "世界观", ("世界观", "世界设定", "场景", "scenario", "world")),
     "relationships": ("角色关系", "角色关系", ("角色关系", "初始关系", "关系设定", "关系", "relationship", "relationships")),
     "boundaries": ("互动边界", "互动边界", ("互动边界", "行为边界", "边界", "boundaries")),
@@ -45,6 +45,10 @@ FIELDS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "examples": ("对话示例", "对话示例", ("对话示例", "示例对话", "example dialogue", "examples", "mes_example")),
 }
 TEXT_FIELDS = tuple(FIELDS)
+# 英文小标题：海外版的提示词和 Markdown 导出用它们；导入时也认得（在 FIELDS 的别名里）
+EN_TITLES = {"background": "Background", "personality": "Personality", "values": "Values", "speech": "Speech",
+             "interests": "Interests", "preferences": "Habits", "worldview": "World", "relationships": "Relationships",
+             "boundaries": "Boundaries", "greeting": "Greeting", "examples": "Example dialogue"}
 HEAD_FIELDS = ("name", "tagline", "tags", "color")
 LORE_PREFIX = "设定笔记 · "
 

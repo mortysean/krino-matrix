@@ -129,11 +129,11 @@ await step("工坊：没有重复，一键领养后直接去聊天", async () =>
   await page.click('.nav [data-view="workshop"]');
   await page.waitForSelector("#ws-grid .ws-card");
   const titles = await page.locator("#ws-grid .ws-card h3").allTextContents();
-  expect(titles.length >= 5 && new Set(titles).size === titles.length, "工坊有重复：" + titles.join(","));
+  expect(titles.includes("KRINO") && titles.includes("大肥鱼") && new Set(titles).size === titles.length, "工坊不对：" + titles.join(","));
   await shot("08-workshop");
-  await page.locator("#ws-grid [data-adopt]").first().click();
+  await page.locator("#ws-grid .ws-card").filter({ has: page.locator("h3", { hasText: /^KRINO$/ }) }).locator("[data-adopt]").click();
   await page.waitForSelector("#view-chat:not(.hidden)", { timeout: 15000 });
-  expect((await page.textContent("#chat-name")) !== "大肥鱼", "领养后没切到新角色");
+  expect((await page.textContent("#chat-name")) === "KRINO", "领养后没切到 KRINO");
   await shot("09-adopted");
 });
 

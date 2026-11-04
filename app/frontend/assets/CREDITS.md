@@ -4,7 +4,8 @@
 | --- | --- | --- | --- |
 | `whale-girl.png`、`whale-girl-head.png` | 大肥鱼（DeepSeek 娘 / 蓝色大肥鱼）全身立绘与头像（去背景、裁切） | @MX1951，投稿于“蓝色大肥鱼”公开图片存档（[lmy414/ai-girl-stickers](https://github.com/lmy414/ai-girl-stickers)，作品 `sticker_issue_07_007`「一些肥鱼 · 07」） | 投稿者标注 CC0 公共领域 |
 | `krino.png` | KRINO 看板娘立绘 | KRINO MATRIX 自有素材（原图 `docs/brand/krino_人物形象.png`） | 自有 |
-| `kujira-line.png`、`kujira-head.png` | 旧版鲸鱼娘项目的线刻插画（现在没有使用，保留原始素材） | 鲸鱼娘（Whale Girl）项目自有素材 | 自有 |
+| `kujira-bowl.png` | 加载页（钢盆线稿，裁到肩部） | 由 `kujira-line.png` 裁切 | 自有 |
+| `kujira-line.png`、`kujira-head.png` | 旧版鲸鱼娘项目的线刻插画（原始素材） | 鲸鱼娘（Whale Girl）项目自有素材 | 自有 |
 | `krino-mark.svg` | KRINO MATRIX 商标（左上角、开场、网页图标） | 按 `docs/brand/商标.jpg` 绘制的矢量版 | 自有 |
 
 说明：

@@ -1,6 +1,10 @@
 // 语音：识别（STT）和朗读（TTS）。服务端配置了就走服务端（密钥只在服务端），否则用浏览器自带的能力。
 // 麦克风只在用户点了按钮、浏览器授权之后才会打开；停止后立即关闭。
-import { api, S } from "./core.js";
+import { api, S, t } from "./core.js";
+import { getLocale } from "./i18n.js";
+
+// 语音的语言跟着站点版本：国内版中文，海外版英文
+const speechLang = () => (getLocale() === "en" ? "en-US" : "zh-CN");
 
 let cfg = null;
 export async function voiceConfig() {
@@ -21,16 +25,16 @@ async function useServer(kind) {
 }
 
 export async function sttAvailable() {
-  if (pref("stt") === "off") return { ok: false, why: "语音输入在设置里关闭了" };
-  if (await useServer("stt")) return { ok: !!navigator.mediaDevices?.getUserMedia, why: "浏览器不支持录音" };
-  return { ok: !!BrowserSR, why: "这个浏览器不支持语音识别，可以在设置里配置服务端识别，或换用 Chrome / Edge" };
+  if (pref("stt") === "off") return { ok: false, why: t("语音输入在设置里关闭了") };
+  if (await useServer("stt")) return { ok: !!navigator.mediaDevices?.getUserMedia, why: t("浏览器不支持录音") };
+  return { ok: !!BrowserSR, why: t("这个浏览器不支持语音识别，可以在设置里配置服务端识别，或换用 Chrome / Edge") };
 }
 
 // 开始听；返回 stop()，stop 后 resolve 识别出的文字
 export async function listen({ onPartial } = {}) {
   if (await useServer("stt")) return recordAndTranscribe();
   const sr = new BrowserSR();
-  sr.lang = "zh-CN"; sr.interimResults = true; sr.continuous = true;
+  sr.lang = speechLang(); sr.interimResults = true; sr.continuous = true;
   let finalText = "", resolveFn, rejectFn;
   const done = new Promise((res, rej) => { resolveFn = res; rejectFn = rej; });
   sr.onresult = (e) => {
@@ -40,7 +44,7 @@ export async function listen({ onPartial } = {}) {
     }
     onPartial?.(finalText + interim);
   };
-  sr.onerror = (e) => rejectFn(new Error({ "not-allowed": "没有麦克风权限", "no-speech": "没有听到声音", network: "语音识别需要联网" }[e.error] || "语音识别出错：" + e.error));
+  sr.onerror = (e) => rejectFn(new Error(t({ "not-allowed": "没有麦克风权限", "no-speech": "没有听到声音", network: "语音识别需要联网" }[e.error] || "") || t("语音识别出错：{code}", { code: e.error })));
   sr.onend = () => resolveFn(finalText.trim());
   sr.start();
   return { stop: () => { sr.stop(); return done; }, cancel: () => sr.abort() };
@@ -100,9 +104,10 @@ export async function speak(text, voiceParams = {}) {
 function browserSpeak(text, rate, pitch) {
   if (!window.speechSynthesis) return { done: Promise.resolve() };
   const u = new SpeechSynthesisUtterance(text.replace(/（[^）]{0,40}）|\*[^*]{0,40}\*/g, ""));
-  u.lang = "zh-CN"; u.rate = rate; u.pitch = pitch;
-  const zh = speechSynthesis.getVoices().find((v) => v.lang.startsWith("zh"));
-  if (zh) u.voice = zh;
+  u.lang = speechLang(); u.rate = rate; u.pitch = pitch;
+  const prefix = getLocale() === "en" ? "en" : "zh";
+  const v = speechSynthesis.getVoices().find((x) => x.lang.startsWith(prefix));
+  if (v) u.voice = v;
   const done = new Promise((r) => { u.onend = r; u.onerror = r; });
   current = { utterance: u };
   speechSynthesis.speak(u);

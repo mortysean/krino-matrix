@@ -60,7 +60,7 @@ def fetch_tts() -> None:
     ep = hf_endpoint()
     info = json.loads(get(f"{ep}/api/models/{KOKORO_REPO}", timeout=30))
     files = [s["rfilename"] for s in info["siblings"]
-             if s["rfilename"] in ("config.json", "kokoro-v1_1-zh.pth") or s["rfilename"].startswith(("voices/zf_", "voices/zm_"))]
+             if s["rfilename"] in ("config.json", "kokoro-v1_1-zh.pth") or s["rfilename"].startswith(("voices/zf_", "voices/zm_", "voices/af_", "voices/bf_"))]
     for i, f in enumerate(files, 1):
         save(f"{ep}/{KOKORO_REPO}/resolve/main/{f}", out / f)
         print(f"\r语音模型 {i}/{len(files)}", end="", flush=True)

@@ -6,12 +6,14 @@ import time
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import auth, chat, devices, events, memory, personas, policy, voice, workshop
-from .config import settings
+from .config import locale, settings
+from .i18n import tr
 from .db import SessionLocal, migrate
 
 
@@ -58,7 +60,7 @@ async def lifespan(app: FastAPI):
     if settings.tts_provider == "local":  # 预热本地语音，第一句话不用等加载
         from .tts_local import warmup
         warmup()
-    log.info("KRINO WORLD 启动：LLM=%s/%s policy=%s STT=%s TTS=%s VLM=%s", settings.llm_provider, settings.llm_model,
+    log.info("KRINO WORLD 启动（%s 版）：LLM=%s/%s policy=%s STT=%s TTS=%s VLM=%s", settings.edition, settings.llm_provider, settings.llm_model,
              settings.policy_mode, settings.stt_provider, settings.tts_provider, settings.vlm_provider)
     yield
 
@@ -66,6 +68,28 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="KRINO WORLD", version="0.1.0", lifespan=lifespan)
 for module in (auth, personas, chat, memory, policy, voice, workshop, devices, events):
     app.include_router(module.router)
+
+
+COMPANY = {"zh": "杭州决策矩阵科技有限公司", "en": "Hangzhou Krino Matrix Tech Co., Ltd."}
+
+
+@app.get("/api/site")
+def site():
+    """站点版本信息，前端启动时先取：商标、语言、页脚（国内版的备案号）。不需要登录。"""
+    return {"edition": settings.edition, "locale": locale(), "product": "KRINO WORLD",
+            "brand": {"zh": "决策矩阵", "en": "KRINO MATRIX"}, "company": COMPANY[locale()],
+            "icp": settings.icp_number if settings.edition == "cn" else "",
+            "police": settings.police_number if settings.edition == "cn" else "",
+            "switch": {"url": settings.other_edition_url, "label": "Global" if settings.edition == "cn" else "中国大陆"}
+            if settings.other_edition_url else None}
+
+
+@app.exception_handler(HTTPException)
+async def translated_errors(request: Request, exc: HTTPException):
+    """海外版：报错信息翻译成英文（国内版原样）。"""
+    if isinstance(exc.detail, str):
+        exc.detail = tr(exc.detail)
+    return await http_exception_handler(request, exc)
 
 
 @app.middleware("http")
@@ -77,7 +101,7 @@ async def timing(request: Request, call_next):
     except Exception as e:  # noqa: BLE001
         log.exception("未处理的错误：%s %s", request.method, request.url.path)
         events.error(request.url.path, f"{type(e).__name__}: {e}")
-        resp = JSONResponse({"detail": "服务器出错了，请稍后再试"}, status_code=500)
+        resp = JSONResponse({"detail": tr("服务器出错了，请稍后再试")}, status_code=500)
     path = request.url.path
     if path.startswith("/api/"):
         route = request.scope.get("route")

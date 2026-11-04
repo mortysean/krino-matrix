@@ -4,6 +4,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env.global.example
 checkpoints/
 # data/：数据集、数据库（pgdata/）、下载的模型（models/）、评测输出只在本地；构建数据的脚本进 git
 data/*

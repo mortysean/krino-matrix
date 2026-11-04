@@ -3,16 +3,23 @@
 #
 #   scripts/world.sh setup                  首次：装依赖、建 .env、初始化数据库、下载语音模型和 Live2D 示例
 #   scripts/world.sh run [--reload]         前台运行（--reload：改后端代码自动重启）
-#   scripts/world.sh start|stop|status|logs 后台运行（日志在 .run/world.log）
+#   scripts/world.sh start|stop|status|logs 后台运行（日志在 .run/world.log；海外版 .run/world-global.log）
 #   scripts/world.sh db init|start|stop|status|migrate|revision "说明"|psql
+#   scripts/world.sh tts start|stop|status|logs   Qwen3-TTS 语音服务（独立的 krino_tts 环境，默认端口 8640）
+#   scripts/world.sh voices [音色…] [--takes N]  按 app/tts/voices.py 的描述设计角色音色
 #   scripts/world.sh test [pytest 参数]     后端测试（独立的测试库 krino_world_test，离线 mock 模型）
 #   scripts/world.sh e2e                    浏览器端到端测试（需要服务在跑，见 app/e2e/README.md）
 #
 # 环境变量：PYTHON（默认 krino_matrix conda 环境）、PG_BIN（PostgreSQL 可执行文件目录）、PGPORT（默认 5433）
 #           HOST / PORT 覆盖 .env；WORLD_MANAGE_PG=0 时 run 不启动/停止数据库
+#           ENV_FILE=.env.global：用另一份配置跑海外版（同一台机器上和国内版并存，各自的端口、数据库、日志）
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUN="$ROOT/.run"
+export ENV_FILE="${ENV_FILE:-.env}"
+ENVF="$ROOT/$ENV_FILE"
+TAG="$(basename "$ENV_FILE" | sed 's/^\.env\.\{0,1\}//')"   # .env → 空；.env.global → global
+TAG="${TAG:+-$TAG}"
 PGDATA="${PGDATA:-$ROOT/data/pgdata}"
 PGPORT="${PGPORT:-5433}"
 export PGDATA PGPORT
@@ -36,12 +43,12 @@ pg_bin() {
   log "找不到 PostgreSQL（pg_ctl / initdb），请安装或设置 PG_BIN"; exit 1
 }
 
-load_env() {  # 从 .env 读 HOST / PORT（环境变量优先）
+load_env() {  # 从配置文件读 HOST / PORT（环境变量优先）
   local key val
-  if [ -f "$ROOT/.env" ]; then
+  if [ -f "$ENVF" ]; then
     for key in HOST PORT; do
       if [ -z "${!key:-}" ]; then
-        val="$(grep -E "^${key}=" "$ROOT/.env" | tail -1 | cut -d= -f2- | sed 's/[[:space:]]*#.*$//')" || true
+        val="$(grep -E "^${key}=" "$ENVF" | tail -1 | cut -d= -f2- | sed 's/[[:space:]]*#.*$//')" || true
         [ -n "$val" ] && export "$key=$val"
       fi
     done
@@ -72,11 +79,11 @@ db_init() {
   pg_running || pg_start
   PSQL -tc "SELECT 1 FROM pg_roles WHERE rolname='krino'" | grep -q 1 || PSQL -qc "CREATE ROLE krino LOGIN PASSWORD 'krino'"
   local db
-  for db in krino_world krino_world_test; do
+  for db in krino_world krino_world_global krino_world_test; do
     PSQL -tc "SELECT 1 FROM pg_database WHERE datname='$db'" | grep -q 1 || PSQL -qc "CREATE DATABASE $db OWNER krino"
   done
   db_migrate
-  log "PostgreSQL 就绪：端口 $PGPORT，库 krino_world / krino_world_test"
+  log "PostgreSQL 就绪：端口 $PGPORT，库 krino_world（国内版）/ krino_world_global（海外版）/ krino_world_test"
 }
 
 db_migrate() { (cd "$ROOT/app/backend" && "$PY" -m alembic upgrade head); }
@@ -114,10 +121,10 @@ cmd_run() {
 
 cmd_start() {
   load_env
-  if [ -f "$RUN/world.pid" ] && kill -0 "$(cat "$RUN/world.pid")" 2>/dev/null; then log "已经在运行（$0 status）"; return; fi
+  if [ -f "$RUN/world$TAG.pid" ] && kill -0 "$(cat "$RUN/world$TAG.pid")" 2>/dev/null; then log "已经在运行（$0 status）"; return; fi
   pg_running || pg_start
-  WORLD_MANAGE_PG=0 nohup "$0" run >"$RUN/world.log" 2>&1 &
-  echo $! >"$RUN/world.pid"
+  WORLD_MANAGE_PG=0 nohup "$0" run >"$RUN/world$TAG.log" 2>&1 &
+  echo $! >"$RUN/world$TAG.pid"
   local i
   for i in $(seq 1 40); do
     if curl -s --max-time 1 --noproxy '*' -o /dev/null "http://$HOST:$PORT/api/health"; then log "已启动：$(urls)"; return; fi
@@ -127,10 +134,10 @@ cmd_start() {
 }
 
 cmd_stop() {
-  if [ -f "$RUN/world.pid" ]; then
-    local pid; pid="$(cat "$RUN/world.pid")"
+  if [ -f "$RUN/world$TAG.pid" ]; then
+    local pid; pid="$(cat "$RUN/world$TAG.pid")"
     pkill -P "$pid" 2>/dev/null || true; kill "$pid" 2>/dev/null || true
-    rm -f "$RUN/world.pid"
+    rm -f "$RUN/world$TAG.pid"
     load_env
     local i  # 等端口真正空出来，否则紧接着的 start 会把旧进程当成新启动的
     for i in $(seq 1 20); do
@@ -147,6 +154,36 @@ cmd_status() {
   load_env
   if curl -s --max-time 2 --noproxy '*' "http://$HOST:$PORT/api/health"; then echo; else log "服务没有响应（http://$HOST:$PORT）"; fi
   pg_running && log "PostgreSQL 运行中（端口 $PGPORT）" || log "PostgreSQL 未运行"
+}
+
+# ---------- 语音服务（Qwen3-TTS，单独的 conda 环境） ----------
+TTS_PY="${TTS_PYTHON:-}"
+for c in "$TTS_PY" "$HOME"/{anaconda3,miniconda3,miniforge3}/envs/krino_tts/bin/python; do
+  if [ -n "$c" ] && [ -x "$c" ]; then TTS_PY="$c"; break; fi
+done
+TTS_PORT="${TTS_PORT:-8640}"
+
+tts_up() { curl -s --max-time 1 --noproxy '*' -o /dev/null "http://127.0.0.1:$TTS_PORT/health"; }
+
+cmd_tts() {
+  [ -x "${TTS_PY:-}" ] || { log "找不到 krino_tts 环境：conda create -n krino_tts python=3.11 && pip install qwen-tts soundfile fastapi uvicorn"; exit 1; }
+  case "${1:-start}" in
+    start)
+      if tts_up; then log "语音服务已在运行（端口 $TTS_PORT）"; return; fi
+      (cd "$ROOT/app/tts" && nohup "$TTS_PY" -m uvicorn server:app --host 127.0.0.1 --port "$TTS_PORT" >"$RUN/tts.log" 2>&1 & echo $! >"$RUN/tts.pid")
+      local i; for i in $(seq 1 60); do tts_up && { log "语音服务已启动：http://127.0.0.1:$TTS_PORT"; return; }; sleep 1; done
+      log "语音服务启动超时，看看日志：$0 tts logs"; exit 1 ;;
+    stop) [ -f "$RUN/tts.pid" ] && kill "$(cat "$RUN/tts.pid")" 2>/dev/null; rm -f "$RUN/tts.pid"; log "语音服务已停止" ;;
+    status) tts_up && curl -s --noproxy '*' "http://127.0.0.1:$TTS_PORT/health" && echo || log "语音服务没有运行" ;;
+    logs) tail -f "$RUN/tts.log" ;;
+    *) echo "用法: $0 tts start|stop|status|logs"; exit 1 ;;
+  esac
+}
+
+cmd_voices() {
+  [ -x "${TTS_PY:-}" ] || { log "找不到 krino_tts 环境"; exit 1; }
+  "$TTS_PY" "$ROOT/scripts/design_voices.py" "$@"
+  tts_up && log "音色已更新；重启语音服务生效：$0 tts stop && $0 tts start"
 }
 
 # ---------- 测试 ----------
@@ -178,9 +215,11 @@ case "${1:-}" in
   stop) cmd_stop ;;
   restart) cmd_stop; cmd_start ;;
   status) cmd_status ;;
-  logs) tail -f "$RUN/world.log" ;;
+  logs) tail -f "$RUN/world$TAG.log" ;;
   db) shift; cmd_db "$@" ;;
   test) shift; cmd_test "$@" ;;
+  tts) shift; cmd_tts "$@" ;;
+  voices) shift; cmd_voices "$@" ;;
   e2e) shift; cmd_e2e "$@" ;;
-  *) sed -n '2,13p' "$0"; exit 1 ;;
+  *) sed -n '2,16p' "$0"; exit 1 ;;
 esac

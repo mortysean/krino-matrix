@@ -43,6 +43,17 @@ EXTRA_THRESHOLD = 0.5
 PROACTIVE_GAP_S = 300  # 安静时主动开口的最小间隔
 
 # 用户可以主动触发的有限预设互动：名字 → (说明, 角色的反应动作, 反应表情)
+# 预设互动在海外版里的说法（给模型看、显示在聊天记录里）
+GESTURES_EN = {"wave": "waved hello at her", "pat_head": "patted her on the head", "high_five": "gave her a high five",
+               "poke": "gently poked her cheek", "cheer_up": "cheered her on"}
+
+
+def gesture_text(g: str) -> str:
+    from .config import locale
+
+    return GESTURES_EN[g] if locale() == "en" else GESTURES[g][0]
+
+
 GESTURES = {
     "wave": ("向她挥手打招呼", "wave", "happy"),
     "pat_head": ("摸摸她的头", "tilt_head", "shy"),

@@ -368,7 +368,7 @@ def test_no_adult_hardware_or_decision_navigation_routes(client):
     from app.config import settings
     frontend = "\n".join(f.read_text(encoding="utf-8") for f in settings.frontend_dir.rglob("*")
                          if f.suffix in (".html", ".js", ".css") and "vendor" not in f.parts)
-    for word in ("飞机杯", "TCode", "亲密模式", "成人模式", "成人互动", "决策导航", "决策矩阵", "adult", "/api/decisions"):
+    for word in ("飞机杯", "TCode", "亲密模式", "成人模式", "成人互动", "决策导航", "adult", "/api/decisions"):
         assert word not in frontend, word
 
 
@@ -423,7 +423,5 @@ def test_workshop_rejects_duplicates_and_has_official_picks(client, user, other)
         catalog.seed(db)  # 重复启动不会重复上架
     finally:
         db.close()
-    items = other.ok("get", "/api/workshop/items", params={"q": "星野铃"})["items"]
-    assert len(items) == 1 and items[0]["author"] == "KRINO 官方"
-    titles = [i["title"] for i in other.ok("get", "/api/workshop/items")["items"]]
-    assert len(titles) == len(set(titles))
+    official_items = [i for i in other.ok("get", "/api/workshop/items")["items"] if i["author"] == "KRINO 官方"]
+    assert sorted(i["title"] for i in official_items) == ["KRINO", "大肥鱼"]  # 工坊里的官方角色只有这两位

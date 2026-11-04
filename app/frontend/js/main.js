@@ -1,5 +1,6 @@
 // 入口：登录、侧边栏的角色列表、页面切换。每个页面的逻辑在各自的模块里。
-import { $, $$, S, api, avaHTML, bus, esc, fail, storeGet, storeSet, toast } from "./core.js";
+import { $, $$, S, api, avaHTML, bus, esc, fail, storeGet, storeSet, t, toast, tr } from "./core.js";
+import { applyDom, setLocale } from "./i18n.js";
 import { initChat } from "./chat.js";
 import { initMemory, refreshAsks } from "./memory.js";
 import { initPersona, personaDirty, personaPage } from "./persona.js";
@@ -26,7 +27,7 @@ $("#auth-form").addEventListener("submit", async (e) => {
     const r = await api("/api/auth/" + action, { body: { username: f.get("username"), password: f.get("password") } });
     S.token = r.token; storeSet("krino_token", r.token);
     await boot();
-  } catch (err) { $("#auth-error").textContent = err.message; }
+  } catch (err) { $("#auth-error").textContent = tr(err.message); }
 });
 
 function logout() {
@@ -70,7 +71,7 @@ bus.on("goto", (view) => show(view));
 
 // ---------- 页面 ----------
 async function show(view) {
-  if (S.view === "persona" && view !== "persona" && personaDirty() && !confirm("人格编辑还没保存，要离开吗？")) return;
+  if (S.view === "persona" && view !== "persona" && personaDirty() && !confirm(t("人格编辑还没保存，要离开吗？"))) return;
   if (S.view === "settings" && view !== "settings") leaveGlasses();
   S.view = view;
   $$(".nav button").forEach((b) => b.classList.toggle("active", b.dataset.view === view));
@@ -89,7 +90,7 @@ async function boot() {
   if (!S.token) { $("#auth").classList.remove("hidden"); hideBoot(); return; }
   try { S.me = await api("/api/me"); }
   catch (e) {
-    if (e.status === 0) { $("#auth-error").textContent = "连不上服务器，请稍后刷新"; }
+    if (e.status === 0) { $("#auth-error").textContent = t("连不上服务器，请稍后刷新"); }
     $("#auth").classList.remove("hidden"); hideBoot(); return;
   }
   S.me.dev = storeGet("krino_dev") === "1";
@@ -103,10 +104,23 @@ async function boot() {
   hideBoot();
 }
 
+// 站点版本：决定商标（国内版中文商标，海外版英文）、界面语言、页脚备案号
+async function loadSite() {
+  S.site = await fetch("/api/site").then((r) => r.json()).catch(() => S.site);
+  document.documentElement.dataset.edition = S.site.edition;
+  await setLocale(S.site.locale);
+  applyDom();
+  const foot = [S.site.company, S.site.icp && `<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">${esc(S.site.icp)}</a>`,
+    S.site.police && esc(S.site.police),
+    S.site.switch?.url && `<a href="${esc(S.site.switch.url)}">${esc(S.site.switch.label)}</a>`].filter(Boolean).join(" · ");
+  $("#site-foot").innerHTML = foot;
+}
+
+await loadSite();
 initChat();
 initMemory();
 initPersona();
 initWorkshop();
 initGlasses();
 window.addEventListener("unhandledrejection", (e) => { if (e.reason?.message) console.warn(e.reason); });
-boot().catch((e) => { hideBoot(); fail(e); toast("启动失败：" + e.message, 6000); });
+boot().catch((e) => { hideBoot(); fail(e); toast(t("启动失败：{msg}", { msg: tr(e.message) }), 6000); });

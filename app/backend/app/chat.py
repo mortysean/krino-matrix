@@ -28,8 +28,9 @@ from sqlalchemy.orm import Session
 
 from . import events, memory, policy
 from .auth import current_user, user_settings
-from .config import chat_model_for, settings
+from .config import chat_model_for, locale, settings
 from .db import SessionLocal, get_db
+from .i18n import tr
 from .llm import LLMError, get_llm
 from .models import Character, ChatSession, MemoryJob, Message, User, now
 from .personas import get_owned, lore_hits
@@ -40,7 +41,16 @@ log = logging.getLogger("krino.chat")
 router = APIRouter(prefix="/api/sessions", tags=["chat"])
 
 HISTORY = 20
-PERCEIVE_ASK = "能让我看看吗？打开摄像头或者发一张图给我，我才看得到。"
+# 写进聊天记录、或者替用户“说”给模型的几句固定文字
+EVENT_TEXT = {'zh': {'gesture': '（你{g}）', 'shared': '（你分享了眼前的画面）', 'quiet': '（对方安静地待在你身边）', 'refused': '（她安静了一会儿）……我们换个话题好吗？'}, 'en': {'gesture': '(You {g})', 'shared': "(You shared what's in front of you)", 'quiet': "(They're quietly hanging out with you)", 'refused': '(she goes quiet for a moment) ...Can we talk about something else?'}}
+
+
+def event_text(key: str, **kw) -> str:
+    return EVENT_TEXT[locale()][key].format(**kw)
+
+
+PERCEIVE_ASK = {"zh": "能让我看看吗？打开摄像头或者发一张图给我，我才看得到。",
+                "en": "Can I see it? Send me a picture or turn on the camera and I'll take a look."}
 
 
 @dataclass
@@ -116,10 +126,10 @@ def plan_turn(db: Session, user: User, sess: ChatSession, *, event: str, text: s
         user_msg = Message(session_id=sess.id, role="user", content=text,
                            meta={"story": decision.primary.action == "STORY", "image": image is not None, "source": source})
     elif event == "gesture":
-        user_msg = Message(session_id=sess.id, role="event", content=f"（你{policy.GESTURES[gesture][0]}）",
+        user_msg = Message(session_id=sess.id, role="event", content=event_text("gesture", g=policy.gesture_text(gesture)),
                            meta={"gesture": gesture})
     elif event == "perception":
-        user_msg = Message(session_id=sess.id, role="event", content=text or "（你分享了眼前的画面）",
+        user_msg = Message(session_id=sess.id, role="event", content=text or event_text("shared"),
                            meta={"perception": True, "source": source})
     if user_msg is not None:
         db.add(user_msg)
@@ -133,7 +143,7 @@ def plan_turn(db: Session, user: User, sess: ChatSession, *, event: str, text: s
     if primary == "NO_ACTION":
         return p
     if primary == "PERCEIVE" and image is None:
-        p.fixed_text = PERCEIVE_ASK
+        p.fixed_text = PERCEIVE_ASK[locale()]
         return p
     if primary == "PERCEIVE":
         from .voice import describe_image
@@ -158,15 +168,15 @@ def plan_turn(db: Session, user: User, sess: ChatSession, *, event: str, text: s
     ctx = build_system(char, user_name=user.display_name, memories=mems,
                        summary=memory.latest_summary(db, user.id, char.id), lore=lore,
                        bond=memory.bond_prompt(bond, char.name), current=memory.current_prompt(bond), mode=p.mode,
-                       perception=p.perception, gesture=policy.GESTURES[gesture][0] if gesture else None)
+                       perception=p.perception, gesture=policy.gesture_text(gesture) if gesture else None)
     p.system, p.recall, p.skipped = ctx.system, ctx.used, ctx.skipped
-    p.history = _history(db, sess.id) or [{"role": "user", "content": "（对方安静地待在你身边）"}]
+    p.history = _history(db, sess.id) or [{"role": "user", "content": event_text("quiet")}]
     if p.history[-1]["role"] != "user":
-        p.history.append({"role": "user", "content": "（对方安静地待在你身边）"})
+        p.history.append({"role": "user", "content": event_text("quiet")})
     first = db.scalar(select(Message.id).where(Message.session_id == sess.id, Message.role == "assistant").limit(1)) is None
     p.llm_context = {"character": char, "mode": p.mode, "model": chat_model_for(char.model), "first_turn": first,
                      "hits": mems, "lore": lore, "perception": p.perception,
-                     "gesture": policy.GESTURES[gesture][0] if gesture else None}
+                     "gesture": policy.gesture_text(gesture) if gesture else None}
     return p
 
 
@@ -175,7 +185,7 @@ def _actions(p: Plan, char: Character, text: str, parsed_expr: str | None) -> li
     out: list[dict] = []
     if text:
         out.append({"type": "say", "text": text, "story": p.decision.primary.action == "STORY"})
-    if p.fixed_text == PERCEIVE_ASK:
+    if p.fixed_text in PERCEIVE_ASK.values():
         out.append({"type": "perceive_request"})
     for c in p.decision.extras:
         if c.action == "EMOTE":
@@ -237,7 +247,7 @@ def run_turn(db: Session, p: Plan) -> dict:
     if p.mode:
         t0 = time.perf_counter()
         r = get_llm().complete(system=p.system, messages=p.history, context=p.llm_context)
-        raw = r.text if not r.refused else "（她安静了一会儿）……我们换个话题好吗？"
+        raw = r.text if not r.refused else event_text("refused")
         events.record("llm", "complete", user_id=p.user_id, character_id=p.character_id,
                       latency_ms=(time.perf_counter() - t0) * 1000, payload={"model": r.model})
     return finalize(db, p, raw)
@@ -268,12 +278,12 @@ def stream_turn(p: Plan) -> Iterator[str]:
         yield sse("done", result)
     except LLMError as e:
         _rollback_user_message(p)
-        yield sse("error", {"message": str(e)})
+        yield sse("error", {"message": tr(str(e))})
     except Exception as e:  # noqa: BLE001
         log.exception("流式回复失败")
         events.error("stream", f"{type(e).__name__}: {e}")
         _rollback_user_message(p)
-        yield sse("error", {"message": "回复失败了，请稍后再试"})
+        yield sse("error", {"message": tr("回复失败了，请稍后再试")})
 
 
 def _rollback_user_message(p: Plan) -> None:
@@ -319,6 +329,11 @@ def _open(db: Session, user: User, sid: str) -> ChatSession:
 SUMMARY_SYSTEM = ("你负责为一段角色对话写会话摘要，供角色下次见面时回忆。第三人称、200 字以内，写清楚：聊了什么、"
                   "用户透露的近况、约定或没聊完的话题。幻想剧情要注明是故事。不要编造对话里没有的内容。只输出摘要正文。")
 REFLECT_SYSTEM = "你是角色本人。用两三句话、第一人称写下你现在对对方的印象（只根据摘要，不编造）。只输出这几句话。"
+SUMMARY_SYSTEM_EN = ("Write a summary of this character chat so the character can remember it next time. Third person, under 120 words: "
+                     "what you talked about, what the user shared about their life, promises or unfinished topics. Mark fantasy stories as stories. "
+                     "Don't invent anything that isn't in the chat. Output only the summary, in English.")
+REFLECT_SYSTEM_EN = ("You are the character. In two or three first-person sentences, write your current impression of the other person "
+                     "(based only on the summary, nothing invented). Output only those sentences, in English.")
 
 
 def summarize(db: Session, user: User, s: ChatSession) -> dict | None:
@@ -333,20 +348,21 @@ def summarize(db: Session, user: User, s: ChatSession) -> dict | None:
     if len(users) < 2:
         db.commit()
         return None
-    transcript = "\n".join(f"{'用户' if m.role != 'assistant' else char.name}：{m.content}" for m in msgs[-40:])
+    en = locale() == "en"
+    transcript = "\n".join(f"{('User' if en else '用户') if m.role != 'assistant' else char.name}{': ' if en else '：'}{m.content}" for m in msgs[-40:])
     llm = get_llm()
-    r = llm.complete(system=SUMMARY_SYSTEM, messages=[{"role": "user", "content": f"<transcript>\n{transcript}\n</transcript>"}],
+    r = llm.complete(system=SUMMARY_SYSTEM_EN if en else SUMMARY_SYSTEM, messages=[{"role": "user", "content": f"<transcript>\n{transcript}\n</transcript>"}],
                      max_tokens=800, context={"task": "summary", "name": char.name,
                                               "history": [{"role": m.role, "content": m.content} for m in msgs]})
     if r.refused or not r.text.strip():
         db.commit()
         return {"skipped": "摘要生成失败"}
     m = memory.create_memory(db, user_id=user.id, character_id=char.id, content=r.text.strip(), type="summary",
-                             origin="summary", importance=2, title=f"会话 {s.created_at.astimezone().strftime('%m-%d %H:%M')}"
+                             origin="summary", importance=2, title=f"{'Chat' if en else '会话'} {s.created_at.astimezone().strftime('%m-%d %H:%M')}"
                                                                      f"：{compact(s.title or '', 20)}",
                              sources=[x.uid for x in users][-20:])
     try:
-        v = llm.complete(system=REFLECT_SYSTEM, messages=[{"role": "user", "content": m.content}], max_tokens=300,
+        v = llm.complete(system=REFLECT_SYSTEM_EN if en else REFLECT_SYSTEM, messages=[{"role": "user", "content": m.content}], max_tokens=300,
                          context={"task": "bond_reflect"})
         if v.text.strip() and not v.refused:
             b.her_view = v.text.strip()[:300]

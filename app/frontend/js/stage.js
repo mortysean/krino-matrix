@@ -3,6 +3,7 @@
 //   live2d Live2D 模型（PixiJS + pixi-live2d-display + Cubism Core）。眨眼、视线、物理、口型都由模型自己完成。
 // 对外接口统一：load(portrait) / setExpression(name) / play(name) / speaking(bool) / attachAudio(audio) / setLook(x, y)。
 // 做什么动作由后端互动策略决定，这里只负责演出来。
+import { t } from "./i18n.js";
 
 const EMOJI = { happy: "♪", shy: "///", sad: "…", worried: "?", angry: "!!", surprised: "!", sleepy: "zzz", focused: "…!", calm: "", neutral: "" };
 // Live2D 示例模型没有表情文件，用参数近似：[眼睛笑, 嘴型(-1 撇嘴 ~ 1 笑), 脸红, 眉毛高低]
@@ -80,13 +81,13 @@ export function createStage(host, { onStatus } = {}) {
         return;
       } catch (e) {
         clearLive2D();
-        status("fallback", "Live2D 模型加载失败：" + e.message);
+        status("fallback", t("Live2D 模型加载失败：{msg}", { msg: e.message }));
         return plate(name, color);
       }
     }
     S.kind = "image"; img.hidden = false;
     const ok = await new Promise((done) => { img.onload = () => done(true); img.onerror = () => done(false); img.src = p.src; });
-    if (!ok) { status("fallback", "立绘加载失败"); return plate(name, color); }
+    if (!ok) { status("fallback", t("立绘加载失败")); return plate(name, color); }
     status("ready");
   }
 

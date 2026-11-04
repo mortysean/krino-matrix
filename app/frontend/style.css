@@ -118,7 +118,11 @@ button:disabled::before { display: none; }
 .boot { position: fixed; inset: 0; z-index: 80; background: var(--ink); display: grid; place-content: center; justify-items: center; gap: 16px; transition: opacity .7s var(--ease), visibility .7s; }
 .boot.done { opacity: 0; visibility: hidden; }
 .boot-plate { width: min(260px, 60vw); aspect-ratio: 3 / 4.2; }
-.boot-line { width: min(260px, 60vw); display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); letter-spacing: .25em; }
+/* 加载页：头顶钢盆的线稿（老梗），用钴蓝铜版画的显影动画 */
+.boot-plate.bowl { width: min(360px, 70vw); aspect-ratio: 946 / 658; }
+.plate.bowl .plate-fig { inset: 6% 6% 0;
+  -webkit-mask: url(/static/assets/kujira-bowl.png) center bottom / contain no-repeat; mask: url(/static/assets/kujira-bowl.png) center bottom / contain no-repeat; }
+.boot-line { width: min(360px, 70vw); display: flex; justify-content: center; font-size: 10px; color: var(--muted); letter-spacing: .25em; }
 .boot-count { animation: pulse 1s infinite; }
 
 /* ---------- 登录 ---------- */
@@ -616,10 +620,15 @@ table.res th { font: 10px var(--mono); color: var(--muted); letter-spacing: .12e
 .stage-voice { padding: 6px 8px; }
 .speak-btn svg { width: 16px; height: 16px; }
 
-/* KRINO MATRIX 商标 */
-.brand-logo { width: 34px; height: 40px; flex-shrink: 0; }
-.brand-name { font-size: 16px; font-weight: 300; letter-spacing: .16em; }
-.brand-name b { font-weight: 600; }
-.boot-mark { width: 96px; height: 115px; animation: develop 1.2s var(--ease) both, breathe 4s 1.2s ease-in-out infinite; }
-.auth-brand { display: flex; align-items: center; gap: 10px; }
-.auth-brand img { width: 22px; height: 26px; }
+/* KRINO MATRIX 商标：图形 + 中文大字“决策矩阵” + 字距拉开的英文小字（国内版）；海外版只有英文 */
+.lockup { display: flex; align-items: center; gap: 12px; }
+.lockup img { width: 34px; height: 40px; flex-shrink: 0; }
+.lockup b { display: block; font-weight: 500; font-size: 19px; letter-spacing: .14em; line-height: 1.15; color: var(--silver-hi); }
+.lockup span { display: block; font-size: 9.5px; letter-spacing: .32em; color: var(--silver); margin-top: 3px; white-space: nowrap; }
+.auth-brand { margin-bottom: 18px; }
+html[data-edition="global"] .lockup .cn { display: none; }
+html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12em; color: var(--silver-hi); font-weight: 500; margin: 0; }
+.brand.lockup { padding: 2px 4px 16px; }
+.site-foot { margin-top: 8px; letter-spacing: .04em; }
+.site-foot a { color: var(--muted); text-decoration: none; }
+.site-foot a:hover { color: var(--silver); }

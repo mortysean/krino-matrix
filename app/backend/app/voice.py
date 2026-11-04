@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 
 from . import events
 from .auth import current_user
-from .config import settings
+from .config import locale, settings
 from .models import User
 
 log = logging.getLogger("krino.voice")
@@ -74,10 +74,52 @@ def _beep_wav(seconds: float = 0.4) -> bytes:
     return buf.getvalue()
 
 
+def _qwen_voices() -> list[str]:
+    """语音服务里已经设计好、并且是当前站点语言的音色（结果缓存 60 秒）。"""
+    now = time.time()
+    if now - _qwen_cache["at"] > 60:
+        try:
+            with httpx.Client(timeout=3, trust_env=False) as c:
+                r = c.get(settings.qwen_tts_url.rstrip("/") + "/v1/voices")
+            _qwen_cache["voices"] = [v["id"] for v in r.json()] if r.status_code == 200 else []
+        except (httpx.HTTPError, ValueError):
+            _qwen_cache["voices"] = []
+        _qwen_cache["at"] = now
+    suffix = "-en" if locale() == "en" else "-zh"
+    return [v for v in _qwen_cache["voices"] if v.endswith(suffix)]
+
+
+_qwen_cache: dict = {"at": 0.0, "voices": []}
+
+
+def _qwen(text: str, voice: str | None, speed: float) -> bytes:
+    """Qwen3-TTS 语音服务（app/tts/server.py）。角色的音色没设计过时用当前语言的第一个。"""
+    vs = _qwen_voices()
+    if not vs:
+        raise ServiceError("语音服务没有启动或还没有设计音色")
+    from .tts_local import FALLBACK
+
+    voice = {v: k for k, v in FALLBACK.items()}.get(voice or "", voice)  # 以前存的 Kokoro 音色 → 对应的设计音色
+    name = voice if voice in vs else vs[0]
+    try:
+        with httpx.Client(timeout=httpx.Timeout(60, connect=3), trust_env=False) as c:
+            r = c.post(settings.qwen_tts_url.rstrip("/") + "/v1/audio/speech", json={"input": text, "voice": name, "speed": speed})
+    except httpx.HTTPError as e:
+        raise ServiceError("无法连接语音服务") from e
+    if r.status_code != 200:
+        raise ServiceError(f"语音服务出错（{r.status_code}）")
+    return r.content
+
+
 def synthesize(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
     if settings.tts_provider == "mock":
         return _beep_wav(), "audio/wav"
-    if settings.tts_provider == "local":
+    if settings.tts_provider == "qwen":  # 首选 Qwen3-TTS；服务不在或出错就退回本地 Kokoro，不让她哑掉
+        try:
+            return _qwen(text, voice, speed), "audio/wav"
+        except ServiceError as e:
+            log.warning("Qwen3-TTS 不可用，改用 Kokoro：%s", e)
+    if settings.tts_provider in ("local", "qwen"):
         from . import tts_local
 
         ok, why = tts_local.available()
@@ -164,11 +206,13 @@ def voice_config(user: User = Depends(current_user)):
 
 def _tts_config() -> dict:
     p = settings.tts_provider
-    if p == "local":
+    if p == "qwen" and _qwen_voices():
+        return {"provider": p, "server": True, "voices": _qwen_voices(), "default": _qwen_voices()[0]}
+    if p in ("local", "qwen"):
         from . import tts_local
 
         ok, _ = tts_local.available()
-        return {"provider": p, "server": ok, "voices": tts_local.voices() if ok else [], "default": settings.tts_default_voice}
+        return {"provider": "local", "server": ok, "voices": tts_local.voices() if ok else [], "default": tts_local.default_voice()}
     return {"provider": p, "server": p in ("openai", "mock"),
             "voices": list(settings.tts_voices) if p == "openai" else [], "default": ""}
 

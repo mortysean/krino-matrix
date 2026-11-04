@@ -75,12 +75,22 @@ class MockLLM:
     def _text(self, system: str, messages: list[dict], ctx: dict) -> str:
         task = ctx.get("task")
         if task == "extract":
+            from .config import locale
+
+            if locale() == "en":
+                return extract_en(ctx.get("user_text", ""), story=bool(ctx.get("story")))
             return extract(ctx.get("user_text", ""), story=bool(ctx.get("story")))
+        from .config import locale
+
+        en = locale() == "en"
         if task == "summary":
             lines = [m["content"] for m in ctx.get("history", []) if m["role"] == "user"]
+            if en:
+                return f"Chatted with {ctx.get('name', 'the character')} about: " + ("; ".join(_short(u, 40) for u in lines[-5:]) or "a quick hello") + "."
             return f"和{ctx.get('name', '角色')}聊了：" + ("；".join(_short(u, 24) for u in lines[-5:]) or "简单打了招呼") + "。"
         if task == "bond_reflect":
-            return "和对方聊天的时候，我会安心一点。下次想多听对方说说自己的事。"
+            return ("Talking with them makes me feel a little calmer. Next time I want to hear more about their day." if en
+                    else "和对方聊天的时候，我会安心一点。下次想多听对方说说自己的事。")
         if task == "persona":
             return _persona(ctx.get("prompt", ""), ctx.get("style"))
         if task == "vision":
@@ -88,6 +98,10 @@ class MockLLM:
         return self._chat(system, messages, ctx)
 
     def _chat(self, system: str, messages: list[dict], ctx: dict) -> str:
+        from .config import locale
+
+        if locale() == "en":
+            return _chat_en(messages, ctx)
         char = ctx.get("character")
         mode = ctx.get("mode", "respond")
         style = _style(char)
@@ -220,3 +234,81 @@ def extract(user_text: str, story: bool = False) -> str:
     topics = list(dict.fromkeys(re.findall(r"[一-鿿]{2,4}(?=了|吗|呢|吧|$)", user_text)))[:2]
     return json.dumps({"memories": mems, "state": {"topics": topics, "mood_cues": moods, "open_items": opens},
                        "bond": bond}, ensure_ascii=False)
+
+
+# ---------- 海外版（英文）：同样只是演示用的模板 ----------
+
+_EN_OPEN = {"温柔": ["Mm, I'm listening.", "Take your time~", "I'm right here."], "活泼": ["Oh hey, you're here!", "Ooh, tell me!"],
+            "沉稳": ["I'm here.", "Go on."], "俏皮": ["Hmph, caught you~", "Oh, it's you."]}
+_EN_MORE = ["Want to grab something to eat after this?", "I'll remember that, you know.", "Okay, okay, I'm on it~"]
+
+
+def _chat_en(messages: list[dict], ctx: dict) -> str:
+    char = ctx.get("character")
+    mode = ctx.get("mode", "respond")
+    style = _style(char)
+    user = _last_user(messages)
+    rng = random.Random(user + mode + style)
+    expr = "worried" if re.search(r"tired|sad|stress|ugh", user, re.I) else "happy"
+    if mode == "story":
+        return ("(lowers her voice) Long ago there was a lighthouse at the bottom of the sea that could sing. Every full moon its light "
+                "became a path into a trench nobody had ever seen... Want to follow the light, or wait at the top for a bit?" + _state("happy", "think"))
+    if mode == "proactive":
+        return rng.choice(["...You still there? I just counted to a hundred stars.", "I drew a fish in my notebook. Wanna see?"]) + _state("calm")
+    if mode == "react":
+        g = ctx.get("gesture") or ""
+        return {"patted her on the head": "...Hey, you'll mess up my hair.", "gave her a high five": "Yay! High five~",
+                "waved hello at her": "Hi hi, over here!", "gently poked her cheek": "Huh? Why'd you poke me?",
+                "cheered her on": "Mm! I'll do my best."}.get(g, "Hm?") + _state("happy")
+    if mode == "perceive":
+        return f"I see: {_short(ctx.get('perception') or 'not very clearly', 60)}. Is that where you are?" + _state("surprised", "tilt_head")
+    if re.search(r"are you (?:a )?(?:real|human|an ai|a bot)", user, re.I):
+        return "Nope, I'm an AI. But hanging out with you? That part's real." + _state("happy")
+    parts = [rng.choice(_EN_OPEN.get(style, _EN_OPEN["温柔"]))]
+    mem = next((h for h in ctx.get("hits") or [] if "关键词匹配" in (h.get("reasons") or []) and h.get("reality") != "story"), None)
+    if mem:
+        parts.append(f"You told me {_short(mem['content'].replace('The user', 'you'), 50)}, right?")
+    talk = ((char.behavior or {}).get("talkativeness", 0.5)) if char else 0.5
+    if talk >= 0.4:
+        parts.append(rng.choice(_EN_MORE))
+    return " ".join(parts) + _state(expr)
+
+
+_EN_RULES = [
+    (re.compile(r"\bcall me ([\w' -]{1,20}?)[.!]?$", re.I), "preference", "name to call", "The user wants to be called \"{0}\"", 4),
+    (re.compile(r"\bmy name is ([\w' -]{1,20}?)[.!]?$", re.I), "fact", "name", "The user's name is {0}", 4),
+    (re.compile(r"\bi (?:don't|do not) like ([\w' -]{1,30}?)[.!]?$", re.I), "preference", "likes:{0}", "The user doesn't like {0}", 3),
+    (re.compile(r"\bi (?:really )?(?:like|love) ([\w' -]{1,30}?)[.!]?$", re.I), "preference", "likes:{0}", "The user likes {0}", 3),
+    (re.compile(r"\bi live in ([\w' -]{1,30}?)[.!]?$", re.I), "fact", "home city", "The user lives in {0}", 3),
+    (re.compile(r"\bi work (?:at|for) ([\w' -]{1,30}?)[.!]?$", re.I), "fact", "work", "The user works at {0}", 3),
+    (re.compile(r"\bwe (?:just|today) ([\w' -]{2,40}?)[.!]?$", re.I), "event", "event:{0}", "The user and the character {0}", 3),
+]
+
+
+def extract_en(user_text: str, story: bool = False) -> str:
+    mems, moods = [], []
+    for clause in [c.strip() for c in re.split(r"[.!?\n;]+", user_text) if c.strip()]:
+        if re.match(r"^(hi|hello|hey|thanks|ok|okay|bye)\b", clause, re.I) and len(clause) < 12:
+            continue
+        roleplay = story or bool(_RP.match(clause))
+        body = clause.strip("*() ")
+        reality = "story" if roleplay else ("hypothetical" if re.search(r"\b(if|imagine|suppose)\b", body, re.I)
+                                             else ("quoted" if re.search(r"\b(?:he|she|they|my \w+) (?:said|says|told me)\b", body, re.I) else "real"))
+        if re.match(r"^(?:from now on,? )?(?:your name is|you are now|you must)", body, re.I):
+            mems.append({"type": "fact", "content": f"The user asked: {body}", "evidence": clause, "about": "character"})
+            continue
+        if roleplay:
+            mems.append({"type": "event", "content": f"(In the story) {body}", "evidence": clause, "basis": "stated",
+                         "reality": "story", "importance": 2})
+            continue
+        for pat, typ, key, tpl, imp in _EN_RULES:
+            m = pat.search(body)
+            if m:
+                obj = m.group(1).strip()
+                mems.append({"type": typ, "key": key.format(obj.lower()), "content": tpl.format(obj), "evidence": clause,
+                             "basis": "stated", "reality": reality, "about": "user", "importance": imp})
+                break
+        if re.search(r"\b(tired|exhausted)\b", body, re.I):
+            moods.append({"text": "tired", "basis": "stated", "evidence": clause})
+    return json.dumps({"memories": mems, "state": {"topics": [], "mood_cues": moods, "open_items": []},
+                       "bond": {"user_calls_her": None}}, ensure_ascii=False)

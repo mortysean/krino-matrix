@@ -11,47 +11,47 @@
   <div id="grain" aria-hidden="true"></div>
 
   <div id="boot" class="boot">
-    <img class="boot-mark" src="/static/assets/krino-mark.svg" alt="">
-    <div class="boot-line mono"><span>KRINO MATRIX</span><span class="boot-count">LOADING</span></div>
+    <div class="boot-plate plate print bowl"><div class="plate-fig"></div><div class="plate-scan"></div></div>
+    <div class="boot-line mono"><span class="boot-count">LOADING</span></div>
   </div>
 
   <!-- 登录：一个表单，两个按钮 -->
   <section id="auth" class="auth hidden">
     <div class="auth-art"><img src="/static/assets/whale-girl.png" alt=""></div>
     <div class="auth-side">
-      <div class="eyebrow mono auth-brand"><img src="/static/assets/krino-mark.svg" alt="">KRINO MATRIX</div>
+      <div class="lockup auth-brand"><img src="/static/assets/krino-mark.svg" alt=""><div><b class="cn">决策矩阵</b><span>KRINO MATRIX</span></div></div>
       <h1>KRINO WORLD</h1>
-      <p class="lead">和会记得你的 AI 角色聊天。</p>
+      <p class="lead" data-i18n>和会记得你的 AI 角色聊天。</p>
       <form id="auth-form">
         <label class="field"><span class="mono">USERNAME</span><input name="username" autocomplete="username" required></label>
         <label class="field"><span class="mono">PASSWORD</span><input name="password" type="password" autocomplete="current-password" required minlength="6"></label>
         <div class="row">
-          <button type="submit" data-action="login">进入</button>
-          <button type="submit" data-action="register" class="ghost">注册</button>
+          <button type="submit" data-action="login" data-i18n>进入</button>
+          <button type="submit" data-action="register" class="ghost" data-i18n>注册</button>
         </div>
         <p id="auth-error" class="error"></p>
       </form>
-      <p class="fine mono">这里的所有角色都是人工智能 · ALL CHARACTERS ARE AI</p>
+      <p class="fine mono" data-i18n>这里的所有角色都是人工智能</p>
+      <p class="fine site-foot" id="site-foot"></p>
     </div>
   </section>
 
   <div id="app" class="app hidden">
     <aside class="sidebar">
-      <div class="brand" title="KRINO MATRIX · KRINO WORLD">
-        <img class="brand-logo" src="/static/assets/krino-mark.svg" alt="KRINO MATRIX">
-        <div><div class="brand-name"><b>KRINO</b> MATRIX</div><div class="brand-sub mono">KRINO WORLD</div></div>
+      <div class="brand lockup" title="KRINO WORLD">
+        <img src="/static/assets/krino-mark.svg" alt="KRINO MATRIX"><div><b class="cn">决策矩阵</b><span>KRINO MATRIX</span></div>
       </div>
       <div class="section-title mono">CAST</div>
       <div id="char-list" class="char-list"></div>
       <nav class="nav">
-        <button data-view="chat" class="active"><em class="mono">01</em>聊天</button>
-        <button data-view="persona"><em class="mono">02</em>角色</button>
-        <button data-view="workshop"><em class="mono">03</em>工坊</button>
-        <button data-view="settings"><em class="mono">04</em>设置</button>
+        <button data-view="chat" class="active"><em class="mono">01</em><span data-i18n>聊天</span></button>
+        <button data-view="persona"><em class="mono">02</em><span data-i18n>角色</span></button>
+        <button data-view="workshop"><em class="mono">03</em><span data-i18n>工坊</span></button>
+        <button data-view="settings"><em class="mono">04</em><span data-i18n>设置</span></button>
       </nav>
       <div class="sidebar-foot">
         <span class="me mono"><i class="dot"></i><span id="me-name"></span></span>
-        <button id="logout" class="link small">退出</button>
+        <button id="logout" class="link small" data-i18n>退出</button>
       </div>
     </aside>
 
@@ -63,36 +63,36 @@
           <div class="stage2d" id="stage">
             <div class="stage-host" id="stage-host"></div>
             <div class="stage-top">
-              <span id="chat-name" class="stage-name"></span><span class="ai-badge" title="这是人工智能角色">AI</span>
-              <span id="demo-badge" class="badge demo hidden" title="没有配置模型密钥：回复是离线模板">演示</span>
+              <span id="chat-name" class="stage-name"></span><span class="ai-badge" title="这是人工智能角色" data-i18n-title>AI</span>
+              <span id="demo-badge" class="badge demo hidden" title="没有配置模型密钥：回复是离线模板" data-i18n-title data-i18n>演示</span>
             </div>
-            <button id="voice-toggle" class="stage-voice" title="自动朗读她的回复"></button>
+            <button id="voice-toggle" class="stage-voice" title="自动朗读她的回复" data-i18n-title></button>
             <div class="stage-say hidden" id="stage-say"></div>
             <div class="gestures" id="gestures"></div>
           </div>
           <div class="chat-col">
             <div class="chat-tools">
-              <button id="new-session" class="link small" title="开始新的话题（上一段会自动写成回忆）">＋ 新话题</button>
-              <button id="drawer-toggle" class="link small">她记得的<i id="drawer-dot" class="dot-badge hidden"></i></button>
+              <button id="new-session" class="link small" title="开始新的话题（上一段会自动写成回忆）" data-i18n-title>＋ <span data-i18n>新话题</span></button>
+              <button id="drawer-toggle" class="link small"><span data-i18n>她记得的</span><i id="drawer-dot" class="dot-badge hidden"></i></button>
             </div>
             <div id="messages" class="messages"></div>
             <div id="img-chip" class="img-chip hidden"></div>
             <form id="chat-form" class="chat-form">
-              <button type="button" id="img-btn" class="icon-btn" title="发一张图片给她看"></button>
+              <button type="button" id="img-btn" class="icon-btn" title="发一张图片给她看" data-i18n-title></button>
               <input type="file" id="img-file" accept="image/png,image/jpeg,image/webp" class="hidden">
-              <textarea id="chat-input" rows="1" placeholder="说点什么…"></textarea>
-              <button type="button" id="mic-btn" class="icon-btn" title="点一下开始说，再点一下发送"></button>
-              <button type="submit" id="send-btn">发送</button>
+              <textarea id="chat-input" rows="1" placeholder="说点什么…" data-i18n-ph></textarea>
+              <button type="button" id="mic-btn" class="icon-btn" title="点一下开始说，再点一下发送" data-i18n-title></button>
+              <button type="submit" id="send-btn" data-i18n>发送</button>
             </form>
           </div>
           <aside id="drawer" class="drawer hidden">
             <div class="drawer-head">
               <div class="tabs" id="drawer-tabs">
-                <button data-dtab="mem" class="active">记得的事</button>
-                <button data-dtab="ask">想问你的<span id="ask-count" class="count"></span></button>
-                <button data-dtab="bond">你们</button>
+                <button data-dtab="mem" class="active" data-i18n>记得的事</button>
+                <button data-dtab="ask"><span data-i18n>想问你的</span><span id="ask-count" class="count"></span></button>
+                <button data-dtab="bond" data-i18n>你们</button>
               </div>
-              <button id="drawer-close" class="link small" title="收起">✕</button>
+              <button id="drawer-close" class="link small" title="收起" data-i18n-title>✕</button>
             </div>
             <div class="drawer-body" id="drawer-body"></div>
           </aside>
@@ -113,8 +113,8 @@
       <h3 id="modal-title"></h3>
       <div id="modal-body"></div>
       <div class="row right">
-        <button id="modal-cancel" class="ghost">取消</button>
-        <button id="modal-ok">确定</button>
+        <button id="modal-cancel" class="ghost" data-i18n>取消</button>
+        <button id="modal-ok" data-i18n>确定</button>
       </div>
     </div>
   </div>

@@ -1,9 +1,10 @@
 """本地语音合成：Kokoro-82M 中文版（hexgrad/Kokoro-82M-v1.1-zh，Apache-2.0）。
 
-不需要密钥、不联网，CPU 上约 2 秒生成 5 秒语音。模型和 100 个中文音色在 data/models/kokoro-zh/，
-用 scripts/fetch_tts.py 下载（git 不收录）。没有模型或没装 kokoro 时 available() 为 False，前端退回浏览器朗读。
+不需要密钥、不联网，CPU 上约 2 秒生成 5 秒语音。模型和音色在 data/models/kokoro-zh/，
+用 scripts/fetch_assets.py 下载（git 不收录）。没有模型或没装 kokoro 时 available() 为 False，前端退回浏览器朗读。
 
-音色：zf_* 是女声，zm_* 是男声，编号没有含义，只能试听挑选。
+国内版说中文：100 个音色，zf_* 女声、zm_* 男声。海外版说英文：af_maple、af_sol（美式）、bf_vale（英式），
+英文发音规则需要 misaki[en]。编号没有含义，只能试听挑选。
 """
 from __future__ import annotations
 
@@ -14,29 +15,41 @@ import threading
 import wave
 from pathlib import Path
 
-from .config import ROOT_DIR, settings
+from .config import ROOT_DIR, locale, settings
 
 log = logging.getLogger("krino.tts")
 MODEL_DIR = Path(settings.kokoro_dir) if settings.kokoro_dir else ROOT_DIR / "data" / "models" / "kokoro-zh"
 REPO = "hexgrad/Kokoro-82M-v1.1-zh"
 RATE = 24000
 
+LANG = {"zh": ("z", ("zf_", "zm_"), "zf_001"), "en": ("a", ("af_", "bf_"), "af_maple")}  # 语言 → (Kokoro 语言码, 音色前缀, 默认音色)
+
+# 按人设设计的 Qwen3-TTS 音色 → 语音服务不在时用的最接近的 Kokoro 音色
+FALLBACK = {"dafeiyu-zh": "zf_017", "krino-zh": "zf_032", "dafeiyu-en": "af_maple", "krino-en": "bf_vale"}
+
 _lock = threading.Lock()
-_pipe = None
+_model = None
+_pipes: dict = {}
 _voices: dict = {}
 _failed: str | None = None
 
 
 def voices() -> list[str]:
     d = MODEL_DIR / "voices"
-    return sorted(p.stem for p in d.glob("z[fm]_*.pt")) if d.exists() else []
+    prefixes = LANG[locale()][1]
+    return sorted(p.stem for p in d.glob("*.pt") if p.stem.startswith(prefixes)) if d.exists() else []
+
+
+def default_voice() -> str:
+    v = settings.tts_default_voice
+    return v if v in voices() else LANG[locale()][2]
 
 
 def available() -> tuple[bool, str]:
     if _failed:
         return False, _failed
     if not (MODEL_DIR / "kokoro-v1_1-zh.pth").exists():
-        return False, "没有本地语音模型，运行 scripts/fetch_tts.py 下载"
+        return False, "没有本地语音模型，运行 scripts/fetch_assets.py tts 下载"
     try:
         import kokoro  # noqa: F401
     except ImportError:
@@ -45,20 +58,23 @@ def available() -> tuple[bool, str]:
 
 
 def _load():
-    global _pipe, _failed
+    """加载模型（两种语言共用一个模型）和当前语言的发音管线。"""
+    global _model, _failed
     with _lock:
-        if _pipe is None and _failed is None:
+        lang = LANG[locale()][0]
+        if lang not in _pipes and _failed is None:
             try:
                 from kokoro import KModel, KPipeline
 
-                model = KModel(repo_id=REPO, config=str(MODEL_DIR / "config.json"),
-                               model=str(MODEL_DIR / "kokoro-v1_1-zh.pth")).eval()
-                _pipe = KPipeline(lang_code="z", repo_id=REPO, model=model)
-                log.info("本地语音模型已加载：%s", MODEL_DIR)
+                if _model is None:
+                    _model = KModel(repo_id=REPO, config=str(MODEL_DIR / "config.json"),
+                                    model=str(MODEL_DIR / "kokoro-v1_1-zh.pth")).eval()
+                _pipes[lang] = KPipeline(lang_code=lang, repo_id=REPO, model=_model)
+                log.info("本地语音模型已加载：%s（%s）", MODEL_DIR, lang)
             except Exception as e:  # noqa: BLE001
                 _failed = f"语音模型加载失败：{type(e).__name__}: {e}"[:200]
                 log.exception("Kokoro 加载失败")
-    return _pipe
+        return _pipes.get(lang)
 
 
 def _voice(name: str):
@@ -86,7 +102,8 @@ def synthesize(text: str, voice: str | None, speed: float = 1.0) -> bytes:
     pipe = _load()
     if pipe is None:
         raise RuntimeError(_failed or "语音模型不可用")
-    name = voice if voice in voices() else settings.tts_default_voice
+    voice = FALLBACK.get(voice or "", voice)
+    name = voice if voice in voices() else default_voice()
     text = clean(text) or "……"
     with _lock:  # 模型不是线程安全的
         chunks = [r.audio for r in pipe(text, voice=_voice(name), speed=max(0.6, min(1.6, speed)))]

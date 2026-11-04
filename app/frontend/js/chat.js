@@ -2,7 +2,7 @@
 // 一键原则：会话自动管理（打开就能说，不用“开始 / 结束”）；每条回复右边一个喇叭，点一下就读；
 // 舞台右上角的喇叭开关决定是否自动朗读；麦克风点一下开始、再点一下发送。
 // 角色做什么（说话 / 表情 / 动作 / 讲故事 / 提议记住）由后端互动策略决定，这里只执行后端给的 actions。
-import { $, $$, S, api, avaHTML, bus, curChar, esc, fail, ripple, storeGet, storeSet, toast } from "./core.js";
+import { $, $$, S, api, avaHTML, bus, curChar, esc, fail, ripple, storeGet, storeSet, t, toast, tr } from "./core.js";
 import { createStage } from "./stage.js";
 import { ICON } from "./icons.js";
 import { listen, speak, stopSpeaking, sttAvailable } from "./voice.js";
@@ -70,7 +70,7 @@ function perform(actions, { speakIt = false } = {}) {
 function rememberChip(a) {
   const div = document.createElement("div");
   div.className = "chip";
-  div.innerHTML = `<b>记下来？</b>${esc(a.content.slice(0, 40))} <button class="small" data-ok>记住</button><button class="small ghost" data-no>不用</button>`;
+  div.innerHTML = `<b>${t("记下来？")}</b>${esc(a.content.slice(0, 40))} <button class="small" data-ok>${t("记住")}</button><button class="small ghost" data-no>${t("不用")}</button>`;
   $("#messages").appendChild(div);
   div.querySelector("[data-ok]").onclick = async () => {
     try { await api(`/api/memories/candidates/${a.candidate_id}/accept`, { body: {} }); toast("记住了"); div.remove(); refreshAsks(); } catch (e) { fail(e); }
@@ -116,9 +116,9 @@ function greet() {
 function renderMessages() {
   const box = $("#messages"), c = curChar();
   if (!C.session?.messages?.length) {
-    box.innerHTML = c ? `<div class="empty"><div class="em-title">${esc(c.greeting || "和 " + c.name + " 打个招呼")}</div>
+    box.innerHTML = c ? `<div class="empty"><div class="em-title">${esc(c.greeting || t("和 {name} 打个招呼", { name: c.name }))}</div>
       <div class="em-greet">${esc(c.name)} · AI</div>
-      <div class="starters">${starters(c).map((t) => `<button class="ghost small" data-starter="${esc(t)}">${esc(t)}</button>`).join("")}</div></div>` : "";
+      <div class="starters">${starters(c).map((x) => `<button class="ghost small" data-starter="${esc(x)}">${esc(x)}</button>`).join("")}</div></div>` : "";
     $$("[data-starter]", box).forEach((b) => (b.onclick = () => send(b.dataset.starter)));
     return;
   }
@@ -130,7 +130,7 @@ function renderMessages() {
 
 // 空会话里给三个一点就发的开场白，不用想第一句说什么
 function starters(c) {
-  return c.official ? ["你好呀，介绍一下你自己", "今天吃了几碗饭？", "给我讲个深海的故事"] : ["你好呀", "介绍一下你自己", "给我讲个故事吧"];
+  return (c.official ? ["你好呀，介绍一下你自己", "今天吃了几碗饭？", "给我讲个深海的故事"] : ["你好呀", "介绍一下你自己", "给我讲个故事吧"]).map((x) => t(x));
 }
 
 const typingHTML = () => `<div class="typing">${avaHTML(curChar())}<div class="dots"><i></i><i></i><i></i></div></div>`;
@@ -140,13 +140,13 @@ function msgHTML(m) {
   if (m.role === "event") return `<div class="msg event${enter}">${esc(m.content)}</div>`;
   if (m.role === "user") {
     return `<div class="msg user${enter}" data-id="${m.id}"><div class="msg-col"><div class="bubble">${esc(m.content)}</div>
-      <div class="msg-tools"><button class="link" data-act="remember" data-id="${m.id}">记住这句</button></div></div></div>`;
+      <div class="msg-tools"><button class="link" data-act="remember" data-id="${m.id}">${t("记住这句")}</button></div></div></div>`;
   }
   const c = curChar(), story = (m.meta?.actions || []).some((a) => a.type === "say" && a.story);
   return `<div class="msg assistant${enter}" data-id="${m.id}" style="--c:${esc(c?.color || "")}">${avaHTML(c)}<div class="msg-col">
     <div class="bubble-row"><div class="bubble${story ? " story" : ""}">${esc(m.content)}</div>
-      <button class="speak-btn" data-speak="${m.id}" title="朗读">${ICON.speaker}</button></div>
-    ${story ? '<div class="who">虚构故事</div>' : ""}
+      <button class="speak-btn" data-speak="${m.id}" title="${t("朗读")}">${ICON.speaker}</button></div>
+    ${story ? `<div class="who">${t("虚构故事")}</div>` : ""}
     <div class="mem-pill-slot" data-for="${m.id}">${memPillHTML(C.jobs[m.id])}</div>
     ${S.me?.dev ? devTraceHTML(m) : ""}</div></div>`;
 }
@@ -155,9 +155,9 @@ function memPillHTML(job) {
   const r = job?.status === "done" ? job.result : null;
   if (!r) return "";
   const bits = [];
-  if (r.created?.length) bits.push("记下了 " + r.created.map((x) => "「" + esc(x.title) + "」").join(""));
-  if (r.updated?.length) bits.push("更新了 " + r.updated.map((x) => "「" + esc(x.title) + "」").join(""));
-  if (r.pending?.length) bits.push(`有 ${r.pending.length} 件想问你`);
+  if (r.created?.length) bits.push(t("记下了 {items}", { items: r.created.map((x) => "「" + esc(x.title) + "」").join("") }));
+  if (r.updated?.length) bits.push(t("更新了 {items}", { items: r.updated.map((x) => "「" + esc(x.title) + "」").join("") }));
+  if (r.pending?.length) bits.push(t("有 {n} 件想问你", { n: r.pending.length }));
   return bits.length ? `<button class="mem-pill" data-act="open-drawer" data-tab="${r.pending?.length && !r.created?.length ? "ask" : "mem"}">◇ ${bits.join(" · ")}</button>` : "";
 }
 
@@ -165,8 +165,8 @@ function memPillHTML(job) {
 function devTraceHTML(m) {
   const d = m.meta?.decision;
   if (!d) return "";
-  const cands = d.candidates.map((c) => `<li>${c.blocked ? "✗" : (c.id === d.primary.id || d.extras.some((x) => x.id === c.id)) ? "●" : "○"} ${esc(c.action)} · ${c.score}${c.blocked ? " — " + esc(c.blocked) : c.reason ? " — " + esc(c.reason) : ""}</li>`).join("");
-  return `<details class="trace"><summary>◇ ${esc(d.label)} · ${d.latency_ms}ms${d.note ? " · " + esc(d.note) : ""}</summary><ul>${cands}</ul></details>`;
+  const cands = d.candidates.map((c) => `<li>${c.blocked ? "✗" : (c.id === d.primary.id || d.extras.some((x) => x.id === c.id)) ? "●" : "○"} ${esc(c.action)} · ${c.score}${c.blocked ? " — " + esc(tr(c.blocked)) : c.reason ? " — " + esc(tr(c.reason)) : ""}</li>`).join("");
+  return `<details class="trace"><summary>◇ ${esc(tr(d.label))} · ${d.latency_ms}ms${d.note ? " · " + esc(tr(d.note)) : ""}</summary><ul>${cands}</ul></details>`;
 }
 
 function bindMsgTools(root) {
@@ -200,7 +200,7 @@ async function send(text, { source = "app" } = {}) {
   if (C.pending) return;
   text = (text || "").trim();
   if (!text && !C.image) return;
-  text ||= "你看看这个";
+  text ||= t("你看看这个");
   activity();
   stopSpeaking();
   C.pending = true;
@@ -296,7 +296,7 @@ async function pickImage(file) {
   if (file.size > 4 * 1024 * 1024) return toast("图片不能超过 4MB");
   if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return toast("只支持 PNG / JPEG / WebP");
   C.image = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
-  $("#img-chip").innerHTML = `<img src="${C.image}" alt=""> 会和下一句话一起发给她 <button class="link small" id="img-x">移除</button>`;
+  $("#img-chip").innerHTML = `<img src="${C.image}" alt=""> ${t("会和下一句话一起发给她")} <button class="link small" id="img-x">${t("移除")}</button>`;
   $("#img-chip").classList.remove("hidden");
   $("#img-x").onclick = clearImage;
 }
@@ -313,17 +313,17 @@ async function toggleMic() {
   if (!a.ok) return toast(a.why, 5000);
   stopSpeaking();
   try {
-    C.listening = await listen({ onPartial: (t) => ($("#chat-input").value = t) });
+    C.listening = await listen({ onPartial: (x) => ($("#chat-input").value = x) });
     $("#mic-btn").classList.add("listening"); $("#mic-btn").innerHTML = ICON.stop;
     C.stage?.setExpression("focused");
-  } catch (e) { C.listening = null; micIdle(); fail(e.name === "NotAllowedError" ? new Error("没有麦克风权限：请在浏览器地址栏允许麦克风") : e); }
+  } catch (e) { C.listening = null; micIdle(); fail(e.name === "NotAllowedError" ? new Error(t("没有麦克风权限：请在浏览器地址栏允许麦克风")) : e); }
 }
 
 function setAutoRead(on) {
   C.autoRead = on; storeSet("krino_autoread", on ? "1" : "0");
   $("#voice-toggle").classList.toggle("off", !on);
   $("#voice-toggle").innerHTML = on ? ICON.speaker : ICON.mute;
-  $("#voice-toggle").title = on ? "自动朗读：开（点一下关闭）" : "自动朗读：关（点一下打开）";
+  $("#voice-toggle").title = on ? t("自动朗读：开（点一下关闭）") : t("自动朗读：关（点一下打开）");
   if (!on) { stopSpeaking(); C.stage?.speaking(false); }
 }
 
@@ -332,7 +332,7 @@ function openDrawer(tab) { $("#drawer").classList.remove("hidden"); renderDrawer
 function closeDrawer() { $("#drawer").classList.add("hidden"); }
 
 export function initChat() {
-  $("#gestures").innerHTML = GESTURES.map(([id, label]) => `<button data-g="${id}">${label}</button>`).join("");
+  $("#gestures").innerHTML = GESTURES.map(([id, label]) => `<button data-g="${id}">${t(label)}</button>`).join("");
   $$("#gestures button").forEach((b) => (b.onclick = () => { activity(); ripple(b); sendEvent({ type: "gesture", gesture: b.dataset.g }); }));
   $("#chat-input").addEventListener("keydown", (e) => {
     activity();
@@ -354,7 +354,7 @@ export function initChat() {
     C.stage?.setLook(((e.clientX - r.left) / r.width) * 2 - 1, -(((e.clientY - r.top) / r.height) * 2 - 1));
   });
   bus.on("online", ({ ok, why }) => {
-    $("#net-banner").textContent = ok ? "" : why || "连接断开";
+    $("#net-banner").textContent = ok ? "" : why || t("连接断开");
     $("#net-banner").classList.toggle("hidden", ok);
     if (ok) toast("连接恢复了");
   });
