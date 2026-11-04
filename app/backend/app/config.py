@@ -92,16 +92,24 @@ class Settings:
     stt_base_url: str = field(default_factory=lambda: _env("STT_BASE_URL", ""))
     stt_api_key: str | None = field(default_factory=lambda: os.getenv("STT_API_KEY") or None)
     max_audio_bytes: int = field(default_factory=lambda: _int("MAX_AUDIO_BYTES", 10 * 1024 * 1024))
-    # TTS：qwen = Qwen3-TTS 语音服务（默认，最像真人，需要显卡；不可用时自动退回 Kokoro）| local = 只用本地 Kokoro
-    #      | openai = OpenAI 兼容接口 | browser = 浏览器朗读 | mock = 测试
+    # TTS：qwen = 自建 Qwen3-TTS 语音服务（需要显卡）| dashscope = 阿里云百炼（国内版推荐）| openai = OpenAI（海外版推荐）
+    #      | local = 只用本地 Kokoro | browser = 浏览器朗读 | mock = 测试。qwen / dashscope / openai 出错时都自动退回 Kokoro
     tts_provider: str = field(default_factory=lambda: _env("TTS_PROVIDER", "qwen"))
     qwen_tts_url: str = field(default_factory=lambda: _env("QWEN_TTS_URL", "http://127.0.0.1:8640"))  # app/tts/server.py
     kokoro_dir: str = field(default_factory=lambda: _env("KOKORO_DIR", ""))
     tts_default_voice: str = field(default_factory=lambda: _env("TTS_DEFAULT_VOICE", ""))  # 空 = 按语言默认
-    tts_model: str = field(default_factory=lambda: _env("TTS_MODEL", "tts-1"))
-    tts_base_url: str = field(default_factory=lambda: _env("TTS_BASE_URL", ""))
-    tts_api_key: str | None = field(default_factory=lambda: os.getenv("TTS_API_KEY") or None)
-    tts_voices: tuple[str, ...] = field(default_factory=lambda: _list("TTS_VOICES", "alloy,nova,shimmer,echo"))
+    # openai：OpenAI 或兼容接口。gpt-4o-mini-tts 会按角色的声音描述（app/tts/voices.py）调整语气
+    tts_model: str = field(default_factory=lambda: _env("TTS_MODEL", "gpt-4o-mini-tts"))
+    tts_base_url: str = field(default_factory=lambda: _env("TTS_BASE_URL", "https://api.openai.com/v1"))
+    tts_api_key: str | None = field(default_factory=lambda: os.getenv("TTS_API_KEY") or os.getenv("OPENAI_API_KEY") or None)
+    tts_voices: tuple[str, ...] = field(default_factory=lambda: _list("TTS_VOICES", "coral,sage,nova,shimmer,alloy"))
+    # 角色音色 → 平台自带音色（openai 和 dashscope 共用这一张表，各取认识的）
+    tts_voice_map: tuple[str, ...] = field(default_factory=lambda: _list(
+        "TTS_VOICE_MAP", "dafeiyu-en=coral,krino-en=sage,dafeiyu-zh=Cherry,krino-zh=Serena"))
+    # dashscope：阿里云百炼 Qwen3-TTS 指令版，同样按声音描述说话。北京地域；新加坡用 https://dashscope-intl.aliyuncs.com/api/v1
+    dashscope_api_key: str | None = field(default_factory=lambda: os.getenv("DASHSCOPE_API_KEY") or None)
+    dashscope_base_url: str = field(default_factory=lambda: _env("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/api/v1"))
+    dashscope_tts_model: str = field(default_factory=lambda: _env("DASHSCOPE_TTS_MODEL", "qwen3-tts-instruct-flash"))
 
     # ---------- KRINO Evaluator（内部互动策略）：rules 规则策略（默认） | matrix 3-Head 模型（实验） | off ----------
     policy_mode: str = field(default_factory=lambda: _env("KRINO_POLICY", "rules"))
@@ -175,6 +183,12 @@ def _tts_status(svc) -> dict:
         if s.tts_provider == "qwen":
             note = "Qwen3-TTS 语音服务没有启动，暂时用 Kokoro（scripts/world.sh tts 启动）"
         return svc("local", "Kokoro-82M", ok, note)
-    return svc(s.tts_provider, s.tts_model if s.tts_provider == "openai" else "",
-               s.tts_provider in ("browser", "mock") or bool(s.tts_base_url),
+    if s.tts_provider == "dashscope":
+        return svc("dashscope", s.dashscope_tts_model, bool(s.dashscope_api_key),
+                   "阿里云百炼，按人设描述说话" if s.dashscope_api_key else "没有配置 DASHSCOPE_API_KEY，暂时用 Kokoro")
+    if s.tts_provider == "openai":
+        return svc("openai", s.tts_model, bool(s.tts_api_key),
+                   "OpenAI，按人设描述说话" if s.tts_api_key else "没有配置 OPENAI_API_KEY，暂时用 Kokoro")
+    return svc(s.tts_provider, "",
+               s.tts_provider in ("browser", "mock"),
                {"browser": "浏览器自带语音合成", "mock": "测试用，返回提示音"}.get(s.tts_provider, ""))

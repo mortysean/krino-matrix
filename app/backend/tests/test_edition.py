@@ -58,3 +58,81 @@ def test_global_tts_voices(global_edition):
     if not tts_local.available()[0]:
         pytest.skip("没有本地语音模型")
     assert set(tts_local.voices()) <= {"af_maple", "af_sol", "bf_vale"} and tts_local.default_voice() == "af_maple"
+
+
+class _Resp:
+    def __init__(self, status=200, json=None, content=b"", ctype="audio/wav"):
+        self.status_code, self._json, self.content, self.text = status, json, content, str(json)
+        self.headers = {"content-type": ctype}
+
+    def json(self):
+        return self._json
+
+
+class _FakeClient:
+    """记录请求、按顺序给出响应的 httpx.Client 替身。"""
+    def __init__(self, responses, calls):
+        self.responses, self.calls = responses, calls
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def post(self, url, json=None, headers=None):
+        self.calls.append(("POST", url, json))
+        return self.responses.pop(0)
+
+    def get(self, url):
+        self.calls.append(("GET", url, None))
+        return self.responses.pop(0)
+
+
+def _fake(monkeypatch, responses):
+    from app import voice
+    calls = []
+    monkeypatch.setattr(voice, "_client", lambda timeout=60: _FakeClient(responses, calls))
+    return calls
+
+
+def test_dashscope_tts_uses_persona_voice(monkeypatch):
+    from app import voice
+    monkeypatch.setattr(settings, "tts_provider", "dashscope")
+    monkeypatch.setattr(settings, "dashscope_api_key", "test-key")
+    calls = _fake(monkeypatch, [_Resp(json={"output": {"audio": {"url": "https://oss.example/a.wav", "data": ""}}}),
+                                _Resp(content=b"RIFFwav")])
+    audio, mime = voice.synthesize("本肥鱼饿了", "zf_017", 1.0)  # 以前存的 Kokoro 编号也能认出是大肥鱼
+    assert audio == b"RIFFwav" and mime == "audio/wav"
+    body = calls[0][2]
+    assert calls[0][1].endswith("/services/aigc/multimodal-generation/generation") and body["model"] == "qwen3-tts-instruct-flash"
+    assert body["input"]["voice"] == "Cherry" and "傲娇" in body["input"]["instructions"]
+    assert calls[1] == ("GET", "https://oss.example/a.wav", None)
+    assert voice._tts_config()["voices"] == ["dafeiyu-zh", "krino-zh"]
+
+
+def test_openai_tts_global(monkeypatch, global_edition):
+    from app import voice
+    monkeypatch.setattr(settings, "tts_provider", "openai")
+    monkeypatch.setattr(settings, "tts_api_key", "sk-test")
+    calls = _fake(monkeypatch, [_Resp(content=b"ID3mp3", ctype="audio/mpeg")])
+    audio, mime = voice.synthesize("Hi there", "krino-en", 1.0)
+    assert audio == b"ID3mp3" and mime == "audio/mpeg"
+    body = calls[0][2]
+    assert body["voice"] == "sage" and body["model"] == "gpt-4o-mini-tts" and "researcher" in body["instructions"]
+
+
+def test_cloud_tts_falls_back_to_kokoro(monkeypatch):
+    from app import tts_local, voice
+    monkeypatch.setattr(settings, "tts_provider", "dashscope")
+    monkeypatch.setattr(settings, "dashscope_api_key", "test-key")
+    _fake(monkeypatch, [_Resp(status=401, json={"code": "InvalidApiKey"})])
+    monkeypatch.setattr(tts_local, "available", lambda: (True, ""))
+    monkeypatch.setattr(tts_local, "synthesize", lambda text, voice, speed: b"kokoro")
+    assert voice.synthesize("你好", "dafeiyu-zh", 1.0) == (b"kokoro", "audio/wav")
+
+
+def test_landing_page(client):
+    r = client.get("/landing/")
+    assert r.status_code == 200 and "cn.krinomatrix.com" in r.text and "/static/assets/krino-mark.svg" in r.text
+    assert client.get("/static/assets/krino-mark.svg").status_code == 200

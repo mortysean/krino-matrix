@@ -63,12 +63,12 @@ export async function personaPage() {
           <p class="muted small">${b.portrait ? "" : t("她还没有立绘，现在显示的是名字铭牌。")}${t("上传透明背景的 PNG 效果最好（≤ 2MB）。")}Live2D © Live2D Inc.</p>
           <div class="section-title mono">${t("VOICE · 声音")}</div>
           <div class="row">
-            ${vc.tts.voices?.length ? `<select data-v="voice" style="flex:1">${vc.tts.voices.map((v) => `<option ${v === (b.voice.voice || vc.tts.default) ? "selected" : ""}>${v}</option>`).join("")}</select>`
+            ${vc.tts.voices?.length ? `<select data-v="voice" style="flex:1">${vc.tts.voices.map((v) => `<option value="${esc(v)}" ${v === (b.voice.voice || vc.tts.default) ? "selected" : ""}>${esc(voiceLabel(v))}</option>`).join("")}</select>`
               : `<input data-v="voice" value="${esc(b.voice.voice || "")}" placeholder="${t("音色（服务端语音时用）")}" style="flex:1">`}
             <button class="ghost small" id="voice-try">▶ ${t("试听")}</button>
           </div>
           <div class="slider-row"><span>${t("语速")}</span><input type="range" min="0.6" max="1.6" step="0.05" data-v="rate" value="${b.voice.rate}"><span>${b.voice.rate}</span></div>
-          <p class="muted small">${vc.tts.provider === "local" && vc.tts.server ? t("本地语音（Kokoro，{n} 个音色）。挑一个最像她的。", { n: vc.tts.voices.length }) : t("现在用浏览器自带的朗读。")}</p>
+          <p class="muted small">${voiceNote(vc.tts)}</p>
         </div>
       </div>
     </div>`;
@@ -215,3 +215,18 @@ async function versions(c, v) {
 
 export const personaDirty = () => P.dirty;
 export function initPersona() {}
+
+
+// 按人设设计的音色显示角色名；Kokoro 编号原样显示
+const ROLE_VOICES = { dafeiyu: "大肥鱼的声音", krino: "KRINO 的声音" };
+function voiceLabel(v) {
+  const role = ROLE_VOICES[v.replace(/-(zh|en)$/, "")];
+  return role ? t(role) : v;
+}
+
+function voiceNote(tts) {
+  if (!tts.server) return t("现在用浏览器自带的朗读。");
+  if (tts.provider === "local") return t("本地语音（Kokoro，{n} 个音色）。挑一个最像她的。", { n: tts.voices.length });
+  return t("按人设描述生成的声音。");
+}
+

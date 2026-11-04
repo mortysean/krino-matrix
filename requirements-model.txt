@@ -1,0 +1,9 @@
+# KRINO Matrix 模型：训练、评测，以及互动策略 KRINO_POLICY=matrix。KRINO WORLD 本身不需要这些
+-r requirements.txt
+torch>=2
+transformers>=4.40
+litellm>=1.105
+python-dotenv>=1.0
+anthropic>=1.13
+sagax-data>=1.1
+pandas>=2

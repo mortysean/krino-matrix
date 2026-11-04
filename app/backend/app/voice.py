@@ -1,7 +1,8 @@
 """语音（STT / TTS）与视觉理解（VLM）的适配层。密钥只在服务端，浏览器只拿到“用哪种方式”。
 
 STT  browser：浏览器 Web Speech API（不经过本服务）  openai：转发到 OpenAI 兼容 /audio/transcriptions  mock：测试
-TTS  browser：浏览器 speechSynthesis                  openai：转发到 OpenAI 兼容 /audio/speech        mock：一段提示音
+TTS  qwen：自建 Qwen3-TTS  dashscope：阿里云百炼  openai：OpenAI  local：Kokoro  browser：浏览器朗读  mock：提示音
+     云端和自建的都按角色的声音描述（app/tts/voices.py）说话，出错退回 Kokoro。
 VLM  mock：只读颜色和亮度（明确标注为模拟）           openai：OpenAI 兼容 /chat/completions + image_url
 上传的音频和图片只在内存里处理，不落库。
 """
@@ -111,39 +112,120 @@ def _qwen(text: str, voice: str | None, speed: float) -> bytes:
     return r.content
 
 
-def synthesize(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
-    if settings.tts_provider == "mock":
-        return _beep_wav(), "audio/wav"
-    if settings.tts_provider == "qwen":  # 首选 Qwen3-TTS；服务不在或出错就退回本地 Kokoro，不让她哑掉
-        try:
-            return _qwen(text, voice, speed), "audio/wav"
-        except ServiceError as e:
-            log.warning("Qwen3-TTS 不可用，改用 Kokoro：%s", e)
-    if settings.tts_provider in ("local", "qwen"):
-        from . import tts_local
+def _styles() -> dict:
+    """角色音色的声音描述（app/tts/voices.py，和自建语音服务共用一份）。"""
+    if not _style_cache:
+        import importlib.util
 
-        ok, why = tts_local.available()
-        if not ok:
-            raise ServiceError(why)
-        try:
-            return tts_local.synthesize(text, voice, speed), "audio/wav"
-        except (RuntimeError, ValueError) as e:
-            raise ServiceError(str(e)) from e
-    if settings.tts_provider != "openai" or not settings.tts_base_url:
-        raise ServiceError("服务端没有配置语音合成（TTS_PROVIDER=openai），请使用浏览器朗读")
-    voice = voice if voice in settings.tts_voices else settings.tts_voices[0]
-    headers = {"Authorization": f"Bearer {settings.tts_api_key}"} if settings.tts_api_key else {}
+        from .config import ROOT_DIR
+
+        spec = importlib.util.spec_from_file_location("krino_voice_styles", ROOT_DIR / "app" / "tts" / "voices.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _style_cache.update(mod.VOICES)
+    return _style_cache
+
+
+_style_cache: dict = {}
+
+
+def _role(voice: str | None) -> str:
+    """把角色存的音色（设计音色名，或以前的 Kokoro 编号）归到当前语言的角色音色名。"""
+    from .tts_local import FALLBACK
+
+    voice = {v: k for k, v in FALLBACK.items()}.get(voice or "", voice or "")
+    suffix = "-en" if locale() == "en" else "-zh"
+    if voice in _styles() and voice.endswith(suffix):
+        return voice
+    return "dafeiyu" + suffix
+
+
+def _platform_voice(role: str, known: tuple[str, ...] | None = None) -> str:
+    m = dict(x.split("=", 1) for x in settings.tts_voice_map if "=" in x)
+    v = m.get(role, "")
+    if known is not None and v not in known:
+        v = known[0]
+    return v
+
+
+def _openai(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
+    if not settings.tts_api_key:
+        raise ServiceError("没有配置 OPENAI_API_KEY")
+    role = _role(voice)
+    body = {"model": settings.tts_model, "input": text, "voice": _platform_voice(role, settings.tts_voices),
+            "response_format": "mp3"}
+    if settings.tts_model.startswith("gpt-"):  # 新模型按描述说话；speed 只有 tts-1 系列认
+        body["instructions"] = _styles()[role]["instruct"]
+    else:
+        body["speed"] = speed
     try:
         with _client() as c:
-            r = c.post(settings.tts_base_url.rstrip("/") + "/audio/speech", headers=headers,
-                       json={"model": settings.tts_model, "input": text, "voice": voice, "speed": speed,
-                             "response_format": "mp3"})
+            r = c.post(settings.tts_base_url.rstrip("/") + "/audio/speech", json=body,
+                       headers={"Authorization": f"Bearer {settings.tts_api_key}"})
     except httpx.HTTPError as e:
-        raise ServiceError("无法连接语音合成服务") from e
+        raise ServiceError("无法连接 OpenAI 语音") from e
     if r.status_code != 200:
-        log.error("TTS %s: %s", r.status_code, r.text[:200])
-        raise ServiceError(f"语音合成出错（{r.status_code}）")
+        log.error("OpenAI TTS %s: %s", r.status_code, r.text[:200])
+        raise ServiceError(f"OpenAI 语音出错（{r.status_code}）")
     return r.content, r.headers.get("content-type", "audio/mpeg")
+
+
+def _dashscope(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
+    """阿里云百炼 Qwen3-TTS 指令版：系统音色 + 声音描述。返回的是 24 小时有效的音频链接，取回来再给浏览器。"""
+    if not settings.dashscope_api_key:
+        raise ServiceError("没有配置 DASHSCOPE_API_KEY")
+    role = _role(voice)
+    style = _styles()[role]
+    body = {"model": settings.dashscope_tts_model, "input": {
+        "text": text, "voice": _platform_voice(role) or "Cherry", "language_type": style["language"],
+        "instructions": style["instruct"], "optimize_instructions": True}}
+    try:
+        with _client() as c:
+            r = c.post(settings.dashscope_base_url.rstrip("/") + "/services/aigc/multimodal-generation/generation", json=body,
+                       headers={"Authorization": f"Bearer {settings.dashscope_api_key}"})
+            if r.status_code != 200:
+                log.error("百炼 TTS %s: %s", r.status_code, r.text[:300])
+                raise ServiceError(f"百炼语音出错（{r.status_code}）")
+            audio = (r.json().get("output") or {}).get("audio") or {}
+            if audio.get("data"):
+                return base64.b64decode(audio["data"]), "audio/wav"
+            if not audio.get("url"):
+                raise ServiceError("百炼语音没有返回音频")
+            a = c.get(audio["url"])
+    except httpx.HTTPError as e:
+        raise ServiceError("无法连接百炼语音") from e
+    except ValueError as e:
+        raise ServiceError("百炼语音返回的不是 JSON") from e
+    if a.status_code != 200:
+        raise ServiceError(f"取百炼音频出错（{a.status_code}）")
+    return a.content, a.headers.get("content-type", "audio/wav").split(";")[0]
+
+
+CLOUD = {"openai": _openai, "dashscope": _dashscope}
+
+
+def synthesize(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
+    p = settings.tts_provider
+    if p == "mock":
+        return _beep_wav(), "audio/wav"
+    try:  # 首选的服务不在或出错就退回本地 Kokoro，不让她哑掉
+        if p == "qwen":
+            return _qwen(text, voice, speed), "audio/wav"
+        if p in CLOUD:
+            return CLOUD[p](text, voice, speed)
+    except ServiceError as e:
+        log.warning("%s 语音不可用，改用 Kokoro：%s", p, e)
+    if p not in ("local", "qwen", *CLOUD):
+        raise ServiceError("服务端没有配置语音合成，请使用浏览器朗读")
+    from . import tts_local
+
+    ok, why = tts_local.available()
+    if not ok:
+        raise ServiceError(why)
+    try:
+        return tts_local.synthesize(text, voice, speed), "audio/wav"
+    except (RuntimeError, ValueError) as e:
+        raise ServiceError(str(e)) from e
 
 
 # ---------- VLM ----------
@@ -208,13 +290,15 @@ def _tts_config() -> dict:
     p = settings.tts_provider
     if p == "qwen" and _qwen_voices():
         return {"provider": p, "server": True, "voices": _qwen_voices(), "default": _qwen_voices()[0]}
-    if p in ("local", "qwen"):
+    if p == "openai" and settings.tts_api_key or p == "dashscope" and settings.dashscope_api_key:
+        roles = [k for k in _styles() if k.endswith("-en" if locale() == "en" else "-zh")]
+        return {"provider": p, "server": True, "voices": roles, "default": roles[0]}
+    if p in ("local", "qwen", *CLOUD):
         from . import tts_local
 
         ok, _ = tts_local.available()
         return {"provider": "local", "server": ok, "voices": tts_local.voices() if ok else [], "default": tts_local.default_voice()}
-    return {"provider": p, "server": p in ("openai", "mock"),
-            "voices": list(settings.tts_voices) if p == "openai" else [], "default": ""}
+    return {"provider": p, "server": p == "mock", "voices": [], "default": ""}
 
 
 @router.post("/voice/stt")
