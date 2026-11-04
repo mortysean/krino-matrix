@@ -8,7 +8,7 @@ from pathlib import Path
 # Make the project root importable when this file is run as a script
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from krino.data.sagax import sagax
+from sources.sagax import sagax  # data/sources/：数据源代码（运行 python data/sagax_demo.py 时 data/ 在搜索路径上）
 
 # Edit these to try your own query
 CODES = ["510300.SH", "510500.SH", "588000.SH"]

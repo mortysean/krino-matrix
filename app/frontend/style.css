@@ -615,3 +615,11 @@ table.res th { font: 10px var(--mono); color: var(--muted); letter-spacing: .12e
 .icon-btn svg, .stage-voice svg, .speak-btn svg { display: block; }
 .stage-voice { padding: 6px 8px; }
 .speak-btn svg { width: 16px; height: 16px; }
+
+/* KRINO MATRIX 商标 */
+.brand-logo { width: 34px; height: 40px; flex-shrink: 0; }
+.brand-name { font-size: 16px; font-weight: 300; letter-spacing: .16em; }
+.brand-name b { font-weight: 600; }
+.boot-mark { width: 96px; height: 115px; animation: develop 1.2s var(--ease) both, breathe 4s 1.2s ease-in-out infinite; }
+.auth-brand { display: flex; align-items: center; gap: 10px; }
+.auth-brand img { width: 22px; height: 26px; }

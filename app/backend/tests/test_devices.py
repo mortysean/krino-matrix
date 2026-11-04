@@ -40,7 +40,7 @@ def test_glasses_simulator_roundtrip(user):
         assert types[0] == "busy" and set(types[1:]) == {"ar", "result"}
         ar = next(m for m in msgs if m["type"] == "ar")["events"]
         assert ar[0]["type"] == "ar.avatar" and ar[0]["anchor"]["distance"] == 1.5
-        assert any(e["type"] == "ar.subtitle" and e["speaker"] == "鲸鱼娘" for e in ar)
+        assert any(e["type"] == "ar.subtitle" and e["speaker"] == "大肥鱼" for e in ar)
 
         ws.send_json({"type": "camera.frame", "image": _frame(), "question": "我在哪"})
         msgs = [ws.receive_json() for _ in range(3)]
@@ -64,7 +64,7 @@ def test_real_glasses_not_available_and_bad_token(client, user):
 
 
 def test_ar_events_are_validated():
-    evs = devices.to_ar("鲸鱼娘", [{"type": "say", "text": "嗨" * 500}, {"type": "emote", "expression": "happy"},
+    evs = devices.to_ar("大肥鱼", [{"type": "say", "text": "嗨" * 500}, {"type": "emote", "expression": "happy"},
                                   {"type": "remember_suggest", "candidate_id": "x", "content": "一起看日落"}], {})
     assert evs[0] == {"type": "ar.avatar", "expression": "happy", "animation": None,
                       "anchor": {"yaw": 20.0, "pitch": -5.0, "distance": 1.5}}

@@ -18,7 +18,7 @@ def _png(color=(40, 60, 200)) -> str:
 
 def test_new_user_gets_official_whale_girl(user):
     chars = user.ok("get", "/api/characters")
-    assert len(chars) == 1 and chars[0]["official"] and chars[0]["name"] == "鲸鱼娘" and chars[0]["ai"] is True
+    assert len(chars) == 1 and chars[0]["official"] and chars[0]["name"] == "大肥鱼" and chars[0]["ai"] is True
     full = user.ok("get", f"/api/characters/{chars[0]['id']}")
     assert "AI" in full["persona"]["boundaries"]
 
@@ -117,10 +117,10 @@ def test_export_has_no_private_memory_and_roundtrips(user):
     assert any("杭州" in m["content"] for m in user.memories(cid))
     for fmt in ("json", "md"):
         r = user.get(f"/api/characters/{cid}/export", params={"format": fmt})
-        assert r.status_code == 200 and "杭州" not in r.text and "鲸鱼娘" in r.text
+        assert r.status_code == 200 and "杭州" not in r.text and "大肥鱼" in r.text
     pkg = user.get(f"/api/characters/{cid}/export", params={"format": "json"}).content
     pv = user.ok("post", "/api/characters/import/preview", files={"file": ("w.krino.json", pkg, "application/json")})
-    assert pv["format"] == "krino-persona/1" and pv["name"] == "鲸鱼娘"
+    assert pv["format"] == "krino-persona/1" and pv["name"] == "大肥鱼"
     c = user.ok("post", "/api/characters/import", files={"file": ("w.krino.json", pkg, "application/json")})
     assert c["slug"] == "whale-girl-2" and user.memories(c["id"]) == []
 

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-26 -31 52 62" width="52" height="62">
+  <!-- KRINO MATRIX 商标（深色底的反白版）：两层等距 2×2 菱形网格共用中间的深色格，下层底格分成两种灰，
+       竖轴两端各一个圆点。与 docs/brand/商标.jpg 同形，取自旧版前端的 Logo 组件。 -->
+  <g fill="none" stroke="#ececf1" stroke-width="1">
+    <path d="M0 -26.5V-15" stroke-dasharray="2 1.4"/>
+    <path d="M0 -15V-5"/>
+    <path d="M0 16.2V25" stroke-dasharray="2 1.4"/>
+  </g>
+  <circle cx="0" cy="-27.5" r="2.6" fill="#ececf1"/>
+  <circle cx="0" cy="26" r="2.6" fill="#ececf1"/>
+  <g stroke="#131319" stroke-width="0.9" stroke-linejoin="round">
+    <path d="M-12 -10L0 -15L12 -10L0 -5Z" fill="#3a3a48"/>
+    <path d="M-24 -5L-12 -10L0 -5L-12 0Z" fill="#5a5b6e"/>
+    <path d="M0 -5L12 -10L24 -5L12 0Z" fill="#5a5b6e"/>
+    <path d="M-12 0L0 -5L12 0L0 5Z" fill="#ececf1"/>
+    <path d="M-24 6.2L-12 1.2L0 6.2L-12 11.2Z" fill="#ececf1"/>
+    <path d="M0 6.2L12 1.2L24 6.2L12 11.2Z" fill="#3a3a48"/>
+    <path d="M-12 11.2L0 6.2L0 16.2Z" fill="#b9bac7"/>
+    <path d="M0 6.2L12 11.2L0 16.2Z" fill="#8b8c9a"/>
+  </g>
+</svg>

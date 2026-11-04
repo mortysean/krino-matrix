@@ -2,7 +2,7 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-KRINO WORLD is the KRINO MATRIX platform for ACG-style AI characters. You chat by text and voice with characters that remember you, and you can create, import, or adopt characters from the workshop. The default character is **Whale Girl** (鲸鱼娘), the rice-loving, overthinking "big blue fat fish" from the Chinese internet's DeepSeek fan persona. Every character is labelled as an AI.
+KRINO WORLD is the KRINO MATRIX platform for ACG-style AI characters. You chat by text and voice with characters that remember you, and you can create, import, or adopt characters from the workshop. The default character is **大肥鱼** ("Big Fat Fish"), the rice-loving, overthinking "big blue fat fish" from the Chinese internet's DeepSeek fan persona. Every character is labelled as an AI.
 
 ## Quick start
 
@@ -45,4 +45,4 @@ Architecture and data model: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - PixiJS and pixi-live2d-display: MIT.
 - Live2D Cubism Core: proprietary, redistributable.
 - Kokoro: Apache-2.0.
-- Whale Girl portrait: CC0, as marked by the uploader.
+- 大肥鱼 portrait: CC0, as marked by the uploader.

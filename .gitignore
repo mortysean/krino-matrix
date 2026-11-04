@@ -9,6 +9,7 @@ checkpoints/
 data/*
 !data/*.py
 !data/README.md
+!data/sources/
 experiments/*/checkpoints/
 .backup/
 .run/

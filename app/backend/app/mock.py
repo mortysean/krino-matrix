@@ -114,7 +114,7 @@ class MockLLM:
 
         parts = [rng.choice(lines["open"])]
         if re.search(r"你是(?:真人|人类|AI|机器人)|你是不是(?:真人|AI)", user, re.I):
-            parts = [f"我是{name}，是 KRINO WORLD 里的 AI 角色，不是真人哦。"]
+            parts = [f"我是 AI 啦，不是真人。不过陪你聊天这件事是真的。"]
         hits = ctx.get("hits") or []
         mem = next((h for h in hits if "关键词匹配" in (h.get("reasons") or []) and h.get("reality") != "story"), None)
         if mem:
@@ -134,7 +134,7 @@ def _persona(prompt: str, style: str | None) -> str:
     name = rng.choice(["澜", "汐", "珀", "潮", "铃"]) + rng.choice(["音", "月", "歌", "星", "雾"])
     return json.dumps({
         "name": name, "tagline": _short(prompt, 24) or "来自深海的新朋友", "style": style or "温柔", "tags": ["原创"],
-        "background": f"{name}是 KRINO WORLD 里的一位原创角色。{_short(prompt, 60)}",
+        "background": f"{_short(prompt, 80)}",
         "personality": "- 认真倾听\n- 偶尔调皮", "values": "- 真诚", "speech": "- 句子偏短\n- 口头禅「好耶」",
         "interests": "- 收集贝壳", "preferences": "- 开心时会转圈", "worldview": "海边的小镇。",
         "relationships": "- 和你：刚认识的朋友", "greeting": "你来了。今晚的潮声很好听。",

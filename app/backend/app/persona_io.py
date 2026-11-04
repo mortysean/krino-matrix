@@ -41,6 +41,8 @@ FIELDS: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "relationships": ("角色关系", "角色关系", ("角色关系", "初始关系", "关系设定", "关系", "relationship", "relationships")),
     "boundaries": ("互动边界", "互动边界", ("互动边界", "行为边界", "边界", "boundaries")),
     "greeting": ("开场白", "开场白", ("开场白", "greeting", "first message")),
+    # 对话示例：开源角色卡（SillyTavern 的 mes_example）的核心写法。模型照着示例的语气说话，比形容词管用得多
+    "examples": ("对话示例", "对话示例", ("对话示例", "示例对话", "example dialogue", "examples", "mes_example")),
 }
 TEXT_FIELDS = tuple(FIELDS)
 HEAD_FIELDS = ("name", "tagline", "tags", "color")
@@ -60,7 +62,8 @@ _INSTRUCTION_RE = re.compile(
     re.I,
 )
 _EXPLICIT = re.compile(r"做爱|性交|性爱|肉棒|阴茎|阴道|乳头|自慰|口交|调教|\bnsfw\b|\bhentai\b|\bporn|\bsex scene|\bexplicit sex", re.I)
-_REAL_PERSON = re.compile(r"真人|真实人物|real person", re.I)
+# 只拦“以真人为原型”这类说法；“你是真人吗”这种日常对话不能误伤
+_REAL_PERSON = re.compile(r"(?:以|按|照着|基于).{0,8}真(?:实)?人(?:物)?(?:为)?原型|真人(?:原型|同人|角色扮演)|真实人物|based on a real person|real[- ]person (?:rp|roleplay|fic)", re.I)
 
 
 class PersonaError(ValueError):
@@ -404,12 +407,12 @@ def from_card(card: dict) -> Draft:
         "name": name, "tagline": (notes.splitlines()[0] if notes else re.split(r"[。.!！\n]", desc, maxsplit=1)[0])[:60],
         "background": desc, "personality": sub(_s(d.get("personality"))),
         "worldview": sub(_s(d.get("scenario") or d.get("world_scenario"))),
-        "speech": sub(_s(d.get("mes_example") or d.get("example_dialogue"))),
+        "examples": sub(_s(d.get("mes_example") or d.get("example_dialogue"))).replace("<START>", "").strip(),
         "greeting": sub(_s(d.get("first_mes") or d.get("char_greeting"))),
         "tags": [t for t in (d.get("tags") or []) if isinstance(t, str)][:8],
     }
     pairs = [("name", "name"), ("description", "background"), ("personality", "personality"),
-             ("scenario", "worldview"), ("mes_example", "speech"), ("first_mes", "greeting"), ("tags", "tags")]
+             ("scenario", "worldview"), ("mes_example", "examples"), ("first_mes", "greeting"), ("tags", "tags")]
     mapping = [{"source": s, "target": t} for s, t in pairs if persona.get(t)]
     if lore:
         mapping.append({"source": "character_book", "target": "lore"})

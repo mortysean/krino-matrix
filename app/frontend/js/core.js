@@ -110,7 +110,7 @@ export async function download(url, name) {
 
 export const curChar = () => S.chars.find((c) => c.id === S.charId);
 
-// 角色头像：官方角色用鲸鱼娘线刻头像，其他用钴蓝方块加首字
+// 角色头像：有立绘就用立绘的头部，否则钴蓝方块加首字
 // 头像：角色有立绘就用立绘的头部，否则钴蓝方块加首字
 const HEADS = { "/static/assets/whale-girl.png": "/static/assets/whale-girl-head.png" };
 export function avaHTML(c, cls = "") {

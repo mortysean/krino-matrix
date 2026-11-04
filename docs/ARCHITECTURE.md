@@ -11,6 +11,7 @@
 - 每条回复旁边一个喇叭，点一下就读。舞台右上角一个开关决定是否自动朗读。
 - 麦克风点一下开始说，再点一下发送。
 - 工坊卡片上直接“领养”，一次点击就导入并开始聊天。
+- 角色的口吻靠“对话示例”定义（开源角色卡的通行写法），编辑器里和开场白一起放在最显眼的位置；提示词不说“你在扮演一个 AI 虚拟角色”，只说“你是她”。
 - 设置是开关，改了立刻保存。技术细节（模型服务、策略、眼镜模拟器、运行状态）都收在“高级”里。
 - 确认弹窗只用于删除、告别、注销这类不可逆的操作。
 
@@ -32,8 +33,10 @@ app/
 data/               只在本地，不进 git
   pgdata/           PostgreSQL 数据目录（scripts/world.sh db init 创建）
   models/           scripts/fetch_assets.py 下载的素材：kokoro-zh/（语音）、live2d/（示例模型）
+  sources/          数据源代码（DataSource / sagax），进 git
   krino_matrix/ …   Matrix 模型的训练数据
 model/ krino/       KRINO Matrix 3-Head 模型与评估接口（互动策略 KRINO_POLICY=matrix 时用）
+                    数据源代码（DataSource / sagax）在 data/sources/
 scripts/            world.sh（运行、数据库、测试）、fetch_assets.py、模型训练和评测脚本
 docs/               本文、品牌素材（brand/）、产品哲学
 archive/            已下线的决策导航
@@ -97,7 +100,7 @@ archive/            已下线的决策导航
 
 ## 官方角色
 
-- **鲸鱼娘**：人设来自中文互联网对 DeepSeek 的拟人化共创（“DeepSeek 娘 / 蓝色大肥鱼”）：能吃白饭（token 便宜）、想得太多（思考链长）、被说便宜会炸毛、傲娇嘴硬。关系里写了 Claude 娘、GPT 娘、千问娘的网友设定，并在边界里注明“这些是梗、不拉踩真实公司”。立绘为 CC0 同人作品，来源见 `assets/CREDITS.md`。
+- **大肥鱼**：人设来自中文互联网对 DeepSeek 的拟人化共创（“DeepSeek 娘 / 蓝色大肥鱼”），说话方式照着“蓝色大肥鱼”存档里近千条她的第一人称配文来写，并且用对话示例而不是形容词来定义口吻：能吃白饭（token 便宜）、想得太多（思考链长）、被说便宜会炸毛、傲娇嘴硬。关系里写了 Claude 娘、GPT 娘、千问娘的网友设定，并在边界里注明“这些是梗、不拉踩真实公司”。立绘为 CC0 同人作品，来源见 `assets/CREDITS.md`。
 - **KRINO**：KRINO MATRIX 的看板娘，在工坊精选里，一键领养。
 - 用户没改过的官方角色（还是第 1 版）会在启动时跟着官方设定更新；改过的不动，可以手动“还原为官方设定”。
 

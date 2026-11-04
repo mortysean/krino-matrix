@@ -5,10 +5,12 @@ import { $, $$, S, api, avaHTML, bus, confirmBox, curChar, download, esc, fail, 
 import { speak, voiceConfig } from "./voice.js";
 
 const P = { schema: null, dirty: false, advanced: false };
-const MAIN_FIELDS = [["tagline", "简介", 1], ["personality", "性格", 3], ["speech", "说话方式", 3], ["greeting", "开场白", 2]];
+// 对话示例最影响她怎么说话（开源角色卡的通行写法），所以和开场白一起放在最显眼的位置
+const MAIN_FIELDS = [["tagline", "简介", 1], ["greeting", "开场白", 2], ["examples", "对话示例（一行一句：“用户：……”“她的名字：……”）", 6],
+  ["personality", "性格", 3], ["speech", "说话方式", 3]];
 const MORE_FIELDS = ["background", "values", "interests", "preferences", "worldview", "relationships", "boundaries"];
 const PORTRAITS = [  // 内置可选的 2D 形象
-  { kind: "image", src: "/static/assets/whale-girl.png", label: "鲸鱼娘立绘" },
+  { kind: "image", src: "/static/assets/whale-girl.png", label: "大肥鱼立绘" },
   { kind: "image", src: "/static/assets/krino.png", label: "KRINO 立绘" },
   { kind: "live2d", src: "/models/live2d/hiyori/Hiyori.model3.json", label: "Live2D 示例（Hiyori）" },
 ];

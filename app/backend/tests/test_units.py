@@ -81,3 +81,51 @@ def test_memory_validation_requires_evidence():
     assert [c["content"] for c in ok] == ["用户住在北京", "用户屠了龙"]
     assert ok[1]["reality"] == "story" and ok[1]["type"] == "event"
     assert {d["reason"] for d in dropped} == {"在你的原话里找不到出处", "密码、验证码一类信息不会记住"}
+
+
+def test_prompt_is_plain_and_has_dialogue_examples():
+    """提示词不能自带“AI 助手”腔调，对话示例要放进去（开源角色卡的写法）。"""
+    from app.personas import OFFICIAL, validate_behavior
+    from app.prompt import build_system
+    c = Character(persona=OFFICIAL["persona"], behavior=validate_behavior(OFFICIAL["behavior"]), lore=OFFICIAL["lore"], slug="x")
+    ctx = build_system(c, user_name="小林", memories=[], summary=None, lore=[], bond=None, current=None)
+    assert ctx.system.startswith("你是「大肥鱼」")
+    assert "## 你说话的样子" in ctx.system and "真当我是便宜货啊" in ctx.system
+    assert ctx.system.index("## 你说话的样子") > ctx.system.index("</character>")
+    for ai_ish in ("领航员", "虚拟角色", "KRINO WORLD 里"):
+        assert ai_ish not in ctx.system, ai_ish
+
+
+def test_tavern_example_dialogue_maps_to_examples():
+    d = persona_io.from_card({"spec": "chara_card_v2", "data": {"name": "Lumi", "mes_example": "<START>\n{{user}}: 嗨\n{{char}}: 哟"}})
+    assert d.persona["examples"] == "你: 嗨\nLumi: 哟" and d.persona["speech"] == ""
+
+
+def test_refresh_official_keeps_user_edits(client, user):
+    """官方更新：没动过的文字跟着更新，用户换的立绘和改过的文字都保留。"""
+    import copy
+    from app import personas
+    from app.db import SessionLocal
+    from app.models import Character as Row
+    cid = user.official["id"]
+    c = user.ok("get", f"/api/characters/{cid}")
+    user.ok("put", f"/api/characters/{cid}", json={"behavior": {**c["behavior"], "portrait": {"kind": "image", "src": "/static/assets/krino.png"}}})
+    old = copy.deepcopy(personas.OFFICIAL)
+    try:
+        personas.OFFICIAL["persona"]["greeting"] = "新的开场白"
+        db = SessionLocal()
+        personas.refresh_official(db)
+        db.close()
+        c = user.ok("get", f"/api/characters/{cid}")
+        assert c["persona"]["greeting"] == "新的开场白"  # 文字没动过：跟着更新
+        assert c["behavior"]["portrait"]["src"] == "/static/assets/krino.png"  # 用户换的立绘保留
+        user.ok("put", f"/api/characters/{cid}", json={"persona": {"greeting": "我自己写的"}})
+        personas.OFFICIAL["persona"]["greeting"] = "又一版开场白"
+        db = SessionLocal()
+        personas.refresh_official(db)
+        db.close()
+        assert user.ok("get", f"/api/characters/{cid}")["persona"]["greeting"] == "我自己写的"  # 改过的文字不覆盖
+    finally:
+        personas.OFFICIAL.clear(); personas.OFFICIAL.update(old)
+        db = SessionLocal(); personas.refresh_official(db); db.close()
+    _ = Row

@@ -2,7 +2,7 @@
 
 [English](README.md) | **简体中文**
 
-KRINO WORLD 是 KRINO MATRIX 旗下的 AI 角色平台：和会记得你的 ACG 角色用文字和语音聊天，创建、导入或在工坊领养角色。默认角色是**鲸鱼娘**——爱吃白饭、想得太多的蓝色大肥鱼。所有角色都标注为人工智能。
+KRINO WORLD 是 KRINO MATRIX 旗下的 AI 角色平台：和会记得你的 ACG 角色用文字和语音聊天，创建、导入或在工坊领养角色。默认角色是**大肥鱼**——爱吃白饭、想得太多、嘴硬心软的蓝色大肥鱼。所有角色都标注为人工智能。
 
 | 品牌 | 说明 |
 | --- | --- |
@@ -47,7 +47,7 @@ scripts/world.sh start | stop | status | logs
 
 ### 2D 形象
 
-- 鲸鱼娘的立绘来自“蓝色大肥鱼”公开存档里 @MX1951 的投稿，投稿者标注为 CC0。来源和说明见 [`app/frontend/assets/CREDITS.md`](app/frontend/assets/CREDITS.md)。
+- 大肥鱼的立绘来自“蓝色大肥鱼”公开存档里 @MX1951 的投稿，投稿者标注为 CC0。来源和说明见 [`app/frontend/assets/CREDITS.md`](app/frontend/assets/CREDITS.md)。
 - Live2D 用开源渲染器 pixi-live2d-display（MIT）加 Live2D 官方的 Cubism Core。
 - 示例模型 Hiyori 适用 Live2D 免费素材许可（© Live2D Inc.），由脚本下载，不进 git。
 - 中型以上企业正式发布前，需要和 Live2D 签发布许可。
@@ -66,7 +66,7 @@ scripts/world.sh start | stop | status | logs
 app/backend    后端（FastAPI + PostgreSQL + alembic）
 app/frontend   前端（原生 ES 模块，无构建）
 app/e2e        浏览器端到端测试
-data/          本地数据：pgdata/（数据库）、models/（语音、Live2D）、训练数据；不进 git
+data/          数据：sources/（数据源代码，进 git）；pgdata/（数据库）、models/（语音、Live2D）、训练数据只在本地
 model/ krino/  KRINO Matrix 模型与评估接口
 scripts/       world.sh、fetch_assets.py、训练与评测
 docs/          架构（ARCHITECTURE.md）、品牌素材、产品哲学
@@ -92,4 +92,4 @@ archive/       已下线的决策导航
 - PixiJS、pixi-live2d-display：MIT；
 - Live2D Cubism Core：Live2D 专有许可（可再分发）；
 - Kokoro：Apache-2.0；
-- 鲸鱼娘立绘：CC0（投稿者标注）。
+- 大肥鱼立绘：CC0（投稿者标注）。

@@ -1,6 +1,6 @@
 # data
 
-构建和检查 Krino Matrix 数据集的脚本，以及 sagax 数据查询示例。脚本进 git；数据集、数据库和评测输出只在本地（git 忽略）。
+构建和检查 Krino Matrix 数据集的脚本、数据源代码（`sources/`：DataSource / Query 接口与 sagax 数据源），以及 sagax 数据查询示例。脚本进 git；数据集、数据库和评测输出只在本地（git 忽略）。
 
 | 脚本 | 作用 |
 |---|---|

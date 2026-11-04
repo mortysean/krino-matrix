@@ -47,7 +47,7 @@ const user = "e2e" + Date.now().toString(36);
 
 console.log(`KRINO WORLD e2e → ${URL_}`);
 
-await step("注册并进入，默认角色是鲸鱼娘", async () => {
+await step("注册并进入，默认角色是大肥鱼", async () => {
   await page.goto(URL_);
   await page.waitForSelector("#auth:not(.hidden)", { timeout: 15000 });
   await shot("01-auth");
@@ -55,14 +55,14 @@ await step("注册并进入，默认角色是鲸鱼娘", async () => {
   await page.fill("[name=password]", "secret123");
   await page.click("[data-action=register]");
   await page.waitForSelector("#app:not(.hidden)", { timeout: 15000 });
-  await page.waitForFunction(() => document.querySelector("#chat-name")?.textContent === "鲸鱼娘", null, { timeout: 10000 })
+  await page.waitForFunction(() => document.querySelector("#chat-name")?.textContent === "大肥鱼", null, { timeout: 10000 })
     .catch(async () => { throw new Error("默认角色名不对：" + await page.textContent("#chat-name")); });
   expect(await page.locator(".nav button").count() === 4, "导航应该只有 4 项");
 });
 
 await step("2D 立绘显示", async () => {
   await page.waitForFunction(() => document.querySelector(".portrait img")?.complete && document.querySelector(".portrait img").naturalWidth > 0, null, { timeout: 15000 });
-  expect((await page.getAttribute(".portrait img", "src")).includes("whale-girl"), "不是鲸鱼娘立绘");
+  expect((await page.getAttribute(".portrait img", "src")).includes("whale-girl"), "不是大肥鱼立绘");
   await shot("02-home");
 });
 
@@ -106,7 +106,7 @@ await step("角色页：改说话方式 → 表达变化；换 Live2D 形象", a
   await page.click('.nav [data-view="persona"]');
   await page.waitForSelector("[data-p=speech]");
   await shot("06-persona");
-  await page.fill("[data-p=speech]", "- 口头禅「收到，领航员出发」");
+  await page.fill("[data-p=speech]", "- 口头禅「收到，开饭开饭」");
   await page.click('.portrait-opt[data-portrait*="live2d"]');
   await page.click("#p-save");
   await page.waitForFunction(() => !document.querySelector("#toast").classList.contains("hidden"), null, { timeout: 10000 });
@@ -116,7 +116,7 @@ await step("角色页：改说话方式 → 表达变化；换 Live2D 形象", a
   await shot("07-live2d");
   await page.fill("#chat-input", "在做什么呢");
   await page.press("#chat-input", "Enter");
-  await page.waitForFunction(() => /领航员出发/.test(document.querySelector(".msg.assistant:last-of-type .bubble")?.textContent || ""), null, { timeout: 30000 });
+  await page.waitForFunction(() => /开饭开饭/.test(document.querySelector(".msg.assistant:last-of-type .bubble")?.textContent || ""), null, { timeout: 30000 });
   // 换回立绘
   await page.click('.nav [data-view="persona"]');
   await page.waitForSelector('.portrait-opt[data-portrait*="whale-girl"]');
@@ -133,7 +133,7 @@ await step("工坊：没有重复，一键领养后直接去聊天", async () =>
   await shot("08-workshop");
   await page.locator("#ws-grid [data-adopt]").first().click();
   await page.waitForSelector("#view-chat:not(.hidden)", { timeout: 15000 });
-  expect((await page.textContent("#chat-name")) !== "鲸鱼娘", "领养后没切到新角色");
+  expect((await page.textContent("#chat-name")) !== "大肥鱼", "领养后没切到新角色");
   await shot("09-adopted");
 });
 
