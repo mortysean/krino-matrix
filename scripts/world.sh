@@ -49,6 +49,15 @@ load_env() {  # 从 .env 读 HOST / PORT（环境变量优先）
   HOST="${HOST:-127.0.0.1}"; PORT="${PORT:-8630}"
 }
 
+urls() {  # 浏览器能打开的地址：监听 0.0.0.0 时列出局域网 IP
+  case "$HOST" in
+    0.0.0.0|::) local ip out="http://127.0.0.1:$PORT"
+                for ip in $(hostname -I 2>/dev/null); do [[ "$ip" == *:* ]] || out+="  http://$ip:$PORT"; done
+                echo "$out" ;;
+    *) echo "http://$HOST:$PORT" ;;
+  esac
+}
+
 # ---------- 数据库 ----------
 PSQL() { "$(pg_bin)/psql" -h localhost -p "$PGPORT" -U postgres "$@"; }
 pg_running() { "$(pg_bin)/pg_ctl" -D "$PGDATA" status >/dev/null 2>&1; }
@@ -93,7 +102,7 @@ cmd_run() {
   load_env
   local started=0
   if [ "${WORLD_MANAGE_PG:-1}" = 1 ] && ! pg_running; then pg_start; started=1; fi
-  log "KRINO WORLD：http://$HOST:$PORT"
+  log "KRINO WORLD：$(urls)"
   cd "$ROOT/backend"
   set +e
   "$PY" -m uvicorn app.main:app --host "$HOST" --port "$PORT" --workers 1 "${reload[@]}"
@@ -111,7 +120,7 @@ cmd_start() {
   echo $! >"$RUN/world.pid"
   local i
   for i in $(seq 1 40); do
-    if curl -s --noproxy '*' -o /dev/null "http://$HOST:$PORT/api/health"; then log "已启动：http://$HOST:$PORT"; return; fi
+    if curl -s --max-time 1 --noproxy '*' -o /dev/null "http://$HOST:$PORT/api/health"; then log "已启动：$(urls)"; return; fi
     sleep 0.5
   done
   log "启动超时，看看日志：$0 logs"; exit 1
@@ -125,7 +134,7 @@ cmd_stop() {
     load_env
     local i  # 等端口真正空出来，否则紧接着的 start 会把旧进程当成新启动的
     for i in $(seq 1 20); do
-      curl -s --noproxy '*' -o /dev/null "http://$HOST:$PORT/api/health" || break
+      curl -s --max-time 1 --noproxy '*' -o /dev/null "http://$HOST:$PORT/api/health" || break
       sleep 0.5
     done
     log "已停止"
@@ -136,7 +145,7 @@ cmd_stop() {
 
 cmd_status() {
   load_env
-  if curl -s --noproxy '*' "http://$HOST:$PORT/api/health"; then echo; else log "服务没有响应（http://$HOST:$PORT）"; fi
+  if curl -s --max-time 2 --noproxy '*' "http://$HOST:$PORT/api/health"; then echo; else log "服务没有响应（http://$HOST:$PORT）"; fi
   pg_running && log "PostgreSQL 运行中（端口 $PGPORT）" || log "PostgreSQL 未运行"
 }
 
