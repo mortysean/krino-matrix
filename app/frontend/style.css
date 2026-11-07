@@ -686,3 +686,6 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 
 /* 眼镜模拟器：输入框单独一行，不被按钮挤窄 */
 .glasses .g-text { width: 100%; margin: 10px 0 0; }
+
+/* 录音时麦克风按钮跟着音量亮起来 */
+#mic-btn.listening { box-shadow: 0 0 0 calc(2px + var(--lv, 0) * 10px) color-mix(in srgb, var(--char, #1414a8) 45%, transparent); transition: box-shadow .08s linear; }

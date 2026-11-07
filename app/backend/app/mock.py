@@ -74,6 +74,8 @@ class MockLLM:
 
     def _text(self, system: str, messages: list[dict], ctx: dict) -> str:
         task = ctx.get("task")
+        if ctx.get("audio"):  # 离线模拟“直接听”：假装听到了一句话
+            return "嗯，我听见了，你的声音听起来挺有精神。\n<heard>（模拟听到的话）你好呀，今天过得怎么样</heard>" + _state("happy", "nod")
         if task == "extract":
             from .config import locale
 

@@ -56,3 +56,32 @@ def test_openrouter_gets_tool_and_falls_back(monkeypatch):
     fail[0] = True
     r = o.complete(system="s", messages=[{"role": "user", "content": "天气"}], context={"web": True, "sources": []})
     assert r.text == "小雨" and seen[-2] and seen[-1] is None
+
+
+def _wav(seconds=1.0):
+    import io
+    import wave
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000)
+        w.writeframes(b"\x00\x00" * int(16000 * seconds))
+    import base64
+    return "data:audio/wav;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+def test_she_hears_voice_directly(user):
+    """语音：录音直接交给能听的模型，不先转文字；她听到的原话存成你这句话，<heard> 不出现在回复里，也不会被念出来。"""
+    k = user.krino["id"]
+    sid = user.session(k)
+    assert user.ok("get", "/api/voice/config")["hear"] is True
+    r = user.post(f"/api/sessions/{sid}/stream", json={"audio": _wav(), "character_id": k})
+    assert r.status_code == 200
+    body = r.text
+    assert "<heard>" not in body.split("event: done")[0]  # 流式文字里没有
+    done = json.loads(body.split("event: done\ndata: ")[1].split("\n")[0])
+    assert done["user"]["content"].startswith("（模拟听到的话）") and done["user"]["meta"]["audio"] is True
+    assert "我听见了" in done["reply"]["content"] and "heard" not in done["reply"]["content"]
+    # 不是 WAV、太长、什么都没有：拒绝
+    assert user.post(f"/api/sessions/{sid}/stream", json={"audio": "data:audio/wav;base64,AAAA", "character_id": k}).status_code == 400
+    assert user.post(f"/api/sessions/{sid}/stream", json={"audio": _wav(70), "character_id": k}).status_code == 413
+    assert user.post(f"/api/sessions/{sid}/stream", json={"character_id": k}).status_code == 400

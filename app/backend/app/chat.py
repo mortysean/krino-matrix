@@ -31,10 +31,10 @@ from .auth import current_user, user_settings
 from .config import chat_model_for, locale, settings
 from .db import SessionLocal, get_db
 from .i18n import tr
-from .llm import LLMError, get_llm
+from .llm import LLMError, get_hear_llm, get_llm
 from .models import Character, ChatSession, MemoryJob, Message, User, now
 from .personas import ANIMATIONS, EXPRESSIONS, get_owned, lore_hits
-from .prompt import StreamFilter, build_system, parse_reply
+from .prompt import StreamFilter, build_system, parse_reply, prompt_heard
 from .text import compact
 
 log = logging.getLogger("krino.chat")
@@ -70,6 +70,24 @@ class Plan:
     perception: str | None = None
     fixed_text: str | None = None    # 不调模型时的固定台词（请求画面）
     event_type: str = "message"
+    audio: bool = False              # 这一轮是语音：录音在 llm_context["audio"]，交给能直接听的模型
+
+
+def decode_audio(data_url: str) -> str:
+    """录音：浏览器录好的 16kHz 单声道 WAV（data URL）→ base64。太长、不是 WAV 的拒绝。"""
+    m = re.fullmatch(r"data:audio/(?:wav|x-wav|wave);base64,([A-Za-z0-9+/=\s]+)", data_url.strip())
+    if not m:
+        raise HTTPException(400, "录音格式不对")
+    b64 = re.sub(r"\s+", "", m.group(1))
+    try:
+        raw = base64.b64decode(b64, validate=True)
+    except ValueError as e:
+        raise HTTPException(400, "录音格式不对") from e
+    if raw[:4] != b"RIFF" or raw[8:12] != b"WAVE":
+        raise HTTPException(400, "录音格式不对")
+    if len(raw) > settings.hear_max_seconds * 16000 * 2 + 4096:
+        raise HTTPException(413, f"一次最多说 {settings.hear_max_seconds} 秒")
+    return b64
 
 
 def decode_image(data_url: str | None) -> tuple[bytes, str] | None:
@@ -221,6 +239,14 @@ def finalize(db: Session, p: Plan, raw: str) -> dict:
     user = db.get(User, p.user_id)
     parsed = parse_reply(raw, char) if raw else None
     text = parsed.text if parsed else (p.fixed_text or "")
+    if p.audio and p.user_message_id:  # 语音：把她听到的原话存成你这句话（对话记录、记忆整理、标题都用它）
+        um = db.get(Message, p.user_message_id)
+        heard = parsed.heard if parsed else ""
+        if um is not None:
+            um.content = heard or tr("（语音，没听清）")
+            um.meta = {**(um.meta or {}), "audio": True, "heard": bool(heard)}
+            if sess.title in (None, "", tr("（语音）")):
+                sess.title = um.content[:30]
     acts = _actions(p, char, text, parsed.expression if parsed else None, parsed.cues if parsed else None, user.settings,
                     parsed.animation if parsed else None)
     reply = None
@@ -262,8 +288,22 @@ def finalize(db: Session, p: Plan, raw: str) -> dict:
             "actions": acts, "decision": p.decision.as_dict(), "memory_job": job.id if job else None, "ar": ar}
 
 
+def hear_turn(p: Plan, audio_b64: str) -> None:
+    """把这一轮改成“她直接听”：录音交给能听的模型（回复后在 finalize 里用她听到的原话替换你这句话）。"""
+    if p.mode != "respond":
+        return
+    p.audio = True
+    p.llm_context.update({"audio": audio_b64, "lang": locale(), "web": False})
+    p.system += "\n\n" + prompt_heard()
+
+
 def run_turn(db: Session, p: Plan) -> dict:
     raw = ""
+    if p.mode and p.audio:  # 听的模型只有流式接口：收齐再收尾
+        t0 = time.perf_counter()
+        raw = "".join((get_hear_llm() or get_llm()).stream(system=p.system, messages=p.history, context=p.llm_context))
+        events.record("llm", "hear", user_id=p.user_id, character_id=p.character_id, latency_ms=(time.perf_counter() - t0) * 1000)
+        return finalize(db, p, raw)
     if p.mode:
         t0 = time.perf_counter()
         r = get_llm().complete(system=p.system, messages=p.history, context=p.llm_context)
@@ -283,7 +323,8 @@ def stream_turn(p: Plan) -> Iterator[str]:
     try:
         if p.mode:
             f = StreamFilter()
-            for chunk in get_llm().stream(system=p.system, messages=p.history, context=p.llm_context):
+            llm = (get_hear_llm() or get_llm()) if p.audio else get_llm()
+            for chunk in llm.stream(system=p.system, messages=p.history, context=p.llm_context):
                 raw += chunk
                 if out := f.feed(chunk):
                     yield sse("delta", {"text": out})
@@ -397,7 +438,8 @@ class SessionIn(BaseModel):
 
 
 class MessageIn(BaseModel):
-    text: str = Field(min_length=1, max_length=4000)
+    text: str = Field(default="", max_length=4000)
+    audio: str | None = Field(default=None, max_length=6_000_000)  # 录音（data:audio/wav;base64,…）：她直接听，不先转文字
     image: str | None = Field(default=None, max_length=8_000_000)  # data URL
     source: str = Field(default="app", pattern="^(app|voice|glasses)$")
     character_id: str | None = Field(default=None, max_length=32)  # 页面上正在聊的角色：和会话对不上就拒绝，防止串到别的角色
@@ -448,6 +490,8 @@ def send(sid: str, body: MessageIn, user: User = Depends(current_user), db: Sess
     credits.check(db, user)
     s = _open(db, user, sid)
     _same_character(s, body.character_id)
+    if not body.text.strip() and not body.image:
+        raise HTTPException(400, "说点什么吧")  # 语音走 /stream
     p = plan_turn(db, user, s, event="message", text=body.text.strip(), image=decode_image(body.image), source=body.source)
     try:
         return run_turn(db, p)
@@ -462,7 +506,13 @@ def send_stream(sid: str, body: MessageIn, user: User = Depends(current_user), d
     credits.check(db, user)
     s = _open(db, user, sid)
     _same_character(s, body.character_id)
-    p = plan_turn(db, user, s, event="message", text=body.text.strip(), image=decode_image(body.image), source=body.source)
+    audio = decode_audio(body.audio) if body.audio else None
+    if not body.text.strip() and not audio and not body.image:
+        raise HTTPException(400, "说点什么吧")
+    text = body.text.strip() or (tr("（语音）") if audio else "")
+    p = plan_turn(db, user, s, event="message", text=text, image=decode_image(body.image), source="voice" if audio else body.source)
+    if audio:  # 让她直接听这段录音
+        hear_turn(p, audio)
     db.commit()  # 用户消息先落库，流式生成在另一个数据库会话里收尾
     return StreamingResponse(stream_turn(p), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

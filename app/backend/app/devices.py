@@ -3,7 +3,7 @@
 当前没有真实眼镜通信。首版用浏览器的摄像头、麦克风和一个 3D 场景模拟器（前端“眼镜模拟器”页）当作设备，
 通过 WebSocket 接入；以后接入设备 SDK 时，新写一个 DeviceAdapter 子类注册到 ADAPTERS 即可。
 
-    设备输入  camera.frame / mic.text / imu.pose / heartbeat   → 互动流程（chat.py）
+    设备输入  camera.frame / mic.text / mic.audio（她直接听）/ imu.pose / heartbeat   → 互动流程（chat.py）
     设备输出  AR 显示事件（结构化、白名单、有范围限制）         ← 角色行为（say / emote / animate / …）
 模型不会直接操作渲染：AR 事件只由 present() 根据已经执行的行为生成，并在发出前逐条校验。
 """
@@ -259,10 +259,15 @@ def _handle_input(conn: Connection, msg: dict) -> dict | None:
             img = chat.decode_image(msg.get("image"))
             p = chat.plan_turn(db, user, sess, event="perception", text=str(msg.get("question") or "")[:200],
                                image=img, source="glasses")
+        elif msg["type"] == "mic.audio":  # 眼镜的麦克风：她直接听
+            audio = chat.decode_audio(str(msg.get("audio") or ""))
+            p = chat.plan_turn(db, user, sess, event="message", text=chat.tr("（语音）"), source="glasses")
+            chat.hear_turn(p, audio)
         else:
             p = chat.plan_turn(db, user, sess, event="message", text=str(msg.get("text") or "")[:1000], source="glasses")
         r = chat.run_turn(db, p)
         return {"type": "result", "session_id": sess.id, "reply": (r["reply"] or {}).get("content"),
+                "heard": (r.get("user") or {}).get("content") if msg["type"] == "mic.audio" else None,
                 "actions": r["actions"], "decision": {"actions": p.decision.actions(), "label": p.decision.label}}
     except Exception as e:  # noqa: BLE001  设备输入出错只回报，不断开
         log.exception("设备输入处理失败")
@@ -319,7 +324,7 @@ async def ws(websocket: WebSocket, token: str = "", kind: str = "glasses-sim"):
             elif t == "imu.pose":
                 conn.pose = {"yaw": _clamp(msg.get("yaw"), -180, 180), "pitch": _clamp(msg.get("pitch"), -90, 90),
                              "roll": _clamp(msg.get("roll"), -90, 90)}
-            elif t in ("camera.frame", "mic.text"):
+            elif t in ("camera.frame", "mic.text", "mic.audio"):
                 events.record("device", t, user_id=user.id, character_id=conn.character_id,
                               payload={"has_image": bool(msg.get("image")), "chars": len(str(msg.get("text") or ""))})
                 await websocket.send_json({"type": "busy"})

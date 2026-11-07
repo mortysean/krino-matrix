@@ -133,3 +133,66 @@ function browserSpeak(text, rate, pitch) {
   speechSynthesis.speak(u);
   return { done };
 }
+
+// ---------- 直接听：录下你的声音（16kHz 单声道 WAV），整段交给她，不先转成文字 ----------
+export async function canHear() {
+  if (pref("stt") === "off") return false;
+  return !!(await voiceConfig()).hear && !!navigator.mediaDevices?.getUserMedia && !!(window.AudioContext || window.webkitAudioContext);
+}
+
+// 开始录音；返回 { stop() → data URL, cancel(), level() → 0~1 的音量（给按钮做动画） }
+export async function record({ maxSeconds = 60, onLimit } = {}) {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ac = new AC();
+  const src = ac.createMediaStreamSource(stream);
+  const node = ac.createScriptProcessor(4096, 1, 1);
+  const chunks = [];
+  let level = 0, total = 0, done = false;
+  node.onaudioprocess = (e) => {
+    if (done) return;
+    const d = e.inputBuffer.getChannelData(0);
+    chunks.push(new Float32Array(d));
+    total += d.length;
+    let peak = 0; for (let i = 0; i < d.length; i += 64) peak = Math.max(peak, Math.abs(d[i]));
+    level = level * 0.6 + peak * 0.4;
+    if (total / ac.sampleRate >= maxSeconds) onLimit?.();
+  };
+  src.connect(node); node.connect(ac.destination);
+  const close = () => { done = true; node.disconnect(); src.disconnect(); stream.getTracks().forEach((t) => t.stop()); ac.close().catch(() => {}); };
+  return {
+    level: () => Math.min(1, level * 3),
+    cancel: close,
+    stop() {
+      const rate = ac.sampleRate;
+      close();
+      if (total < rate * 0.4) return null;  // 不到半秒：当作没说
+      const all = new Float32Array(total); let o = 0;
+      for (const c of chunks) { all.set(c, o); o += c.length; }
+      return toWav(downsample(all, rate, 16000), 16000);
+    },
+  };
+}
+
+function downsample(buf, from, to) {
+  if (from === to) return buf;
+  const ratio = from / to, out = new Float32Array(Math.floor(buf.length / ratio));
+  for (let i = 0; i < out.length; i++) {  // 简单的区间平均，够说话用
+    const a = Math.floor(i * ratio), b = Math.min(buf.length, Math.floor((i + 1) * ratio));
+    let s = 0; for (let j = a; j < b; j++) s += buf[j];
+    out[i] = s / Math.max(1, b - a);
+  }
+  return out;
+}
+
+function toWav(samples, rate) {
+  const buf = new ArrayBuffer(44 + samples.length * 2), v = new DataView(buf);
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, "RIFF"); v.setUint32(4, 36 + samples.length * 2, true); w(8, "WAVE"); w(12, "fmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true);
+  v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, samples[i])) * 0x7fff, true);
+  let bin = ""; const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return "data:audio/wav;base64," + btoa(bin);
+}

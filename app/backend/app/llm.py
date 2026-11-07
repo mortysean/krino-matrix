@@ -165,6 +165,82 @@ class OpenRouterLLM:
             raise LLMError("无法连接模型服务") from e
 
 
+class OmniLLM:
+    """“直接听”：百炼 Qwen-Omni（OpenAI 兼容接口）。最后一条用户消息换成录音（context["audio"]，WAV 的 base64），
+    人设、记忆、前面的对话照常是文字。只用来回应语音，打字聊天不走这里。"""
+
+    name = "omni"
+
+    def __init__(self) -> None:
+        self._client = httpx.Client(base_url=settings.dashscope_base_url.replace("/api/v1", "/compatible-mode/v1").rstrip("/"),
+                                    timeout=httpx.Timeout(settings.llm_timeout_s, connect=10))
+
+    def stream(self, *, system: str, messages: list[dict], max_tokens: int | None = None,
+               context: dict | None = None) -> Iterator[str]:
+        ctx = context or {}
+        msgs = [{"role": "system", "content": system}, *messages]
+        audio = ctx.get("audio")
+        if audio:
+            note = "（这是对方刚说的话，语音）" if ctx.get("lang") != "en" else "(what they just said, as audio)"
+            msgs[-1] = {"role": "user", "content": [{"type": "input_audio", "input_audio": {"data": "data:;base64," + audio, "format": "wav"}},
+                                                    {"type": "text", "text": note}]}
+        body = {"model": settings.hear_model, "messages": msgs, "stream": True, "stream_options": {"include_usage": True},
+                "modalities": ["text"], "max_tokens": max_tokens or settings.llm_max_tokens}
+        usage = None
+        try:
+            with self._client.stream("POST", "/chat/completions", json=body,
+                                     headers={"Authorization": f"Bearer {settings.dashscope_api_key}"}) as resp:
+                if resp.status_code != 200:
+                    resp.read()
+                    log.error("Qwen-Omni %s: %s", resp.status_code, resp.text[:300])
+                    raise LLMError({429: "听不过来了，请稍后再说一次"}.get(resp.status_code, f"听的服务出错（{resp.status_code}）"))
+                for line in resp.iter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    payload = line[5:].strip()
+                    if payload == "[DONE]":
+                        break
+                    try:
+                        data = json.loads(payload)
+                    except ValueError:
+                        continue
+                    usage = data.get("usage") or usage
+                    for ch in data.get("choices") or []:
+                        delta = (ch.get("delta") or {}).get("content")
+                        if delta:
+                            yield delta
+        except httpx.TimeoutException as e:
+            raise LLMError("听的服务响应超时，请再说一次") from e
+        except httpx.HTTPError as e:
+            raise LLMError("无法连接听的服务") from e
+        if usage:
+            details = usage.get("prompt_tokens_details") or {}
+            audio_t = details.get("audio_tokens") or 0
+            text_t = (usage.get("prompt_tokens") or 0) - audio_t
+            cny = (text_t * settings.hear_price_text_in + audio_t * settings.hear_price_audio_in
+                   + (usage.get("completion_tokens") or 0) * settings.hear_price_out) / 1_000_000
+            credits.charge(ctx.get("payer"), "hear", cny, model=settings.hear_model, audio_tokens=audio_t)
+
+
+def hear_ready() -> bool:
+    return settings.hear_provider == "mock" or (settings.hear_provider == "dashscope" and bool(settings.dashscope_api_key))
+
+
+_hear: OmniLLM | None = None
+
+
+def get_hear_llm():
+    """能直接听的模型；没配置就返回 None（前端退回“先识别成文字”）。"""
+    global _hear
+    if settings.hear_provider == "mock" or (settings.hear_provider != "off" and settings.llm_provider == "mock"):
+        from .mock import MockLLM
+        return MockLLM()
+    if not hear_ready():
+        return None
+    _hear = _hear or OmniLLM()
+    return _hear
+
+
 _llm: LLM | None = None
 
 

@@ -692,5 +692,11 @@
   "「{name}」换好了：性格、样子和声音都是新的。之前的版本在“更多 → 历史版本”里": "“{name}” is updated: new personality, look and voice. Older versions are under More → History.",
   "欢迎 {name}！性格、样子和声音都好了，在这里可以接着改": "Welcome, {name}! Personality, look and voice are ready. Keep tweaking here.",
   "对着眼镜说一句话，回车发送": "Say something to the glasses, press Enter to send",
-  "先在上面写一句话，或者点“用麦克风说”": "Type something above first, or tap “Speak”"
+  "先在上面写一句话，或者点“用麦克风说”": "Type something above first, or tap “Speak”",
+  "🎙 语音": "🎙 Voice",
+  "她在听……说完再点一下": "She's listening… tap again when you're done",
+  "（语音）": "(voice)",
+  "（语音，没听清）": "(voice, couldn't make it out)",
+  "她听到的：{text}": "She heard: {text}",
+  "录音": "recording"
 }

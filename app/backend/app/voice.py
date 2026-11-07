@@ -404,7 +404,10 @@ def describe_image(data: bytes, mime: str, question: str = "") -> str:
 @router.get("/voice/config")
 def voice_config(user: User = Depends(current_user)):
     """前端据此决定用浏览器还是服务端。"""
-    return {"stt": {"provider": settings.stt_provider, "server": settings.stt_provider in ("openai", "mock")},
+    from .llm import get_hear_llm
+
+    return {"hear": get_hear_llm() is not None,  # 能直接听：麦克风录音直接发给她，不先转文字
+            "stt": {"provider": settings.stt_provider, "server": settings.stt_provider in ("openai", "mock")},
             "tts": _tts_config(),
             "vlm": {"provider": settings.vlm_provider, "simulated": settings.vlm_provider != "openai"}}
 

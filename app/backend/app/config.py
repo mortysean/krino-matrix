@@ -88,6 +88,15 @@ class Settings:
     llm_timeout_s: float = field(default_factory=lambda: _float("LLM_TIMEOUT_S", 60))
     # 角色可选的聊天模型（白名单，第一个是默认）。后台任务（记忆整理、摘要）始终用 LLM_MODEL
     llm_character_models: tuple[str, ...] = field(default_factory=lambda: _list("LLM_CHARACTER_MODELS", DEFAULT_LLM))
+    # 直接听：按麦克风说话时，录音直接交给全模态模型（百炼 Qwen-Omni），她听得见语气和情绪，不先转成文字。
+    # dashscope = 开（共用 DASHSCOPE_API_KEY）| off = 关（退回“先识别成文字”）。打字聊天不受影响，照旧用 LLM_MODEL
+    hear_provider: str = field(default_factory=lambda: _env("HEAR_PROVIDER", "dashscope"))
+    hear_model: str = field(default_factory=lambda: _env("HEAR_MODEL", "qwen3-omni-flash"))
+    hear_max_seconds: int = field(default_factory=lambda: _int("HEAR_MAX_SECONDS", 60))
+    # 价格（元 / 百万 token，按百炼北京价估算；用来记积分）
+    hear_price_text_in: float = field(default_factory=lambda: _float("HEAR_PRICE_TEXT_IN", 3.2))
+    hear_price_audio_in: float = field(default_factory=lambda: _float("HEAR_PRICE_AUDIO_IN", 15.8))
+    hear_price_out: float = field(default_factory=lambda: _float("HEAR_PRICE_OUT", 12.7))
     # 联网：聊天时给模型一个搜索工具（OpenRouter 的 openrouter:web_search，服务端执行），她觉得需要时才查。off = 关
     web_search: str = field(default_factory=lambda: _env("WEB_SEARCH", "exa"))            # exa | parallel | perplexity | auto | off
     web_search_results: int = field(default_factory=lambda: _int("WEB_SEARCH_RESULTS", 5))  # 每次搜几条

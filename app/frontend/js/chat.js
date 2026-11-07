@@ -5,7 +5,7 @@
 import { $, $$, S, api, avaHTML, bus, curChar, esc, fail, ripple, storeGet, storeSet, t, toast, tr } from "./core.js";
 import { createStage } from "./stage.js";
 import { ICON } from "./icons.js";
-import { listen, speak, stopSpeaking, sttAvailable } from "./voice.js";
+import { canHear, listen, record, speak, stopSpeaking, sttAvailable } from "./voice.js";
 import { renderDrawer, refreshAsks } from "./memory.js";
 
 const GESTURES = [["wave", "挥手"], ["pat_head", "摸摸头"], ["high_five", "击掌"], ["poke", "戳一下"], ["cheer_up", "加油"]];
@@ -214,11 +214,11 @@ async function watchJob(jobId, replyId) {
 }
 
 // ---------- 发送（流式） ----------
-async function send(text, { source = "app" } = {}) {
+async function send(text, { source = "app", audio = null } = {}) {
   if (C.pending) return;
   text = (text || "").trim();
-  if (!text && !C.image) return;
-  text ||= t("你看看这个");
+  if (!text && !C.image && !audio) return;
+  if (!audio) text ||= t("你看看这个");
   activity();
   stopSpeaking();
   C.pending = true;
@@ -228,11 +228,11 @@ async function send(text, { source = "app" } = {}) {
     const sid = C.session.id, cid = S.charId;
     const here = () => C.session?.id === sid && S.charId === cid;  // 还在同一个角色的同一段对话里
     const image = C.image; clearImage();
-    C.session.messages.push({ id: "tmp", role: "user", content: text, meta: { image: !!image, source } });
+    C.session.messages.push({ id: "tmp", role: "user", content: audio ? t("🎙 语音") : text, meta: { image: !!image, source, audio: !!audio } });
     renderMessages();
     if ($("#chat-input").value.trim() === text) $("#chat-input").value = "";
     C.stage?.play("think").catch(() => {});
-    const res = await api(`/api/sessions/${sid}/stream`, { body: { text, image, source: source === "voice" ? "voice" : "app", character_id: cid }, raw: true });
+    const res = await api(`/api/sessions/${sid}/stream`, { body: { text: audio ? "" : text, audio, image, source: source === "voice" ? "voice" : "app", character_id: cid }, raw: true });
     let live = null, done = null, error = null;
     for await (const [ev, data] of sse(res)) {
       if (ev === "delta" && here()) {
@@ -264,7 +264,7 @@ async function send(text, { source = "app" } = {}) {
     if (e.status === 409) loadSession().catch(() => {});  // 后端发现会话和角色对不上：重新加载当前角色的会话
     if (C.session?.messages?.at(-1)?.id === "tmp") C.session.messages.pop();
     renderMessages();
-    $("#chat-input").value = text;
+    if (!audio) $("#chat-input").value = text;
     C.stage?.setExpression("worried");
     fail(e);
   } finally {
@@ -334,7 +334,25 @@ function micIdle() { $("#mic-btn").classList.remove("listening"); $("#mic-btn").
 async function toggleMic() {
   if (C.listening) {
     const l = C.listening; C.listening = null; micIdle();
+    if (l.hear) {  // 直接听：整段录音交给她
+      const audio = l.stop();
+      if (audio) send("", { source: "voice", audio }); else toast("没听清，再说一次？");
+      return;
+    }
     try { const text = await l.stop(); if (text) send(text, { source: "voice" }); else toast("没听清，再说一次？"); } catch (e) { fail(e); }
+    return;
+  }
+  if (await canHear()) {
+    stopSpeaking();
+    try {
+      const rec = await record({ maxSeconds: 60, onLimit: () => C.listening === live && toggleMic() });
+      const live = { hear: true, stop: rec.stop, cancel: rec.cancel };
+      C.listening = live;
+      $("#mic-btn").classList.add("listening"); $("#mic-btn").innerHTML = ICON.stop;
+      $("#mic-btn").title = t("她在听……说完再点一下");
+      const tick = setInterval(() => { if (C.listening !== live) return clearInterval(tick); $("#mic-btn").style.setProperty("--lv", rec.level().toFixed(2)); }, 80);
+      C.stage?.setExpression("focused");
+    } catch (e) { C.listening = null; micIdle(); fail(e.name === "NotAllowedError" ? new Error(t("没有麦克风权限：请在浏览器地址栏允许麦克风")) : e); }
     return;
   }
   const a = await sttAvailable();

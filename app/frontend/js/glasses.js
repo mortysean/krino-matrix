@@ -3,7 +3,7 @@
 //   输出  ar.avatar / ar.subtitle / ar.panel / ar.clear —— 结构化事件，画在“镜片”叠加层上
 // 摄像头和麦克风只在你点了按钮、浏览器授权后才打开；离开这个页面或断开时立即关闭。
 import { $, $$, S, api, curChar, esc, fail, t, toast, tr } from "./core.js";
-import { listen, sttAvailable } from "./voice.js";
+import { canHear, listen, record, sttAvailable } from "./voice.js";
 import { createStage } from "./stage.js";
 import { getLocale } from "./i18n.js";
 
@@ -25,7 +25,7 @@ function send(msg) {
     return;
   }
   G.ws.send(JSON.stringify(msg));
-  log("in", msg.type + (msg.text ? " " + msg.text : "") + (msg.image ? " [" + t("画面") + "]" : msg.type === "imu.pose" ? ` yaw=${msg.yaw} pitch=${msg.pitch}` : ""));
+  log("in", msg.type + (msg.text ? " " + msg.text : "") + (msg.image ? " [" + t("画面") + "]" : msg.audio ? " [" + t("录音") + "]" : msg.type === "imu.pose" ? ` yaw=${msg.yaw} pitch=${msg.pitch}` : ""));
 }
 
 function connect() {
@@ -51,7 +51,11 @@ function onMessage(m) {
   else if (m.type === "heartbeat") { G.state = m.state; renderState(); }
   else if (m.type === "busy") { G.busy = true; renderState(); }
   else if (m.type === "ar") { m.events.forEach(applyAR); log("out", "ar " + m.events.map((e) => e.type).join(", ")); }
-  else if (m.type === "result") { G.busy = false; renderState(); log("out", `result [${m.decision.actions.join("+")}] ${m.reply || t("（安静）")}`); }
+  else if (m.type === "result") {
+    G.busy = false; renderState();
+    if (m.heard) log("in", t("她听到的：{text}", { text: m.heard }));
+    log("out", `result [${m.decision.actions.join("+")}] ${m.reply || t("（安静）")}`);
+  }
   else if (m.type === "error") { G.busy = false; renderState(); log("err", tr(m.message)); toast(m.message, 4000); }
 }
 
@@ -198,6 +202,20 @@ export async function glassesPanel(host) {
   $("#g-test").onclick = () => api("/api/devices/test-ar", { body: {} }).then((r) => !r.sent && toast("先连接模拟器")).catch(fail);
   $("#g-mic").onclick = async () => {
     // 不另设开关：第一次用时浏览器会问你允不允许用麦克风（和聊天页的麦克风一样）
+    if (G.listening?.hear) {  // 直接听：整段录音交给她
+      const l = G.listening; G.listening = null; $("#g-mic").textContent = t("用麦克风说");
+      const audio = l.stop();
+      if (audio) send({ type: "mic.audio", audio }); else toast("没听清，再说一次？");
+      return;
+    }
+    if (!G.listening && await canHear()) {
+      try {
+        const rec = await record({ maxSeconds: 60 });
+        G.listening = { hear: true, stop: rec.stop, cancel: rec.cancel };
+        $("#g-mic").textContent = t("说完了");
+      } catch (e) { fail(e.name === "NotAllowedError" ? new Error(t("没有麦克风权限：请在浏览器地址栏允许麦克风")) : e); }
+      return;
+    }
     if (G.listening) {
       const l = G.listening; G.listening = null; $("#g-mic").textContent = t("用麦克风说");
       try { const said = await l.stop(); if (said) send({ type: "mic.text", text: said }); } catch (e) { fail(e); }

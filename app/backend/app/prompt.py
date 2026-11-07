@@ -26,6 +26,10 @@ TEXT = {
         "user_name": "对方的显示名是「{name}」，除非下面有对方更喜欢的称呼。",
         "about": "## 关于对方（对方亲口说过或确认过的）", "between": "## 你们之间（共同经历与约定）",
         "summary": "## 上次见面（之前会话的摘要，可能不完整）", "current": "## 此刻（临时状态，过一阵会过期）",
+        "heard": ("## 这一轮：对方是用声音和你说话的\n你直接听得到对方的声音：语气、情绪、停顿、笑声、叹气都能听出来。"
+                  "像面对面一样回应，可以自然地回应你听出来的情绪，但不要每次都点评对方的声音。"
+                  "听不清就直说，不要猜。\n输出格式：先写你的回复；回复之后另起一行写 <heard>对方说的原话</heard>（照原样写下来，听不清的地方写……），"
+                  "最后再写 <state> 标签。"),
         "web": "## 上网\n今天是 {date}（{weekday}）。你可以上网查资料：对方问到需要最新或准确信息的事（天气、新闻、比赛、价格、"
                "上映时间、某个具体事实）时再查；闲聊、谈心、讲故事不要查。查到后用你自己的口吻挑重点说，不要贴网址、不要写来源链接、"
                "不要念出“根据搜索结果”这类话。查不到或拿不准就直说。",
@@ -65,6 +69,10 @@ animation 选一个最贴合这句话内容和情绪的动作，让形象鲜活�
         "user_name": "The other person's display name is \"{name}\", unless a preferred name is listed below.",
         "about": "## About them (things they told you or confirmed)", "between": "## You two (shared experiences and promises)",
         "summary": "## Last time (summary of an earlier chat, may be incomplete)", "current": "## Right now (temporary, expires soon)",
+        "heard": ("## This turn: they're talking to you out loud\nYou can hear their voice directly: tone, mood, pauses, laughs, sighs. "
+                  "Respond as if face to face; you can respond to the feeling you hear, but don't comment on their voice every time. "
+                  "If you can't make it out, say so; don't guess.\nFormat: write your reply first; then on a new line write <heard>exactly what they said</heard> "
+                  "(write ... for parts you couldn't make out), and finally the <state> tag."),
         "web": "## The web\nToday is {date} ({weekday}). You can search the web: do it when they ask about something that needs "
                "current or exact facts (weather, news, games, prices, release dates, a specific fact); don't search for small talk, "
                "feelings or stories. Say what you found in your own voice, briefly. No URLs, no source links, no \"according to search "
@@ -105,6 +113,10 @@ No other tags. Memories are handled separately after the chat; you don't and can
 
 def T() -> dict:
     return TEXT[locale()]
+
+
+def prompt_heard() -> str:
+    return T()["heard"]
 
 
 def output_protocol(char: Character) -> str:
@@ -215,6 +227,7 @@ class ParsedReply:
     animation: str | None
     mood: str
     cues: list = field(default_factory=list)  # 括号里写的动作（cues.Cue），由 chat._actions 演出来
+    heard: str = ""  # 语音输入时，模型听到的原话（<heard>）
 
 
 # 联网回答里模型偶尔会带上的来源链接：[nmc.cn](https://...)、(https://...)、裸网址。来源另外显示，正文里去掉
@@ -243,9 +256,14 @@ def parse_reply(raw: str, char: Character) -> ParsedReply:
                 mood = str(data.get("mood") or "")[:16]
         except ValueError:
             pass
-    text = re.sub(r"</?(state|memory)>", "", _STATE_RE.sub("", raw or "")).strip()
+    hm = _HEARD_RE.search(raw or "")
+    heard = re.sub(r"\s+", " ", hm.group(1)).strip()[:2000] if hm else ""
+    text = re.sub(r"</?(state|memory|heard)>", "", _HEARD_RE.sub("", _STATE_RE.sub("", raw or ""))).strip()
     text, found = cues.convert(strip_links(text).strip())
-    return ParsedReply(text=text, expression=expression, animation=animation, mood=mood, cues=found)
+    return ParsedReply(text=text, expression=expression, animation=animation, mood=mood, cues=found, heard=heard)
+
+
+_HEARD_RE = re.compile(r"<heard>(.*?)(?:</heard>|$)", re.S)
 
 
 def _open_link_at(seg: str) -> int:
@@ -270,20 +288,23 @@ class StreamFilter:
 
     def feed(self, chunk: str) -> str:
         self.raw += chunk
-        cut = self.raw.find("<state>")
+        # 已经写完的 <heard>…</heard>（语音输入时模型写下的原话）不管在前在后都整段跳过；没写完的先挡住
+        raw = re.sub(r"<heard>.*?</heard>\s*", "", self.raw, flags=re.S)
+        cuts = [i for i in (raw.find("<state>"), raw.find("<heard>")) if i >= 0]
+        cut = min(cuts) if cuts else -1
         if cut >= 0:
             safe = cut
-        else:  # 末尾可能是半个 "<state>"：先留着不发
-            tail = self.raw.rfind("<")
-            partial = tail >= 0 and "<state>".startswith(self.raw[tail:])
-            safe = tail if partial else len(self.raw)
+        else:  # 末尾可能是半个 "<state>" / "<heard>"：先留着不发
+            tail = raw.rfind("<")
+            partial = tail >= 0 and ("<state>".startswith(raw[tail:]) or "<heard>".startswith(raw[tail:]))
+            safe = tail if partial else len(raw)
         if safe > self.sent:
-            ob = cues.open_bracket_at(self.raw[self.sent:safe])
+            ob = cues.open_bracket_at(raw[self.sent:safe])
             if ob >= 0:
                 safe = self.sent + ob
-            hold = _open_link_at(self.raw[self.sent:safe]) if cut < 0 else -1  # 正文已经写完（到了 <state>）就不再压
+            hold = _open_link_at(raw[self.sent:safe]) if cut < 0 else -1  # 正文已经写完（到了 <state>）就不再压
             if hold >= 0:
                 safe = self.sent + hold
-        out = self.raw[self.sent:safe]
+        out = raw[self.sent:safe]
         self.sent = max(self.sent, safe)
         return cues.convert(strip_links(out), tidy=False)[0]
