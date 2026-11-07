@@ -4,6 +4,8 @@
 #   tts    = vllm-omni 跑 Qwen3-TTS（127.0.0.1:8650，只对本机）
 #   speech = 对外的语音接口（8640）：合成转给 tts，识别用 SenseVoice
 #   image  = 对外的生图接口（8641）
+#   tunnel = 把语音接口反向映射到两台网站服务器的 127.0.0.1:18640（算力服务器在内网，网站服务器连不进来）
+#            用受限密钥 ~/.ssh/krino_tunnel：在网站服务器上只能开这一个端口，不能登录执行命令。断线自动重连。
 set -u
 cd "$(dirname "$0")"
 source ~/miniconda3/etc/profile.d/conda.sh
@@ -16,6 +18,17 @@ GPU_AUX=${GPU_AUX:-4}
 MODELS=$(cd .. && pwd)/models
 LOGS=../logs
 mkdir -p "$LOGS"
+TUNNEL_HOSTS=${TUNNEL_HOSTS:-"ubuntu@43.153.189.97 sean@111.229.152.63"}  # 海外版、国内版
+
+tunnel_loop() {  # 一个网站服务器一个循环：ssh 断了 5 秒后重连
+  local host=$1
+  while true; do
+    env -u LD_LIBRARY_PATH /usr/bin/ssh -N -i ~/.ssh/krino_tunnel -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+      -o StrictHostKeyChecking=accept-new -R 127.0.0.1:18640:127.0.0.1:8640 "$host"
+    echo "$(date '+%F %T') $host 隧道断开，5 秒后重连"
+    sleep 5
+  done
+}
 
 start_one() {
   local name=$1
@@ -28,6 +41,9 @@ start_one() {
       CUDA_VISIBLE_DEVICES=$GPU_AUX nohup python -m uvicorn speech_server:app --host 0.0.0.0 --port 8640 >"$LOGS/speech.log" 2>&1 & ;;
     image)
       CUDA_VISIBLE_DEVICES=$GPU_MAIN,$GPU_AUX nohup python -m uvicorn image_server:app --host 0.0.0.0 --port 8641 >"$LOGS/image.log" 2>&1 & ;;
+    tunnel)
+      (for h in $TUNNEL_HOSTS; do tunnel_loop "$h" & done; wait) >"$LOGS/tunnel.log" 2>&1 &
+      ;;
   esac
   echo $! >"$LOGS/$name.pid"
   echo "$name 启动中，日志 $LOGS/$name.log"
@@ -36,12 +52,13 @@ start_one() {
 stop_one() {
   [ -f "$LOGS/$1.pid" ] || return 0
   local pid; pid=$(cat "$LOGS/$1.pid")
+  [ "$1" = tunnel ] && for c in $(pgrep -P "$pid"); do pkill -TERM -P "$c"; kill "$c"; done 2>/dev/null
   pkill -TERM -P "$pid" 2>/dev/null; kill "$pid" 2>/dev/null && echo "$1 已停止"
   rm -f "$LOGS/$1.pid"
 }
 
 which=${2:-all}
-names=(tts speech image); [ "$which" != all ] && names=("$which")
+names=(tts speech image tunnel); [ "$which" != all ] && names=("$which")
 case ${1:-status} in
   start) for n in "${names[@]}"; do start_one "$n"; done ;;
   stop) for n in "${names[@]}"; do stop_one "$n"; done ;;

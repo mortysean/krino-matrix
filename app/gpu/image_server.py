@@ -61,20 +61,40 @@ SCHEDULER = {
 }
 
 
+@torch.no_grad()
+def _fuse_lora(model, path: Path) -> None:
+    """把 Lightning 的 LoRA 直接加进权重：W += up @ down * alpha / rank。
+    不走 diffusers/peft 的 load_lora_weights：改图模型用那条路合并后会留下空参数（meta tensor），量化时报错。"""
+    from safetensors.torch import load_file
+
+    sd = load_file(str(path))
+    mods = dict(model.named_modules())
+    n = 0
+    for key in sd:
+        if not key.endswith(".lora_down.weight"):
+            continue
+        name = key[: -len(".lora_down.weight")]
+        down, up = sd[key].float(), sd[f"{name}.lora_up.weight"].float()
+        alpha = float(sd.get(f"{name}.alpha", torch.tensor(down.shape[0])))
+        w = mods[name].weight
+        w.add_((up @ down * (alpha / down.shape[0])).to(device=w.device, dtype=w.dtype))
+        n += 1
+    log.info("已合并 %s：%d 层", path.name, n)
+
+
 def _prepare(pipe, lora: str):
     """融合 Lightning 权重 → 量化 → 放到主卡；文本编码器放到副卡，进出数据自动搬到主卡。"""
     from accelerate.hooks import AlignDevicesHook, add_hook_to_module
     from diffusers import FlowMatchEulerDiscreteScheduler
 
     pipe.scheduler = FlowMatchEulerDiscreteScheduler.from_config(SCHEDULER)
-    pipe.load_lora_weights(str(LORA_DIR), weight_name=lora)
-    pipe.fuse_lora()
-    pipe.unload_lora_weights()
     tr = pipe.transformer
+    _fuse_lora(tr, LORA_DIR / lora)
     if QUANT == "fp8":
-        from torchao.quantization import Float8DynamicActivationFloat8WeightConfig, PerRow, quantize_
+        from torchao.quantization import Float8WeightOnlyConfig, quantize_
 
-        quantize_(tr, Float8DynamicActivationFloat8WeightConfig(granularity=PerRow()), device=MAIN)
+        # 只把权重存成 FP8，计算还是 bf16：激活也量化成 FP8 会溢出成 NaN，出全黑图（2026-11-07 实测）
+        quantize_(tr, Float8WeightOnlyConfig(), device=MAIN)
     tr.to(MAIN)
     pipe.vae.to(MAIN)
     te = pipe.text_encoder
@@ -152,7 +172,7 @@ def generation(body: dict, request: Request, authorization: str = Header("")):
     except (KeyError, IndexError, TypeError):
         raise HTTPException(400, "请求格式不对") from None
     params = body.get("parameters") or {}
-    n = max(1, min(4, int(params.get("n", 1))))
+    n = 1  # 只出一张：一个角色一个形象（请求里的 n 忽略）
     w, h = _size(str(params.get("size", "1024*1024")))
     text = " ".join(x["text"] for x in content if x.get("text"))
     refs = [_load_image(x["image"]) for x in content if x.get("image")]
@@ -161,14 +181,15 @@ def generation(body: dict, request: Request, authorization: str = Header("")):
     seed = params.get("seed")
     g = torch.Generator(device=MAIN).manual_seed(int(seed)) if seed is not None else None
     t = time.time()
-    with _lock:  # 一张卡一次只画一批
+    with _lock:  # 一次只画一张
         p = pipes()
         if refs:
             out = p["edit"](image=refs, prompt=text, negative_prompt=" ", width=w, height=h, num_inference_steps=STEPS,
-                            true_cfg_scale=1.0, num_images_per_prompt=n, generator=g).images
+                            true_cfg_scale=1.0, num_images_per_prompt=1, generator=g).images
         else:
             out = p["gen"](prompt=text, negative_prompt=" ", width=w, height=h, num_inference_steps=STEPS,
-                           true_cfg_scale=1.0, num_images_per_prompt=n, generator=g).images
+                           true_cfg_scale=1.0, num_images_per_prompt=1, generator=g).images
+        torch.cuda.empty_cache()
     log.info("%s %dx%d ×%d，用时 %.1fs", "修改" if refs else "文生图", w, h, n, time.time() - t)
     base = (PUBLIC_URL or str(request.base_url)).rstrip("/")
     items = []
