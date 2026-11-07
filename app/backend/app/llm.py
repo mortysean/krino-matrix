@@ -182,7 +182,8 @@ class OmniLLM:
         audio = ctx.get("audio")
         if audio:
             note = "（这是对方刚说的话，语音）" if ctx.get("lang") != "en" else "(what they just said, as audio)"
-            msgs[-1] = {"role": "user", "content": [{"type": "input_audio", "input_audio": {"data": "data:;base64," + audio, "format": "wav"}},
+            fmt = ctx.get("audio_format", "wav")
+            msgs[-1] = {"role": "user", "content": [{"type": "input_audio", "input_audio": {"data": "data:;base64," + audio, "format": fmt}},
                                                     {"type": "text", "text": note}]}
         body = {"model": settings.hear_model, "messages": msgs, "stream": True, "stream_options": {"include_usage": True},
                 "modalities": ["text"], "max_tokens": max_tokens or settings.llm_max_tokens}
@@ -222,7 +223,7 @@ class OmniLLM:
             credits.charge(ctx.get("payer"), "hear", cny, model=settings.hear_model, audio_tokens=audio_t)
 
 
-def transcribe_for_record(audio_b64: str, payer: str | None = None) -> str:
+def transcribe_for_record(audio_b64: str, payer: str | None = None, fmt: str = "wav") -> str:
     """记下你说的原话（只用来存对话记录和整理记忆；她的回答是直接听录音得出的，不靠这个）。失败返回空字符串。"""
     if settings.hear_provider == "mock" or settings.llm_provider == "mock":
         return "（模拟听到的话）你好呀，今天过得怎么样"
@@ -230,7 +231,7 @@ def transcribe_for_record(audio_b64: str, payer: str | None = None) -> str:
         r = httpx.post(settings.dashscope_base_url.replace("/api/v1", "/compatible-mode/v1").rstrip("/") + "/chat/completions",
                        headers={"Authorization": f"Bearer {settings.dashscope_api_key}"}, timeout=40,
                        json={"model": settings.hear_asr_model, "stream": False, "asr_options": {"enable_itn": True},
-                             "messages": [{"role": "user", "content": [{"type": "input_audio", "input_audio": {"data": "data:audio/wav;base64," + audio_b64}}]}]})
+                             "messages": [{"role": "user", "content": [{"type": "input_audio", "input_audio": {"data": "data:;base64," + audio_b64, "format": fmt}}]}]})
         if r.status_code != 200:
             log.warning("记录原话失败 %s: %s", r.status_code, r.text[:200])
             return ""
@@ -238,7 +239,7 @@ def transcribe_for_record(audio_b64: str, payer: str | None = None) -> str:
     except (httpx.HTTPError, ValueError) as e:
         log.warning("记录原话失败：%s", e)
         return ""
-    seconds = len(audio_b64) * 3 / 4 / 32000  # 16kHz 16bit 单声道
+    seconds = len(audio_b64) * 3 / 4 / (4000 if fmt == "mp3" else 32000)  # mp3 32kbps / wav 16kHz 16bit
     credits.charge(payer, "hear_asr", seconds * settings.hear_asr_price, seconds=round(seconds, 1))
     return text[:2000]
 

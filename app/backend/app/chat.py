@@ -300,9 +300,25 @@ def hear_turn(p: Plan, audio_b64: str) -> None:
     if p.mode != "respond":
         return
     p.audio = True
-    p.llm_context.update({"audio": audio_b64, "lang": locale(), "web": False})
+    audio_b64, fmt = _compact_audio(audio_b64)
+    p.llm_context.update({"audio": audio_b64, "audio_format": fmt, "lang": locale(), "web": False})
     p.system += "\n\n" + prompt_heard()
-    p.transcript = _ASR_POOL.submit(transcribe_for_record, audio_b64, p.user_id)  # 并行记下原话，不耽误她回答
+    p.transcript = _ASR_POOL.submit(transcribe_for_record, audio_b64, p.user_id, fmt)  # 并行记下原话，不耽误她回答
+
+
+def _compact_audio(wav_b64: str) -> tuple[str, str]:
+    """WAV → 32kbps MP3（小 10 倍左右）：海外服务器连百炼北京上传很慢，录音越小越快。转不了就原样发 WAV。"""
+    try:
+        import io
+
+        import soundfile as sf
+        data, rate = sf.read(io.BytesIO(base64.b64decode(wav_b64)), dtype="float32")
+        buf = io.BytesIO()
+        sf.write(buf, data, rate, format="MP3", bitrate_mode="CONSTANT", compression_level=0.75)
+        return base64.b64encode(buf.getvalue()).decode(), "mp3"
+    except Exception as e:  # noqa: BLE001
+        log.warning("录音压缩失败，按 WAV 发：%s", e)
+        return wav_b64, "wav"
 
 
 from concurrent.futures import ThreadPoolExecutor  # noqa: E402
