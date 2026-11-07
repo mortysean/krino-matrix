@@ -1,6 +1,7 @@
 """外观工作台：用一句话设计角色立绘，接着用一句话改，再一键生成整套表情（换表情时换图）。
 
 dashscope：百炼千问图像（IMAGE_MODEL，默认 qwen-image-3.0），文生图和“参考图 + 修改说明”都走同一个接口。
+self：自建生图服务（app/gpu/image_server.py，IMAGE_BASE_URL），接口和百炼一样；出错时有百炼密钥就退回百炼。
 mock：测试用，生成纯色块，不调外部服务。
 生成的图片去掉白底、缩到 768×1152 以内，存成 WebP 放在 data/media/u/<用户>/，通过 /media/... 访问（文件名随机，不可猜）。
 每人每天最多生成 IMAGE_DAILY_LIMIT 张，按 world_events 里的记录数。
@@ -71,16 +72,19 @@ class ImageError(RuntimeError):
 
 # ---------- 生成 ----------
 
-def _dashscope(content: list[dict], n: int, size: str) -> list[bytes]:
-    if not settings.dashscope_api_key:
+def _dashscope(content: list[dict], n: int, size: str, base_url: str | None = None, key: str | None = None) -> list[bytes]:
+    """百炼生图；自建服务接口一样，传 base_url / key 就打到自建服务。"""
+    base_url = base_url or settings.dashscope_base_url
+    key = key if base_url != settings.dashscope_base_url else settings.dashscope_api_key
+    if base_url == settings.dashscope_base_url and not key:
         raise ImageError("没有配置 DASHSCOPE_API_KEY，外观工作台用不了")
     body = {"model": settings.image_model, "input": {"messages": [{"role": "user", "content": content}]},
             "parameters": {"n": n, "size": size, "watermark": False}}
     try:
-        with httpx.Client(timeout=httpx.Timeout(180, connect=10)) as c:
+        with httpx.Client(timeout=httpx.Timeout(180, connect=10), trust_env=base_url == settings.dashscope_base_url) as c:
             for wait in (*RETRY_WAITS, None):  # 百炼按每秒请求数限流（429）：等一等再试，不直接报错
-                r = c.post(settings.dashscope_base_url.rstrip("/") + "/services/aigc/multimodal-generation/generation",
-                           json=body, headers={"Authorization": f"Bearer {settings.dashscope_api_key}"})
+                r = c.post(base_url.rstrip("/") + "/services/aigc/multimodal-generation/generation",
+                           json=body, headers={"Authorization": f"Bearer {key}"} if key else {})
                 if r.status_code != 429 or wait is None:
                     break
                 log.warning("百炼生图限流，%s 秒后重试", wait)
@@ -117,12 +121,24 @@ def _mock(n: int, size: str) -> list[bytes]:
     return out
 
 
-def _generate(content: list[dict], n: int, size: str) -> list[bytes]:
-    if settings.image_provider == "mock":
-        return _mock(n, size)
-    if settings.image_provider != "dashscope":
+def _generate(content: list[dict], n: int, size: str) -> tuple[list[bytes], str]:
+    """返回图片和实际用的服务（mock / self / dashscope），收费只算百炼。"""
+    p = settings.image_provider
+    if p == "mock":
+        return _mock(n, size), "mock"
+    if p == "self":
+        if not settings.image_base_url:
+            raise ImageError("没有配置 IMAGE_BASE_URL（自建生图服务地址）")
+        try:
+            return _dashscope(content, n, size, settings.image_base_url, settings.image_api_key), "self"
+        except ImageError as e:
+            if not settings.dashscope_api_key:
+                raise
+            log.warning("自建生图不可用，改用百炼：%s", e)
+        return _dashscope(content, n, size), "dashscope"
+    if p != "dashscope":
         raise ImageError("服务端没有配置图像生成（IMAGE_PROVIDER）")
-    return _dashscope(content, n, size)
+    return _dashscope(content, n, size), "dashscope"
 
 
 # ---------- 处理和保存 ----------
@@ -219,21 +235,21 @@ def _check_quota(db: Session, user: User, n: int) -> None:
         raise HTTPException(429, f"今天的生成次数用完了（每天 {limit} 张），明天再来")
 
 
-def _record(user: User, name: str, n: int, ms: float) -> None:
+def _record(user: User, name: str, n: int, ms: float, provider: str) -> None:
     for _ in range(n):
         events.record("image", name, user_id=user.id, latency_ms=ms,
-                      payload={"provider": settings.image_provider, "model": settings.image_model})
+                      payload={"provider": provider, "model": settings.image_model if provider == "dashscope" else provider})
 
 
 def _run(user: User, name: str, content: list[dict], n: int, size: str) -> list[str]:
     t0 = time.perf_counter()
     try:
-        raw = _generate(content, n, size)
+        raw, used = _generate(content, n, size)
         urls = [_save(user.id, _process(b)) for b in raw]
     except ImageError as e:
         raise HTTPException(503, str(e)) from e
-    _record(user, name, len(urls), (time.perf_counter() - t0) * 1000)
-    if settings.image_provider != "mock":
+    _record(user, name, len(urls), (time.perf_counter() - t0) * 1000, used)
+    if used == "dashscope":
         credits.charge_images(user.id, len(urls))
     return urls
 
@@ -242,7 +258,8 @@ def _run(user: User, name: str, content: list[dict], n: int, size: str) -> list[
 
 @router.get("")
 def info(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    ready = settings.image_provider == "mock" or (settings.image_provider == "dashscope" and bool(settings.dashscope_api_key))
+    p = settings.image_provider
+    ready = p == "mock" or (p == "dashscope" and bool(settings.dashscope_api_key)) or (p == "self" and bool(settings.image_base_url))
     return {"ready": ready, "provider": settings.image_provider, "model": settings.image_model,
             "limit": daily_limit(user), "used": _used_today(db, user.id), "expressions": list(EXPRESSIONS),
             "credit_limited": bool(credits.daily_limit(user))}  # 由积分来管的账号，工作台不显示张数

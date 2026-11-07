@@ -313,7 +313,7 @@ def test_policy_controls_actions(user):
     quiet = user.say(sid, "让我安静一会儿")
     assert quiet["decision"]["primary"]["action"] == "NO_ACTION" and quiet["reply"] is None
     r = user.ok("post", f"/api/sessions/{sid}/events", json={"type": "gesture", "gesture": "pat_head"})
-    assert {"type": "emote", "expression": "shy"} in r["actions"] and {"type": "animate", "name": "tilt_head"} in r["actions"]
+    assert {"type": "emote", "expression": "shy"} in r["actions"] and {"type": "animate", "name": "shy"} in r["actions"]  # 大肥鱼会害羞：摸头就害羞
     # 用户关掉预设动作后，策略不会再选动作
     user.ok("patch", "/api/me", json={"interaction": {"animations": False}})
     r = user.ok("post", f"/api/sessions/{sid}/events", json={"type": "gesture", "gesture": "wave"})
@@ -437,3 +437,14 @@ def test_workshop_rejects_duplicates_and_has_official_picks(client, user, other)
         db.close()
     official_items = [i for i in other.ok("get", "/api/workshop/items")["items"] if i["author"] == "KRINO 官方"]
     assert sorted(i["title"] for i in official_items) == ["KRINO", "大肥鱼"]  # 工坊里的官方角色只有这两位
+
+
+def test_gesture_falls_back_when_character_lacks_the_action():
+    """互动按钮：角色会更生动的动作就用它，不会（比如只有通用动作的立绘角色）就退回通用动作。"""
+    from app import policy
+    from app.personas import ANIMATIONS
+    base = list(ANIMATIONS[:8])  # 只有通用动作
+    for g, want in (("pat_head", "tilt_head"), ("poke", "shake_head"), ("cheer_up", "nod")):
+        ev = policy.InteractionEvent(type="gesture", gesture=g)
+        cands = policy.build_candidates(ev, policy.PolicyContext(behavior={"animations": base}, user_settings={}))
+        assert any(c.action == "ANIMATE" and c.params["name"] == want and not c.blocked for c in cands), g

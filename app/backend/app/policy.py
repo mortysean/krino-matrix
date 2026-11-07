@@ -54,12 +54,12 @@ def gesture_text(g: str) -> str:
     return GESTURES_EN[g] if locale() == "en" else GESTURES[g][0]
 
 
-GESTURES = {
-    "wave": ("向她挥手打招呼", "wave", "happy"),
-    "pat_head": ("摸摸她的头", "tilt_head", "shy"),
-    "high_five": ("和她击掌", "cheer", "happy"),
-    "poke": ("轻轻戳了戳她的脸颊", "shake_head", "surprised"),
-    "cheer_up": ("给她加油打气", "nod", "happy"),
+GESTURES = {  # 互动 → (说明, 首选动作, 表情, 首选动作不在她的动作列表里时用的)
+    "wave": ("向她挥手打招呼", "wave", "happy", "wave"),
+    "pat_head": ("摸摸她的头", "shy", "shy", "tilt_head"),
+    "high_five": ("和她击掌", "cheer", "happy", "cheer"),
+    "poke": ("轻轻戳了戳她的脸颊", "surprised", "surprised", "shake_head"),
+    "cheer_up": ("给她加油打气", "happy", "happy", "nod"),
 }
 
 _SILENCE = re.compile(r"安静(?:一会|一下|点)|别说话|先别说|不想聊|让我静静|嘘+|闭嘴|别吵")
@@ -151,7 +151,10 @@ def build_candidates(ev: InteractionEvent, ctx: PolicyContext) -> list[Candidate
     expression = (gesture[2] if gesture else None) or expr_cue
     cands.append(Candidate(f"emote_{expression or 'auto'}", "EMOTE", "换一个表情表达此刻的情绪",
                            params={"expression": expression}))
-    anim = anim_req or (gesture[1] if gesture else None) or anim_cue or ("tilt_head" if ev.type == "idle" else None)
+    g_anim = None
+    if gesture:  # 她会更生动的动作（Q 版小人）就用它，不会就用通用的
+        g_anim = gesture[1] if gesture[1] in (b.get("animations") or ANIMATIONS) else gesture[3]
+    anim = anim_req or g_anim or anim_cue or ("tilt_head" if ev.type == "idle" else None)
     if anim:
         cands.append(Candidate(f"animate_{anim}", "ANIMATE", f"做一个“{ANIMATION_LABELS[anim]}”的动作", params={"name": anim}))
     if ev.type == "message" and _REMEMBER.search(text):

@@ -53,3 +53,25 @@ def test_openrouter_usage_is_charged(user, monkeypatch):
     o.complete(system="s", messages=[{"role": "user", "content": "hi"}], context={"payer": user.info["id"]})
     assert "".join(o.stream(system="s", messages=[{"role": "user", "content": "hi"}], context={"payer": user.info["id"]})) == "嗨"
     assert user.ok("get", "/api/credits")["spent"] == 1.4  # 两次各 0.07 元 = 0.7 积分
+
+
+def test_event_write_never_hangs_on_a_locked_user(user):
+    """有人锁着这个用户（比如正在删账号）时，记积分最多等 3 秒就放弃，不能把调用方一起卡死。"""
+    import threading
+    import time
+
+    from sqlalchemy import text
+
+    from app import events
+    from app.db import SessionLocal
+    holder = SessionLocal()
+    holder.execute(text("SELECT id FROM users WHERE id = :u FOR UPDATE"), {"u": user.info["id"]})  # 像删账号一样锁住这一行
+    done = threading.Event()
+    t0 = time.time()
+    threading.Thread(target=lambda: (credits.charge(user.info["id"], "llm", 0.01), done.set()), daemon=True).start()
+    try:
+        assert done.wait(10), "记积分卡住了"
+        assert time.time() - t0 < 8
+    finally:
+        holder.rollback()
+        holder.close()

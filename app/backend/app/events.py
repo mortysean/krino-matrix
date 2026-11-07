@@ -8,7 +8,7 @@ from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from .auth import current_user
@@ -27,12 +27,16 @@ _errors: deque = deque(maxlen=50)
 
 def record(kind: str, name: str, *, user_id: str | None = None, character_id: str | None = None,
            payload: dict | None = None, latency_ms: float | None = None, db: Session | None = None) -> None:
-    """写一条运行事件。用独立的会话写，失败只记日志：事件记录不能影响业务。"""
+    """写一条运行事件。用独立的会话写，失败只记日志：事件记录不能影响业务。
+    独立会话最多等锁 3 秒：调用方自己可能正开着一个事务（比如记忆整理时调模型、模型调用记积分），
+    这时如果有人在删这个用户，删除等调用方、这里等删除、调用方又等这里，会永远卡住；等不到就放弃这一条。"""
     row = WorldEvent(kind=kind, name=name[:48], user_id=user_id, character_id=character_id, payload=payload,
                      latency_ms=round(latency_ms, 1) if latency_ms is not None else None)
     own = db is None
     s = SessionLocal() if own else db
     try:
+        if own and s.get_bind().dialect.name == "postgresql":
+            s.execute(text("SET LOCAL lock_timeout = '3s'"))
         s.add(row)
         if own:
             s.commit()

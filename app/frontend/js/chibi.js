@@ -96,12 +96,17 @@ export function createChibi(box) {
     S.clip = first; wrap.dataset.clip = first;
     vids[front].play().catch(() => {});
     S.ready = true;
-    // 其余片段在后台下载成本地 blob：之后切换不用等网络（先下常用的）
-    const order = [S.def.talk, ...Object.values(S.def.moves || {}).flat(), ...(S.def.idle || []), ...Object.keys(S.def.clips)];
-    for (const name of [...new Set(order)].filter(has)) {
-      if (!S.alive) return;
-      try { S.blobs[name] = URL.createObjectURL(await (await fetch(S.base + S.def.clips[name])).blob()); } catch { /* 下次直接用网址 */ }
-    }
+    // 高清片段每段 1 MB 多，不在后台一口气全下（会占满带宽，反而让你点的那个动作要等）：
+    // 只提前下“说话”；其余的由视频边下边播，播放器背后那一个会提前装好下一段；浏览器会缓存，下次就快了
+    fetchClip(S.def.talk);
+  }
+
+  const loading = {};
+  function fetchClip(name) {  // 下载成本地 blob，之后切换不用等网络
+    if (!has(name) || S.blobs[name]) return Promise.resolve();
+    return (loading[name] ||= fetch(S.base + S.def.clips[name]).then((r) => r.blob()).then((b) => {
+      if (S.alive) S.blobs[name] = URL.createObjectURL(b);
+    }).catch(() => {}).finally(() => delete loading[name]));
   }
 
   return {

@@ -89,7 +89,9 @@ def convert(src: Path, out: Path, box: tuple[int, int, int, int], height: int) -
         rgba = np.dstack([despill(fr), a])
         imgs.append(Image.fromarray(rgba, "RGBA").resize(size, Image.LANCZOS))
     out.parent.mkdir(parents=True, exist_ok=True)
-    encode(imgs[:: max(1, 30 // FPS)], out, size, FPS)
+    src_fps = 30  # 万相输出 30 帧
+    keep = [imgs[min(len(imgs) - 1, round(i * src_fps / FPS))] for i in range(round(len(imgs) * FPS / src_fps))]  # 按时间重采样，时长不变
+    encode(keep, out, size, FPS)
     imgs[0].save(out.with_suffix(".png"))  # 第一帧：视频还没加载出来时先显示这张，也当封面
 
 
