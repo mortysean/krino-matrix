@@ -35,6 +35,7 @@ const browser = await chromium.launch({
 });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ["camera", "microphone"] });
 const page = await ctx.newPage();
+page.on("dialog", (d) => { console.log("      [对话框] " + d.message()); d.dismiss(); });
 page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
 page.on("console", (m) => { if (m.type() === "error" && !/favicon|ERR_ABORTED|ERR_INTERNET_DISCONNECTED/.test(m.text())) errors.push("console: " + m.text()); });
 // 截图前等所有一次性的 CSS 动画（页面切换、卡片入场）播完；颗粒、呼吸这类无限循环的不等
@@ -118,6 +119,56 @@ await step("角色页：改说话方式 → 表达变化；换 Live2D 形象", a
   await page.press("#chat-input", "Enter");
   await page.waitForFunction(() => /开饭开饭/.test(document.querySelector(".msg.assistant:last-of-type .bubble")?.textContent || ""), null, { timeout: 30000 });
   // 换回立绘
+  await page.click('.nav [data-view="persona"]');
+  await page.waitForSelector('.portrait-opt[data-portrait*="whale-girl"]');
+  await page.click('.portrait-opt[data-portrait*="whale-girl"]');
+  await page.click("#p-save");
+  await page.waitForTimeout(800);
+});
+
+await step("联网：问天气 → 她查了一下，来源在气泡下面，正文没有网址", async () => {
+  await page.click('.nav [data-view="chat"]');
+  await page.fill("#chat-input", "帮我查一下今天杭州天气");
+  await page.press("#chat-input", "Enter");
+  await page.waitForSelector(".msg.assistant:last-of-type .sources a", { timeout: 30000 })
+    .catch(() => { throw new Error("没有显示来源"); });
+  const text = await page.textContent(".msg.assistant:last-of-type .bubble");
+  expect(/模拟联网/.test(text) && !/http|example\.com/.test(text), "回复不对：" + text);
+  expect((await page.textContent(".msg.assistant:last-of-type .sources")).includes("example.com"), "来源不对");
+  await shot("07-web");
+});
+
+await step("工作台：一句话生成形象 → 整套表情 → 保存后聊天里换上", async () => {
+  await page.click('.nav [data-view="persona"]');
+  await page.waitForSelector("#wb-prompt");
+  await page.fill("#wb-prompt", "蓝色长发、鲸鱼发饰、蓝白连帽卫衣");
+  await page.click("#wb-new");
+  await page.waitForFunction(() => document.querySelector(".wb-stage img")?.src.includes("/media/"), null, { timeout: 30000 })
+    .catch(() => { throw new Error("没有生成出新形象"); });
+  expect(await page.locator(".pick-portrait .portrait-opt img[src*='/media/']").count() >= 4, "候选不到 4 张");
+  expect(await page.$eval("#p-save", (b) => b.classList.contains("dirty")), "生成后“保存”没有提示未保存");
+  await page.click("#wb-faces");
+  await page.waitForFunction(() => document.querySelectorAll(".wb-face img").length >= 10, null, { timeout: 60000 })
+    .catch(() => { throw new Error("整套表情没生成出来"); });
+  await shot("07-workbench");
+  const src = await page.$eval(".wb-stage img", (i) => i.getAttribute("src"));
+  // 表情生成好就自动存进角色：不点保存、刷新页面，表情还在
+  await page.waitForFunction(() => !document.querySelector("#p-save").classList.contains("dirty"), null, { timeout: 10000 })
+    .catch(() => { throw new Error("表情生成后没有自动保存"); });
+  await page.reload();
+  await page.waitForSelector("#app:not(.hidden)");
+  await page.click('.nav [data-view="persona"]');
+  await page.waitForFunction(() => document.querySelectorAll(".wb-face img").length >= 10, null, { timeout: 15000 })
+    .catch(() => { throw new Error("刷新后表情没了"); });
+  // 点别的立绘再点回来，表情跟着回来
+  await page.click('.portrait-opt[data-portrait*="krino.png"]');
+  await page.click(`.portrait-opt[data-portrait*="${src}"]`);
+  expect(await page.locator(".wb-face img").count() >= 10, "切回原来那张立绘，表情没跟着回来");
+  await page.click('.nav [data-view="chat"]');
+  await page.waitForFunction((s) => document.querySelector(".portrait > img:not([hidden])")?.getAttribute("src")?.includes("/media/"), src, { timeout: 15000 })
+    .catch(() => { throw new Error("聊天页没有换上新形象"); });
+  expect(await page.$eval(".portrait", (b) => b.classList.contains("has-faces")), "聊天页没有拿到整套表情");
+  // 换回大肥鱼立绘，后面的步骤按默认形象走
   await page.click('.nav [data-view="persona"]');
   await page.waitForSelector('.portrait-opt[data-portrait*="whale-girl"]');
   await page.click('.portrait-opt[data-portrait*="whale-girl"]');

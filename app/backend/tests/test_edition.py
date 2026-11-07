@@ -105,10 +105,57 @@ def test_dashscope_tts_uses_persona_voice(monkeypatch):
     audio, mime = voice.synthesize("本肥鱼饿了", "zf_017", 1.0)  # 以前存的 Kokoro 编号也能认出是大肥鱼
     assert audio == b"RIFFwav" and mime == "audio/wav"
     body = calls[0][2]
-    assert calls[0][1].endswith("/services/aigc/multimodal-generation/generation") and body["model"] == "qwen3-tts-instruct-flash"
-    assert body["input"]["voice"] == "Cherry" and "傲娇" in body["input"]["instructions"]
+    assert calls[0][1].endswith("/services/audio/tts/SpeechSynthesizer") and body["model"] == "qwen-audio-3.1-tts-plus"
+    assert body["input"]["voice"] == "longanhuan_v3.1" and "傲娇" in body["input"]["instruction"]
     assert calls[1] == ("GET", "https://oss.example/a.wav", None)
     assert voice._tts_config()["voices"] == ["dafeiyu-zh", "krino-zh"]
+
+
+def test_tts_skips_actions_and_kaomoji(monkeypatch):
+    from app import voice
+    assert voice.speakable("（歪头）才不胖 (╯°□°）╯︵ ┻━┻ *叉腰* 好呀～(〃∀〃)💕") == "才不胖 好呀"
+    monkeypatch.setattr(settings, "tts_provider", "dashscope")
+    monkeypatch.setattr(settings, "dashscope_api_key", "test-key")
+    calls = _fake(monkeypatch, [_Resp(json={"output": {"audio": {"data": "UklGRg=="}}})])
+    voice.synthesize("哼 (｀・ω・´)", "dafeiyu-zh", 1.0)
+    assert calls[0][2]["input"]["text"] == "哼"
+    with pytest.raises(voice.ServiceError):
+        voice.synthesize("(￣▽￣)", "dafeiyu-zh", 1.0)
+
+
+def test_dashscope_legacy_model(monkeypatch):
+    from app import voice
+    monkeypatch.setattr(settings, "tts_provider", "dashscope")
+    monkeypatch.setattr(settings, "dashscope_api_key", "test-key")
+    monkeypatch.setattr(settings, "dashscope_tts_model", "qwen3-tts-instruct-flash")
+    monkeypatch.setattr(settings, "dashscope_workspace", "ws1")
+    calls = _fake(monkeypatch, [_Resp(json={"output": {"audio": {"data": "UklGRg=="}}})])
+    assert voice.synthesize("你好", "krino-zh", 1.0) == (b"RIFF", "audio/wav")
+    body = calls[0][2]
+    assert calls[0][1].endswith("/services/aigc/multimodal-generation/generation")
+    assert body["input"]["voice"] == "Serena" and "instructions" in body["input"]
+
+
+def test_dashscope_workspace_domain(monkeypatch):
+    from app import voice
+    monkeypatch.setattr(settings, "tts_provider", "dashscope")
+    monkeypatch.setattr(settings, "dashscope_api_key", "test-key")
+    monkeypatch.setattr(settings, "dashscope_workspace", "ws1")
+    calls = _fake(monkeypatch, [_Resp(json={"output": {"audio": {"data": "UklGRg=="}}})])
+    voice.synthesize("你好", "krino-zh", 1.0)
+    assert calls[0][1] == "https://ws1.cn-beijing.maas.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer"
+    assert calls[0][2]["input"]["voice"] == "longanlingxin_v3.1"
+
+
+def test_elevenlabs_tts(monkeypatch):
+    from app import voice
+    monkeypatch.setattr(settings, "tts_provider", "elevenlabs")
+    monkeypatch.setattr(settings, "elevenlabs_api_key", "xi-test")
+    calls = _fake(monkeypatch, [_Resp(content=b"ID3mp3", ctype="audio/mpeg")])
+    assert voice.synthesize("你好", "krino-zh", 2.0) == (b"ID3mp3", "audio/mpeg")
+    assert "/text-to-speech/Xb7hH8MSUJpSbSDYk0k2" in calls[0][1]
+    assert calls[0][2]["model_id"] == "eleven_v4" and calls[0][2]["voice_settings"]["speed"] == 1.2
+    assert voice._tts_config()["provider"] == "elevenlabs"
 
 
 def test_openai_tts_global(monkeypatch, global_edition):

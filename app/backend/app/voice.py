@@ -1,7 +1,7 @@
 """语音（STT / TTS）与视觉理解（VLM）的适配层。密钥只在服务端，浏览器只拿到“用哪种方式”。
 
 STT  browser：浏览器 Web Speech API（不经过本服务）  openai：转发到 OpenAI 兼容 /audio/transcriptions  mock：测试
-TTS  qwen：自建 Qwen3-TTS  dashscope：阿里云百炼  openai：OpenAI  local：Kokoro  browser：浏览器朗读  mock：提示音
+TTS  qwen：自建 Qwen3-TTS  dashscope：阿里云百炼 Qwen-Audio 3.1  elevenlabs：Eleven v4  openai：OpenAI  local：Kokoro  browser：浏览器朗读  mock：提示音
      云端和自建的都按角色的声音描述（app/tts/voices.py）说话，出错退回 Kokoro。
 VLM  mock：只读颜色和亮度（明确标注为模拟）           openai：OpenAI 兼容 /chat/completions + image_url
 上传的音频和图片只在内存里处理，不落库。
@@ -12,18 +12,22 @@ import base64
 import io
 import logging
 import math
+import re
 import struct
 import time
+import unicodedata
 import wave
 
 import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
-from . import events
+from . import credits, events
 from .auth import current_user
 from .config import locale, settings
+from .db import get_db
 from .models import User
 
 log = logging.getLogger("krino.voice")
@@ -61,6 +65,18 @@ def transcribe(data: bytes, mime: str, filename: str = "audio.webm") -> str:
 
 
 # ---------- TTS ----------
+
+_ACTION = re.compile(r"[（(][^（()）\n]{0,40}[）)]|\*[^*\n]{0,40}\*")
+_KAOMOJI_CHARS = set("・°ﾟ｡´｀`ω∀▽ᴗ˘◕‿╹ㅂ")
+
+
+def speakable(text: str) -> str:
+    """朗读前去掉不该念出来的东西：括号里的动作、*动作*、颜文字、emoji 和装饰符号。"""
+    text = _ACTION.sub("", text)
+    text = "".join(ch for ch in text if ch not in _KAOMOJI_CHARS and unicodedata.category(ch) not in ("So", "Sm", "Sk", "Co", "Cs")
+                   and ch not in "()（）" and not "\ufe30" <= ch <= "\ufe4f")
+    return re.sub(r"[ \t]{2,}", " ", text).strip()
+
 
 def _beep_wav(seconds: float = 0.4) -> bytes:
     rate = 16000
@@ -140,8 +156,8 @@ def _role(voice: str | None) -> str:
     return "dafeiyu" + suffix
 
 
-def _platform_voice(role: str, known: tuple[str, ...] | None = None) -> str:
-    m = dict(x.split("=", 1) for x in settings.tts_voice_map if "=" in x)
+def _platform_voice(role: str, known: tuple[str, ...] | None = None, table: tuple[str, ...] | None = None) -> str:
+    m = dict(x.split("=", 1) for x in (table or settings.tts_voice_map) if "=" in x)
     v = m.get(role, "")
     if known is not None and v not in known:
         v = known[0]
@@ -171,18 +187,29 @@ def _openai(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
 
 
 def _dashscope(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
-    """阿里云百炼 Qwen3-TTS 指令版：系统音色 + 声音描述。返回的是 24 小时有效的音频链接，取回来再给浏览器。"""
+    """阿里云百炼：系统音色 + 声音描述。返回的是 24 小时有效的音频链接，取回来再给浏览器。
+    qwen-audio-* 走 SpeechSynthesizer 接口（字段是 instruction）；qwen3-tts-* 走多模态生成接口（字段是 instructions）。"""
     if not settings.dashscope_api_key:
         raise ServiceError("没有配置 DASHSCOPE_API_KEY")
     role = _role(voice)
     style = _styles()[role]
-    body = {"model": settings.dashscope_tts_model, "input": {
-        "text": text, "voice": _platform_voice(role) or "Cherry", "language_type": style["language"],
-        "instructions": style["instruct"], "optimize_instructions": True}}
+    model = settings.dashscope_tts_model
+    if model.startswith("qwen-audio"):
+        base = (f"https://{settings.dashscope_workspace}.{settings.dashscope_region}.maas.aliyuncs.com/api/v1"
+                if settings.dashscope_workspace else settings.dashscope_base_url.rstrip("/"))
+        url = base + "/services/audio/tts/SpeechSynthesizer"
+        lang = "用中文说。" if style["language"] == "Chinese" else "Speak in English. "
+        body = {"model": model, "input": {
+            "text": text, "voice": _platform_voice(role, table=settings.dashscope_voice_map) or "longanhuan_v3.1",
+            "format": "wav", "sample_rate": 24000, "instruction": lang + style["instruct"]}}
+    else:
+        url = settings.dashscope_base_url.rstrip("/") + "/services/aigc/multimodal-generation/generation"
+        body = {"model": model, "input": {
+            "text": text, "voice": _platform_voice(role) or "Cherry", "language_type": style["language"],
+            "instructions": style["instruct"], "optimize_instructions": True}}
     try:
         with _client() as c:
-            r = c.post(settings.dashscope_base_url.rstrip("/") + "/services/aigc/multimodal-generation/generation", json=body,
-                       headers={"Authorization": f"Bearer {settings.dashscope_api_key}"})
+            r = c.post(url, json=body, headers={"Authorization": f"Bearer {settings.dashscope_api_key}"})
             if r.status_code != 200:
                 log.error("百炼 TTS %s: %s", r.status_code, r.text[:300])
                 raise ServiceError(f"百炼语音出错（{r.status_code}）")
@@ -201,11 +228,33 @@ def _dashscope(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
     return a.content, a.headers.get("content-type", "audio/wav").split(";")[0]
 
 
-CLOUD = {"openai": _openai, "dashscope": _dashscope}
+def _elevenlabs(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
+    """ElevenLabs Eleven v4。没有声音描述参数，靠角色对应的自带音色；语速只认 0.7–1.2。"""
+    if not settings.elevenlabs_api_key:
+        raise ServiceError("没有配置 ELEVENLABS_API_KEY")
+    voice_id = _platform_voice(_role(voice), table=settings.elevenlabs_voice_map) or "cgSgspJ2msm6clMCkdW9"
+    body = {"text": text, "model_id": settings.elevenlabs_model,
+            "voice_settings": {"speed": max(0.7, min(1.2, speed))}}
+    try:
+        with _client() as c:
+            r = c.post(f"{settings.elevenlabs_base_url.rstrip('/')}/text-to-speech/{voice_id}?output_format=mp3_44100_128",
+                       json=body, headers={"xi-api-key": settings.elevenlabs_api_key})
+    except httpx.HTTPError as e:
+        raise ServiceError("无法连接 ElevenLabs") from e
+    if r.status_code != 200:
+        log.error("ElevenLabs TTS %s: %s", r.status_code, r.text[:300])
+        raise ServiceError(f"ElevenLabs 语音出错（{r.status_code}）")
+    return r.content, r.headers.get("content-type", "audio/mpeg").split(";")[0]
+
+
+CLOUD = {"openai": _openai, "dashscope": _dashscope, "elevenlabs": _elevenlabs}
 
 
 def synthesize(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
     p = settings.tts_provider
+    text = speakable(text)
+    if not text:
+        raise ServiceError("没有需要朗读的文字")
     if p == "mock":
         return _beep_wav(), "audio/wav"
     try:  # 首选的服务不在或出错就退回本地 Kokoro，不让她哑掉
@@ -290,7 +339,8 @@ def _tts_config() -> dict:
     p = settings.tts_provider
     if p == "qwen" and _qwen_voices():
         return {"provider": p, "server": True, "voices": _qwen_voices(), "default": _qwen_voices()[0]}
-    if p == "openai" and settings.tts_api_key or p == "dashscope" and settings.dashscope_api_key:
+    keys = {"openai": settings.tts_api_key, "dashscope": settings.dashscope_api_key, "elevenlabs": settings.elevenlabs_api_key}
+    if keys.get(p):
         roles = [k for k in _styles() if k.endswith("-en" if locale() == "en" else "-zh")]
         return {"provider": p, "server": True, "voices": roles, "default": roles[0]}
     if p in ("local", "qwen", *CLOUD):
@@ -326,7 +376,8 @@ class TTSIn(BaseModel):
 
 
 @router.post("/voice/tts")
-def tts(body: TTSIn, user: User = Depends(current_user)):
+def tts(body: TTSIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    credits.check(db, user)
     t0 = time.perf_counter()
     try:
         audio, mime = synthesize(body.text, body.voice, body.rate)
@@ -334,6 +385,7 @@ def tts(body: TTSIn, user: User = Depends(current_user)):
         raise HTTPException(503, str(e)) from e
     events.record("voice", "tts", user_id=user.id, latency_ms=(time.perf_counter() - t0) * 1000,
                   payload={"provider": settings.tts_provider, "chars": len(body.text)})
+    credits.charge(user.id, "tts", credits.tts_cny(len(body.text)), chars=len(body.text))
     return Response(audio, media_type=mime)
 
 

@@ -1,20 +1,16 @@
-// 02 角色：上面是我的角色（点卡片 = 去聊天，点“编辑” = 在下面编辑）；下面是当前角色的编辑器。
-// 一键原则：常用的（名字、简介、性格、说话方式、开场白、立绘、音色）直接摆出来；其余字段、互动参数、
-// Markdown / JSON、历史版本、导入导出都收进“更多”，不用的人看不到。改完点一次“保存”就生效。
+// 02 工作台：灵魂和肉体在一页。上面是我的角色（点卡片 = 去聊天，点“编辑” = 在下面编辑）；
+// 下面左栏是肉体（形象：一句话生成 / 修改 / 整套表情，见 workbench.js；声音），右栏是灵魂（名字、简介、开场白、性格……）。
+// 一键原则：改完点一次“保存”全部生效；“导出”得到一个文件（灵魂 + 肉体，图片内嵌），可以直接上传工坊；“发布到工坊”一步到位。
+// 不常用的（其余字段、互动参数、Markdown / JSON、历史版本）收进“更多”。
 import { $, $$, S, api, avaHTML, bus, confirmBox, curChar, download, esc, fail, fmtTime, modal, t, toast, tr } from "./core.js";
 import { speak, voiceConfig } from "./voice.js";
+import { bodyDirty, bodyPanel, bodyPortrait, bodyPrompt } from "./workbench.js";
 
 const P = { schema: null, dirty: false, advanced: false };
 // 对话示例最影响她怎么说话（开源角色卡的通行写法），所以和开场白一起放在最显眼的位置
 const MAIN_FIELDS = [["tagline", "简介", 1], ["greeting", "开场白", 2], ["examples", "对话示例（一行一句：“用户：……”“她的名字：……”）", 6],
   ["personality", "性格", 3], ["speech", "说话方式", 3]];
 const MORE_FIELDS = ["background", "values", "interests", "preferences", "worldview", "relationships", "boundaries"];
-const PORTRAITS = [  // 内置可选的 2D 形象
-  { kind: "image", src: "/static/assets/whale-girl.png", label: "大肥鱼立绘" },
-  { kind: "image", src: "/static/assets/krino.png", label: "KRINO 立绘" },
-  { kind: "live2d", src: "/models/live2d/hiyori/Hiyori.model3.json", label: "Live2D 示例（Hiyori）" },
-];
-
 const schema = async () => (P.schema ||= await api("/api/persona-schema"));
 async function reloadChars(selectId) { S.chars = await api("/api/characters"); bus.emit("chars", selectId); }
 
@@ -24,9 +20,8 @@ export async function personaPage() {
   if (!c) return;
   S.chars = await api("/api/characters");
   P.dirty = false;
+  P.c = c;
   const p = c.persona, b = c.behavior, labels = Object.fromEntries(sc.fields.map((x) => [x.key, x.label]));
-  const portraitKey = b.portrait ? JSON.stringify(b.portrait) : "";
-  const custom = b.portrait && !PORTRAITS.some((x) => x.src === b.portrait.src) ? b.portrait : null;
   root.innerHTML = `
     <div class="cast-row">${S.chars.map((x) => `<div class="cast-card ${x.id === c.id ? "active" : ""}" data-use="${x.id}" style="--c:${esc(x.color)}">
         ${avaHTML(x, "lg")}<div><b>${esc(x.name)}</b>${x.official ? ` <span class="badge cobalt">${t("官方")}</span>` : ""}<div class="muted small">${esc(x.tagline)}</div></div>
@@ -39,10 +34,25 @@ export async function personaPage() {
         <span class="muted small mono">v${c.version}</span>
         <span class="grow"></span>
         <button id="p-more" class="ghost small">${t("更多")} ▾</button>
+        <button id="p-export" class="ghost small" title="${t("灵魂 + 肉体打包成一个文件，可以直接上传工坊")}">${t("导出")}</button>
+        <button id="p-publish" class="ghost small">${t("发布到工坊")}</button>
         <button id="p-save">${t("保存")}</button>
       </div>
-      <div class="editor-grid">
-        <div>
+      <div class="studio">
+        <div class="studio-body">
+          <div class="section-title mono">${t("BODY · 肉体")}</div>
+          <div id="body-host"></div>
+          <div class="section-title mono">${t("VOICE · 声音")}</div>
+          <div class="row">
+            ${vc.tts.voices?.length ? `<select data-v="voice" style="flex:1">${vc.tts.voices.map((v) => `<option value="${esc(v)}" ${v === (b.voice.voice || vc.tts.default) ? "selected" : ""}>${esc(voiceLabel(v))}</option>`).join("")}</select>`
+              : `<input data-v="voice" value="${esc(b.voice.voice || "")}" placeholder="${t("音色（服务端语音时用）")}" style="flex:1">`}
+            <button class="ghost small" id="voice-try">▶ ${t("试听")}</button>
+          </div>
+          <div class="slider-row"><span>${t("语速")}</span><input type="range" min="0.6" max="1.6" step="0.05" data-v="rate" value="${b.voice.rate}"><span>${b.voice.rate}</span></div>
+          <p class="muted small">${voiceNote(vc.tts)}</p>
+        </div>
+        <div class="studio-soul">
+          <div class="section-title mono">${t("SOUL · 灵魂")}</div>
           ${MAIN_FIELDS.map(([k, l, rows]) => rows === 1
             ? `<label>${t(l)}<input data-p="${k}" value="${esc(p[k] || "")}" maxlength="80"></label>`
             : `<label>${t(l)}<textarea data-p="${k}" rows="${rows}">${esc(p[k] || "")}</textarea></label>`).join("")}
@@ -54,38 +64,27 @@ export async function personaPage() {
             ${Object.entries(sc.numeric).map(([k, l]) => `<div class="slider-row"><span>${esc(tr(l))}</span><input type="range" min="0" max="1" step="0.05" data-b="${k}" value="${b[k]}"><span>${b[k]}</span></div>`).join("")}
           </details>
         </div>
-        <div>
-          <div class="section-title mono">${t("LOOK · 形象")}</div>
-          <div class="pick-portrait">${PORTRAITS.map((x) => `<button class="portrait-opt ${JSON.stringify({ kind: x.kind, src: x.src }) === portraitKey ? "active" : ""}" data-portrait='${esc(JSON.stringify({ kind: x.kind, src: x.src }))}'>
-              ${x.kind === "image" ? `<img src="${x.src}" alt="">` : '<span class="l2d-tag">Live2D</span>'}<em>${esc(t(x.label))}</em></button>`).join("")}
-            ${custom ? `<button class="portrait-opt active" data-portrait='${esc(JSON.stringify(custom))}'><img src="${esc(custom.src)}" alt=""><em>${t("我上传的")}</em></button>` : ""}
-            <label class="portrait-opt upload"><input type="file" id="portrait-file" accept="image/png,image/webp,image/jpeg" hidden><span>＋</span><em>${t("上传立绘")}</em></label></div>
-          <p class="muted small">${b.portrait ? "" : t("她还没有立绘，现在显示的是名字铭牌。")}${t("上传透明背景的 PNG 效果最好（≤ 2MB）。")}Live2D © Live2D Inc.</p>
-          <div class="section-title mono">${t("VOICE · 声音")}</div>
-          <div class="row">
-            ${vc.tts.voices?.length ? `<select data-v="voice" style="flex:1">${vc.tts.voices.map((v) => `<option value="${esc(v)}" ${v === (b.voice.voice || vc.tts.default) ? "selected" : ""}>${esc(voiceLabel(v))}</option>`).join("")}</select>`
-              : `<input data-v="voice" value="${esc(b.voice.voice || "")}" placeholder="${t("音色（服务端语音时用）")}" style="flex:1">`}
-            <button class="ghost small" id="voice-try">▶ ${t("试听")}</button>
-          </div>
-          <div class="slider-row"><span>${t("语速")}</span><input type="range" min="0.6" max="1.6" step="0.05" data-v="rate" value="${b.voice.rate}"><span>${b.voice.rate}</span></div>
-          <p class="muted small">${voiceNote(vc.tts)}</p>
-        </div>
       </div>
     </div>`;
 
   $$("[data-use]", root).forEach((el) => (el.onclick = (e) => { if (!e.target.dataset.edit) bus.emit("select", { id: el.dataset.use, view: "chat" }); }));
   $$("[data-edit]", root).forEach((el) => (el.onclick = () => bus.emit("select", { id: el.dataset.edit, view: "persona" })));
   $("#c-add").onclick = addCharacter;
-  root.addEventListener("input", () => (P.dirty = true));
-  $$("input[type=range]", root).forEach((el) => (el.oninput = () => { el.nextElementSibling.textContent = el.value; P.dirty = true; }));
+  $$("input[type=range]", root).forEach((el) => (el.oninput = () => { el.nextElementSibling.textContent = el.value; markDirty(true); }));
   $("#more-fields").ontoggle = (e) => (P.advanced = e.target.open);
-  $$("[data-portrait]", root).forEach((el) => (el.onclick = () => {
-    $$(".portrait-opt", root).forEach((x) => x.classList.remove("active")); el.classList.add("active"); P.dirty = true;
-  }));
-  $("#portrait-file").onchange = (e) => uploadPortrait(e.target.files[0], root);
+  root.oninput = (e) => { if (!e.target.closest("#body-host")) markDirty(true); };  // 每次重画都覆盖，不会越绑越多
+  bodyPanel($("#body-host", root), c, { onChange: markDirty }).then(() => markDirty()).catch(fail);
   $("#voice-try").onclick = () => speak($("[data-p=greeting]", root).value || t("你好，我在这里。"), collect(root, c).behavior.voice).catch(fail);
   $("#p-save").onclick = () => save(root, c);
   $("#p-more").onclick = () => moreMenu(c);
+  $("#p-export").onclick = async () => {  // 先存再导出：导出的就是现在看到的样子
+    if (personaDirty() && !(await save(root, c, { quiet: true }))) return;
+    download(`/api/characters/${c.id}/export?format=json`, `${c.slug}.krino.json`);
+  };
+  $("#p-publish").onclick = async () => {
+    if (personaDirty() && !(await save(root, c, { quiet: true }))) return;
+    bus.emit("publish", c.id);
+  };
 }
 
 function collect(root, c) {
@@ -95,32 +94,23 @@ function collect(root, c) {
   const behavior = { ...c.behavior, style: $("[data-b=style]", root).value };
   $$("[data-b][type=range]", root).forEach((el) => (behavior[el.dataset.b] = +el.value));
   behavior.voice = { ...c.behavior.voice, voice: $("[data-v=voice]", root).value, rate: +$("[data-v=rate]", root).value };
-  const pick = $(".portrait-opt.active[data-portrait]", root);
-  if (pick) behavior.portrait = JSON.parse(pick.dataset.portrait);
+  behavior.portrait = bodyPortrait(c);
   return { persona, behavior };
 }
 
-async function save(root, c) {
-  try {
-    const r = await api(`/api/characters/${c.id}`, { method: "PUT", body: collect(root, c) });
-    P.dirty = false;
-    toast(r.version === c.version ? "没有改动" : "保存好了，下一句话起生效");
-    await reloadChars(); bus.emit("character:changed"); personaPage();
-  } catch (e) { fail(e); }
+function markDirty(soul = false) {
+  if (soul === true) P.dirty = true;
+  $("#p-save")?.classList.toggle("dirty", personaDirty());
 }
 
-async function uploadPortrait(file, root) {
-  if (!file) return;
-  if (file.size > 2 * 1024 * 1024) return toast("立绘不能超过 2MB");
-  const src = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
-  const box = $(".pick-portrait", root);
-  $$(".portrait-opt", box).forEach((x) => x.classList.remove("active"));
-  const el = document.createElement("button");
-  el.className = "portrait-opt active"; el.dataset.portrait = JSON.stringify({ kind: "image", src });
-  el.innerHTML = `<img src="${src}" alt=""><em>${t("我上传的")}</em>`;
-  box.insertBefore(el, box.lastElementChild);
-  P.dirty = true;
-  toast("点“保存”生效");
+async function save(root, c, { quiet = false } = {}) {
+  try {
+    const r = await api(`/api/characters/${c.id}`, { method: "PUT", body: collect(root, c) });
+    P.dirty = false; P.c = null;  // 重画之前不再拿旧数据判断“有没有没保存的修改”
+    if (!quiet) toast(r.version === c.version ? "没有改动" : "保存好了，下一句话起生效");
+    await reloadChars(); bus.emit("character:changed"); await personaPage();
+    return true;
+  } catch (e) { fail(e); return false; }
 }
 
 // ---------- 新角色：一个弹窗，三种方式 ----------
@@ -142,7 +132,8 @@ document.addEventListener("click", async (e) => {  // 弹窗里的按钮（弹�
     try {
       const d = await api("/api/characters/generate", { body: { prompt } });
       const c = await api("/api/characters", { body: d });
-      $("#modal").classList.add("hidden"); toast(t("欢迎 {name}，可以在这里继续改她", { name: c.name }));
+      bodyPrompt(c.id, prompt);  // 灵魂写好了，肉体的描述也填上：在工作台点“生成新形象”就行
+      $("#modal").classList.add("hidden"); toast(t("欢迎 {name}：点左边“生成新形象”给她一个样子", { name: c.name }), 5000);
       await reloadChars(c.id); bus.emit("select", { id: c.id, view: "persona" });
     } catch (err) { $("#gen-out").innerHTML = `<p class="error">${esc(err.message)}</p>`; }
     finally { e.target.disabled = false; }
@@ -213,7 +204,7 @@ async function versions(c, v) {
   }));
 }
 
-export const personaDirty = () => P.dirty;
+export const personaDirty = () => P.dirty || (!!P.c && S.view === "persona" && bodyDirty(P.c));
 export function initPersona() {}
 
 

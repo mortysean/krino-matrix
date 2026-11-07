@@ -47,6 +47,15 @@ def _float(key: str, default: float) -> float:
     return float(_env(key, str(default)))
 
 
+def _user_limits(raw: str) -> dict[str, int]:
+    out = {}
+    for item in raw.split(","):
+        name, _, n = item.strip().rpartition(":")
+        if name and n.strip().isdigit():
+            out[name.strip()] = int(n)
+    return out
+
+
 def _list(key: str, default: str) -> tuple[str, ...]:
     return tuple(x.strip() for x in _env(key, default).split(",") if x.strip())
 
@@ -66,6 +75,7 @@ class Settings:
         "DATABASE_URL", "postgresql+psycopg://krino:krino@localhost:5433/krino_world"))
     frontend_dir: Path = ROOT_DIR / "app" / "frontend"
     models_dir: Path = ROOT_DIR / "data" / "models"
+    media_dir: Path = field(default_factory=lambda: Path(_env("MEDIA_DIR", str(ROOT_DIR / "data" / "media"))))  # 工作台生成的立绘
     log_dir: Path = field(default_factory=lambda: Path(_env("LOG_DIR", str(ROOT_DIR / ".run" / "logs"))))
 
     # ---------- LLM：openrouter | mock（离线演示/测试，无需密钥） ----------
@@ -78,6 +88,10 @@ class Settings:
     llm_timeout_s: float = field(default_factory=lambda: _float("LLM_TIMEOUT_S", 60))
     # 角色可选的聊天模型（白名单，第一个是默认）。后台任务（记忆整理、摘要）始终用 LLM_MODEL
     llm_character_models: tuple[str, ...] = field(default_factory=lambda: _list("LLM_CHARACTER_MODELS", DEFAULT_LLM))
+    # 联网：聊天时给模型一个搜索工具（OpenRouter 的 openrouter:web_search，服务端执行），她觉得需要时才查。off = 关
+    web_search: str = field(default_factory=lambda: _env("WEB_SEARCH", "exa"))            # exa | parallel | perplexity | auto | off
+    web_search_results: int = field(default_factory=lambda: _int("WEB_SEARCH_RESULTS", 5))  # 每次搜几条
+    web_search_max_uses: int = field(default_factory=lambda: _int("WEB_SEARCH_MAX_USES", 2))  # 一句回复最多搜几次
 
     # ---------- VLM：上传图像 / 摄像头画面理解。mock | openai（OpenAI 兼容 /chat/completions + image_url） ----------
     vlm_provider: str = field(default_factory=lambda: _env("VLM_PROVIDER", "mock"))
@@ -92,8 +106,8 @@ class Settings:
     stt_base_url: str = field(default_factory=lambda: _env("STT_BASE_URL", ""))
     stt_api_key: str | None = field(default_factory=lambda: os.getenv("STT_API_KEY") or None)
     max_audio_bytes: int = field(default_factory=lambda: _int("MAX_AUDIO_BYTES", 10 * 1024 * 1024))
-    # TTS：qwen = 自建 Qwen3-TTS 语音服务（需要显卡）| dashscope = 阿里云百炼（国内版推荐）| openai = OpenAI（海外版推荐）
-    #      | local = 只用本地 Kokoro | browser = 浏览器朗读 | mock = 测试。qwen / dashscope / openai 出错时都自动退回 Kokoro
+    # TTS：qwen = 自建 Qwen3-TTS 语音服务（需要显卡）| dashscope = 阿里云百炼（国内版推荐）| elevenlabs = Eleven v4 | openai = OpenAI
+    #      | local = 只用本地 Kokoro | browser = 浏览器朗读 | mock = 测试。qwen 和各云端出错时都自动退回 Kokoro
     tts_provider: str = field(default_factory=lambda: _env("TTS_PROVIDER", "qwen"))
     qwen_tts_url: str = field(default_factory=lambda: _env("QWEN_TTS_URL", "http://127.0.0.1:8640"))  # app/tts/server.py
     kokoro_dir: str = field(default_factory=lambda: _env("KOKORO_DIR", ""))
@@ -109,7 +123,37 @@ class Settings:
     # dashscope：阿里云百炼 Qwen3-TTS 指令版，同样按声音描述说话。北京地域；新加坡用 https://dashscope-intl.aliyuncs.com/api/v1
     dashscope_api_key: str | None = field(default_factory=lambda: os.getenv("DASHSCOPE_API_KEY") or None)
     dashscope_base_url: str = field(default_factory=lambda: _env("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/api/v1"))
-    dashscope_tts_model: str = field(default_factory=lambda: _env("DASHSCOPE_TTS_MODEL", "qwen3-tts-instruct-flash"))
+    # 默认用 Qwen-Audio 3.1（2026 年 11 月 Artificial Analysis 语音榜第 4，国内能直连）；改回 qwen3-tts-instruct-flash 走旧接口
+    dashscope_tts_model: str = field(default_factory=lambda: _env("DASHSCOPE_TTS_MODEL", "qwen-audio-3.1-tts-plus"))
+    # Qwen-Audio 走 SpeechSynthesizer 接口，文档给的是带业务空间的域名；填了 DASHSCOPE_WORKSPACE 就用 https://{空间}.cn-beijing.maas.aliyuncs.com
+    dashscope_workspace: str = field(default_factory=lambda: _env("DASHSCOPE_WORKSPACE", ""))
+    dashscope_region: str = field(default_factory=lambda: _env("DASHSCOPE_REGION", "cn-beijing"))
+    dashscope_voice_map: tuple[str, ...] = field(default_factory=lambda: _list(
+        "DASHSCOPE_VOICE_MAP", "dafeiyu-zh=longanhuan_v3.1,krino-zh=longanlingxin_v3.1,"
+                               "dafeiyu-en=longanhuan_v3.1,krino-en=longanlingxin_v3.1"))
+    # ---------- 外观工作台：用一句话生成立绘和整套表情。dashscope = 百炼千问图像（共用 DASHSCOPE_API_KEY）| mock = 测试用色块 ----------
+    image_provider: str = field(default_factory=lambda: _env("IMAGE_PROVIDER", "dashscope"))
+    image_model: str = field(default_factory=lambda: _env("IMAGE_MODEL", "qwen-image-3.0"))
+    image_daily_limit: int = field(default_factory=lambda: int(_env("IMAGE_DAILY_LIMIT", "40")))  # 每人每天最多生成几张
+    # 个别账号单独的每日张数（比如测试账号少给点）：IMAGE_USER_LIMITS=krino_demo:20,tester:0
+    image_user_limits: dict = field(default_factory=lambda: _user_limits(_env("IMAGE_USER_LIMITS", "")))
+
+    # ---------- 积分（credits.py）：对话、图片、云端语音的花费折成积分，按天限额 ----------
+    credits_per_cny: float = field(default_factory=lambda: _float("CREDITS_PER_CNY", 10))     # 1 元 = 10 积分
+    credit_daily_limit: float = field(default_factory=lambda: _float("CREDIT_DAILY_LIMIT", 0))  # 每人每天多少积分，0 = 不限
+    credit_user_limits: dict = field(default_factory=lambda: _user_limits(_env("CREDIT_USER_LIMITS", "")))  # krino_demo:1000
+    usd_cny: float = field(default_factory=lambda: _float("USD_CNY", 7.2))
+    llm_price_in: float = field(default_factory=lambda: _float("LLM_PRICE_IN", 2))     # 元 / 百万输入 token（OpenRouter 没返回花费时用）
+    llm_price_out: float = field(default_factory=lambda: _float("LLM_PRICE_OUT", 8))   # 元 / 百万输出 token
+    image_price_cny: float = field(default_factory=lambda: _float("IMAGE_PRICE_CNY", 0.25))  # 元 / 张
+    tts_price_cny: float = field(default_factory=lambda: _float("TTS_PRICE_CNY", 1))   # 元 / 万字
+    # elevenlabs：Eleven v4（同一榜单第 1，海外版推荐；国内服务器要能访问 api.elevenlabs.io）。音色是 ElevenLabs 自带的 voice_id
+    elevenlabs_api_key: str | None = field(default_factory=lambda: os.getenv("ELEVENLABS_API_KEY") or None)
+    elevenlabs_model: str = field(default_factory=lambda: _env("ELEVENLABS_MODEL", "eleven_v4"))
+    elevenlabs_base_url: str = field(default_factory=lambda: _env("ELEVENLABS_BASE_URL", "https://api.elevenlabs.io/v1"))
+    elevenlabs_voice_map: tuple[str, ...] = field(default_factory=lambda: _list(  # Jessica：俏皮年轻；Alice：冷静清晰
+        "ELEVENLABS_VOICE_MAP", "dafeiyu-zh=cgSgspJ2msm6clMCkdW9,dafeiyu-en=cgSgspJ2msm6clMCkdW9,"
+                                "krino-zh=Xb7hH8MSUJpSbSDYk0k2,krino-en=Xb7hH8MSUJpSbSDYk0k2"))
 
     # ---------- KRINO Evaluator（内部互动策略）：rules 规则策略（默认） | matrix 3-Head 模型（实验） | off ----------
     policy_mode: str = field(default_factory=lambda: _env("KRINO_POLICY", "rules"))
@@ -186,6 +230,9 @@ def _tts_status(svc) -> dict:
     if s.tts_provider == "dashscope":
         return svc("dashscope", s.dashscope_tts_model, bool(s.dashscope_api_key),
                    "阿里云百炼，按人设描述说话" if s.dashscope_api_key else "没有配置 DASHSCOPE_API_KEY，暂时用 Kokoro")
+    if s.tts_provider == "elevenlabs":
+        return svc("elevenlabs", s.elevenlabs_model, bool(s.elevenlabs_api_key),
+                   "ElevenLabs，按角色选的自带音色" if s.elevenlabs_api_key else "没有配置 ELEVENLABS_API_KEY，暂时用 Kokoro")
     if s.tts_provider == "openai":
         return svc("openai", s.tts_model, bool(s.tts_api_key),
                    "OpenAI，按人设描述说话" if s.tts_api_key else "没有配置 OPENAI_API_KEY，暂时用 Kokoro")

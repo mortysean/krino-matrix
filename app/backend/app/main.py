@@ -11,7 +11,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import auth, chat, devices, events, memory, personas, policy, voice, workshop
+from . import auth, chat, credits, devices, events, memory, personas, policy, voice, workbench, workshop
 from .config import ROOT_DIR, locale, settings
 from .i18n import tr
 from .db import SessionLocal, migrate
@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="KRINO WORLD", version="0.1.0", lifespan=lifespan)
-for module in (auth, personas, chat, memory, policy, voice, workshop, devices, events):
+for module in (auth, personas, chat, memory, policy, voice, workshop, workbench, credits, devices, events):
     app.include_router(module.router)
 
 
@@ -114,6 +114,7 @@ async def timing(request: Request, call_next):
 
 if settings.models_dir.exists():  # 下载的 Live2D 模型等素材（scripts/fetch_assets.py），只读
     app.mount("/models", StaticFiles(directory=settings.models_dir), name="models")
+app.mount("/media", StaticFiles(directory=workbench.media_root()), name="media")  # 工作台生成的立绘（文件名随机）
 LANDING_DIR = ROOT_DIR / "app" / "landing"  # krinomatrix.com 品牌首页（Caddy 把整站改写到 /landing/）
 if LANDING_DIR.exists():
     app.mount("/landing", StaticFiles(directory=LANDING_DIR, html=True), name="landing")

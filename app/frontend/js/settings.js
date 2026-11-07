@@ -7,6 +7,18 @@ async function save(patch) {
   catch (e) { fail(e); }
 }
 
+// 积分：今天用了多少、上限多少（1 元 = 10 积分；对话、生成图片、云端语音都算）
+function creditsBox(c) {
+  const box = $("#s-credits");
+  if (!box) return;
+  const n = (x) => (x >= 100 ? Math.round(x) : Math.round(x * 10) / 10).toString();
+  const pct = c.limit ? Math.min(100, (c.spent / c.limit) * 100) : 0;
+  box.innerHTML = `<div class="row credits-line"><b>${c.limit ? t("今天已用 {n} / {m} 积分", { n: n(c.spent), m: n(c.limit) }) : t("今天已用 {n} 积分", { n: n(c.spent) })}</b>
+      <span class="muted small">${c.limit ? t("还剩 {n}", { n: n(Math.max(0, c.limit - c.spent)) }) : t("不限额")}</span></div>
+    ${c.limit ? `<div class="credits-bar ${pct >= 80 ? "low" : ""}"><i style="width:${pct}%"></i></div>` : ""}
+    <p class="muted small">${t("1 元 = {k} 积分。对话、生成图片（一张约 {p} 积分）、云端语音都算，每天零点清零。", { k: c.per_cny, p: n(c.image) })}</p>`;
+}
+
 export async function settingsPage() {
   const s = S.me.settings;
   const sw = (group, key, label, hint = "") => `<label class="switch"><input type="checkbox" data-g="${group}" data-k="${key}" ${s[group]?.[key] ? "checked" : ""}>
@@ -17,10 +29,14 @@ export async function settingsPage() {
     ${sw("interaction", "proactive", "你安静时，她偶尔会主动一下", "多数时候只是一个小动作；开口至少隔 5 分钟")}
     ${sw("interaction", "animations", "允许她做动作（挥手、点头……）")}
     ${sw("interaction", "stories", "允许她讲幻想故事")}
+    ${sw("interaction", "web", "允许她上网查资料", "问到天气、新闻这类需要最新信息的事，她才会去查")}
     ${sw("privacy", "camera", "允许她看摄像头画面", "每次仍需浏览器授权，画面不保存")}
     <label class="switch"><input type="checkbox" id="s-sens" ${s.save_sensitive ? "checked" : ""}><span>${t("允许她记住私密的事")}<small>${t("健康、财务等总会先问你")}</small></span></label>
+    <div class="section-title mono">CREDITS · ${t("积分")}</div>
+    <div class="credits-box" id="s-credits"><p class="muted small">${t("加载中…")}</p></div>
     <details id="adv"><summary>${t("高级")}</summary><div id="adv-body"><p class="muted small">${t("加载中…")}</p></div></details>
     <div class="row"><button class="link small danger-link" id="s-delete">${t("注销账号")}</button></div></div>`;
+  api("/api/credits").then(creditsBox).catch(() => $("#s-credits")?.remove());
   let timer; $("#s-name").oninput = (e) => { clearTimeout(timer); timer = setTimeout(() => save({ display_name: e.target.value }).then(() => ($("#me-name").textContent = S.me.display_name)), 600); };
   $$("[data-g]").forEach((el) => (el.onchange = () => save({ [el.dataset.g]: { [el.dataset.k]: el.checked } })));
   $("#s-sens").onchange = (e) => save({ save_sensitive: e.target.checked });

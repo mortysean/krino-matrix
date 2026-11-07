@@ -554,6 +554,7 @@ table.res th { font: 10px var(--mono); color: var(--muted); letter-spacing: .12e
 .gestures { position: absolute; left: 0; right: 0; bottom: 14px; z-index: 2; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; padding: 0 12px; }
 .gestures button { background: rgba(19, 19, 25, .7); color: var(--silver-hi); border-color: var(--line-2); padding: 4px 12px; font-size: 12px; }
 .gestures button::before { background: var(--cobalt); }
+.gestures.busy button { opacity: .45; pointer-events: none; }  /* 她还在回应上一下，先不让点 */
 
 .chat-tools { display: flex; justify-content: space-between; padding: 10px 22px 0; }
 .icon-btn { background: transparent; color: var(--text); border-color: var(--line-2); padding: 0 12px; font-size: 16px; }
@@ -632,3 +633,43 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 .site-foot { margin-top: 8px; letter-spacing: .04em; }
 .site-foot a { color: var(--muted); text-decoration: none; }
 .site-foot a:hover { color: var(--silver); }
+
+/* ---------- 02 工作台：左边肉体，右边灵魂 ---------- */
+.studio { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(0, 1.15fr); gap: 22px; align-items: start; }
+.studio-body > .section-title:first-child, .studio-soul > .section-title:first-child { margin-top: 4px; }
+#p-save.dirty { box-shadow: 0 0 0 2px var(--char); }
+.wb-stage { position: relative; height: min(56vh, 600px); display: grid; place-items: end center; border: 1px solid var(--line);
+  background: radial-gradient(ellipse at 50% 85%, color-mix(in srgb, var(--char) 22%, transparent), transparent 65%), var(--ink); overflow: hidden; }
+.wb-stage > img { height: 96%; max-width: 96%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 10px 30px rgba(0, 0, 40, .45)); }
+.wb-stage > .l2d-tag { align-self: center; color: var(--muted); }
+.wb-empty { align-self: center; color: var(--muted); padding: 24px; text-align: center; }
+.wb-busy { position: absolute; inset: 0; display: grid; place-content: center; gap: 12px; justify-items: center; background: rgba(19, 19, 25, .62); color: var(--silver-hi); }
+.wb-busy i, .wb-face.loading::after { width: 26px; height: 26px; border: 2px solid var(--line-2); border-top-color: var(--silver-hi); border-radius: 50%; animation: wb-spin .9s linear infinite; }
+@keyframes wb-spin { to { transform: rotate(360deg); } }
+.wb-actions { align-items: center; }
+.studio-body .pick-portrait { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+.studio-body .portrait-opt { height: 112px; min-width: 0; }
+.studio-body .portrait-opt em { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-faces { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px; }
+.wb-face { padding: 0; background: var(--ink-3); border: 1px solid var(--line); color: var(--text); aspect-ratio: 1; display: grid; place-items: center; overflow: hidden; position: relative; }
+.wb-face::before { display: none; }
+.wb-face img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 6%; transform: scale(1.6); transform-origin: 50% 0; }  /* 只看脸 */
+.wb-face span { color: var(--muted); font-size: 18px; }
+.wb-face em { position: absolute; left: 0; right: 0; bottom: 0; font: normal 11px var(--sans); background: rgba(19, 19, 25, .75); padding: 1px 0; }
+.wb-face.loading::after { content: ""; position: absolute; top: calc(50% - 13px); left: calc(50% - 13px); }
+.ws-cover.has-img { place-items: end center; }
+.ws-cover.has-img img { position: absolute; inset: 6% 0 0; width: 100%; height: 94%; object-fit: contain; object-position: 50% 0; transform: scale(1.5); transform-origin: 50% 0; transition: transform .5s var(--ease); }
+.ws-card:hover .ws-cover.has-img img { transform: scale(1.6); }
+@media (max-width: 1100px) { .studio { grid-template-columns: 1fr; } .wb-stage { height: 46vh; } }
+
+/* 设置页的积分模块 */
+.credits-box { margin-bottom: 14px; }
+.credits-line { justify-content: space-between; align-items: baseline; }
+.credits-bar { height: 4px; background: var(--line); margin: 8px 0 6px; overflow: hidden; }
+.credits-bar i { display: block; height: 100%; background: var(--silver-hi); }
+.credits-bar.low i { background: #e0a33a; }  /* 快用完了 */
+
+/* 联网回答的来源 */
+.msg .sources { margin-top: 4px; font-size: 11px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.msg .sources a { color: var(--silver); text-decoration: none; border-bottom: 1px dotted var(--line-2); }
+.msg .sources a:hover { color: var(--silver-hi); }

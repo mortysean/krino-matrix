@@ -9,6 +9,7 @@ import json
 import re
 from dataclasses import dataclass, field
 
+from . import cues
 from .config import locale
 from .models import Character
 from .personas import ANIMATIONS, EXPRESSIONS, prompt_text
@@ -25,6 +26,10 @@ TEXT = {
         "user_name": "对方的显示名是「{name}」，除非下面有对方更喜欢的称呼。",
         "about": "## 关于对方（对方亲口说过或确认过的）", "between": "## 你们之间（共同经历与约定）",
         "summary": "## 上次见面（之前会话的摘要，可能不完整）", "current": "## 此刻（临时状态，过一阵会过期）",
+        "web": "## 上网\n今天是 {date}（{weekday}）。你可以上网查资料：对方问到需要最新或准确信息的事（天气、新闻、比赛、价格、"
+               "上映时间、某个具体事实）时再查；闲聊、谈心、讲故事不要查。查到后用你自己的口吻挑重点说，不要贴网址、不要写来源链接、"
+               "不要念出“根据搜索结果”这类话。查不到或拿不准就直说。",
+        "weekdays": ("周一", "周二", "周三", "周四", "周五", "周六", "周日"),
         "lore": "## 世界设定", "perception": "## 你看到的（视觉理解的结果，可能不准确）", "gesture": "对方的互动动作：{g}",
         "examples": "## 你说话的样子（示例，不是真实发生过的对话）",
         "types": {"fact": "事实", "preference": "偏好", "event": "经历", "commitment": "约定"}, "type_other": "记忆",
@@ -47,7 +52,7 @@ TEXT = {
         },
         "length": ("一两句", "两三句", "三四句，可以多聊一点"),
         "protocol": """## 输出格式
-直接回复（{length}，只写说出口的话，动作最多偶尔一个，用括号）。
+直接回复（{length}，写说出口的话）。偶尔可以在括号里写一个很短的动作或神态，比如（歪头）（转了个圈）（脸红）（叉腰），它会让你的形象真的做出来；一条回复最多一个，不要每句都写。
 回复之后另起一行输出一个状态标签，供 2D 形象使用：
 <state>{{"expression": "<{exprs}>", "animation": "<{anims}|none>", "mood": "<一个词>"}}</state>
 animation 只在动作很自然时才给（打招呼挥手、同意点头、思考歪头……），大多数时候写 none。
@@ -58,6 +63,11 @@ animation 只在动作很自然时才给（打招呼挥手、同意点头、思�
         "user_name": "The other person's display name is \"{name}\", unless a preferred name is listed below.",
         "about": "## About them (things they told you or confirmed)", "between": "## You two (shared experiences and promises)",
         "summary": "## Last time (summary of an earlier chat, may be incomplete)", "current": "## Right now (temporary, expires soon)",
+        "web": "## The web\nToday is {date} ({weekday}). You can search the web: do it when they ask about something that needs "
+               "current or exact facts (weather, news, games, prices, release dates, a specific fact); don't search for small talk, "
+               "feelings or stories. Say what you found in your own voice, briefly. No URLs, no source links, no \"according to search "
+               "results\". If you can't find it or aren't sure, say so.",
+        "weekdays": ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
         "lore": "## World notes", "perception": "## What you see (from image understanding, may be wrong)", "gesture": "What they just did: {g}",
         "examples": "## How you talk (examples, not real past conversations)",
         "types": {"fact": "fact", "preference": "preference", "event": "experience", "commitment": "promise"}, "type_other": "memory",
@@ -80,7 +90,7 @@ animation 只在动作很自然时才给（打招呼挥手、同意点头、思�
         },
         "length": ("one or two sentences", "two or three sentences", "three or four sentences, you can chat a bit more"),
         "protocol": """## Output format
-Reply directly ({length}; only what you'd say out loud, at most an occasional action in parentheses).
+Reply directly ({length}; what you'd say out loud). Occasionally add one very short action in parentheses, like (tilts head) (spins around) (blushes) (pouts); your avatar will actually perform it. At most one per reply, not every line.
 Then, on a new line, output a state tag for your 2D avatar:
 <state>{{"expression": "<{exprs}>", "animation": "<{anims}|none>", "mood": "<one word>"}}</state>
 Only give an animation when it's natural (waving hello, nodding, tilting your head while thinking); most of the time write none.
@@ -128,7 +138,7 @@ def _mem_line(m: dict, n: int = 160) -> str:
 
 def build_system(char: Character, *, user_name: str | None, memories: list[dict], summary: dict | None,
                  lore: list[dict], bond: str | None, current: str | None, mode: str = "respond",
-                 perception: str | None = None, gesture: str | None = None) -> Context:
+                 perception: str | None = None, gesture: str | None = None, web: bool = False) -> Context:
     """分层拼：人格核心 / 关系 / 长期记忆（按问题检索，限条数和字数）/ 此刻（会过期）/ 世界设定 / 这一轮的模式。"""
     ctx = Context(system="")
     parts = [
@@ -178,6 +188,10 @@ def build_system(char: Character, *, user_name: str | None, memories: list[dict]
         parts.append(T()["gesture"].format(g=gesture))
     if T()["modes"].get(mode):
         parts.append(T()["modes"][mode])
+    if web:
+        from datetime import datetime
+        now = datetime.now().astimezone()
+        parts.append(T()["web"].format(date=now.strftime("%Y-%m-%d"), weekday=T()["weekdays"][now.weekday()]))
     examples = ((char.persona or {}).get("examples") or "").strip()
     if examples:  # 放在最后，离对话最近：模型主要照着这里的语气说话
         parts.append(f"{T()['examples']}\n{compact_lines(examples, 1500)}")
@@ -194,6 +208,15 @@ class ParsedReply:
     expression: str | None
     animation: str | None
     mood: str
+    cues: list = field(default_factory=list)  # 括号里写的动作（cues.Cue），由 chat._actions 演出来
+
+
+# 联网回答里模型偶尔会带上的来源链接：[nmc.cn](https://...)、(https://...)、裸网址。来源另外显示，正文里去掉
+_LINK_RE = re.compile(r"\s?[（(]?\[[^\]\n]{0,80}\]\((?:https?://)[^)\s]*\)[）)]?|\s?[（(]https?://[^)）\s]+[)）]|https?://[^\s)）]+")
+
+
+def strip_links(text: str) -> str:
+    return re.sub(r"[ \t]+([，。！？,.!?])", r"\1", _LINK_RE.sub("", text))
 
 
 _STATE_RE = re.compile(r"<state>\s*(\{.*?\})\s*</state>", re.S)
@@ -215,11 +238,25 @@ def parse_reply(raw: str, char: Character) -> ParsedReply:
         except ValueError:
             pass
     text = re.sub(r"</?(state|memory)>", "", _STATE_RE.sub("", raw or "")).strip()
-    return ParsedReply(text=text, expression=expression, animation=animation, mood=mood)
+    text, found = cues.convert(strip_links(text).strip())
+    return ParsedReply(text=text, expression=expression, animation=animation, mood=mood, cues=found)
+
+
+def _open_link_at(seg: str) -> int:
+    """片段末尾有没写完的链接（“[网站](http…”或“http…”还在往下写）：返回它开始的位置，先不发；没有返回 -1。"""
+    for k in range(len("https://"), 0, -1):  # 末尾是网址的开头几个字母（h、ht…）：等下一块再说
+        if seg.endswith("https://"[:k]) and (k > 1 or len(seg) < 2 or not seg[-2].isalpha()):
+            return len(seg) - k
+    for m in re.finditer(r"\[[^\]\n]{0,80}(\](\([^)\s]*)?)?$|https?:?/{0,2}[^\s)）]*$|[（(]h?t?t?p?s?:?/{0,2}[^\s)）]*$", seg):
+        tail = seg[m.start():]
+        if len(tail) < 400 and (tail.startswith("[") or "http".startswith(tail.lstrip("（(")[:4]) or tail.lstrip("（(").startswith("http")):
+            return m.start()
+    return -1
 
 
 class StreamFilter:
-    """流式输出时把 <state>…</state> 挡在外面：只把对白部分实时推给前端。"""
+    """流式输出时把 <state>…</state> 挡在外面：只把对白部分实时推给前端。
+    括号动作等闭合了再发，发出去之前换成颜文字（和最终保存的文字一致）。"""
 
     def __init__(self) -> None:
         self.raw = ""
@@ -234,6 +271,13 @@ class StreamFilter:
             tail = self.raw.rfind("<")
             partial = tail >= 0 and "<state>".startswith(self.raw[tail:])
             safe = tail if partial else len(self.raw)
+        if safe > self.sent:
+            ob = cues.open_bracket_at(self.raw[self.sent:safe])
+            if ob >= 0:
+                safe = self.sent + ob
+            hold = _open_link_at(self.raw[self.sent:safe]) if cut < 0 else -1  # 正文已经写完（到了 <state>）就不再压
+            if hold >= 0:
+                safe = self.sent + hold
         out = self.raw[self.sent:safe]
         self.sent = max(self.sent, safe)
-        return out
+        return cues.convert(strip_links(out), tidy=False)[0]

@@ -126,6 +126,10 @@ class MockLLM:
             seen = ctx.get("perception") or "看不太清楚"
             return f"我看到了：{_short(seen, 60)}。是你那边的样子吗？" + _state("surprised", "tilt_head")
 
+        if ctx.get("web") and re.search(r"天气|新闻|今天几号|最新|比分|查一下|搜一下", user):
+            if ctx.get("sources") is not None:
+                ctx["sources"].append({"url": "https://example.com/search", "title": "（模拟）搜索结果"})
+            return f"我帮你查了一下：{_short(user, 20)}——（模拟联网结果）今天多云，18℃ [example.com](https://example.com/search)。" + _state("focused")
         parts = [rng.choice(lines["open"])]
         if re.search(r"你是(?:真人|人类|AI|机器人)|你是不是(?:真人|AI)", user, re.I):
             parts = [f"我是 AI 啦，不是真人。不过陪你聊天这件事是真的。"]

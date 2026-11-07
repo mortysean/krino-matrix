@@ -1,5 +1,6 @@
 // 2D 角色形象。两种：
-//   image  一张立绘（透明 PNG）。呼吸、轻微摇摆、说话时的上下弹动、预设动作用 CSS 变换表现，表情用一个小表情气泡提示。
+//   image  一张立绘（透明 PNG）。呼吸、轻微摇摆、说话时的上下弹动、预设动作用 CSS 变换表现，表情用一个小表情气泡提示；
+//          有整套表情图（portrait.expressions，外观工作台生成）时换表情就换图。
 //   live2d Live2D 模型（PixiJS + pixi-live2d-display + Cubism Core）。眨眼、视线、物理、口型都由模型自己完成。
 // 对外接口统一：load(portrait) / setExpression(name) / play(name) / speaking(bool) / attachAudio(audio) / setLook(x, y)。
 // 做什么动作由后端互动策略决定，这里只负责演出来。
@@ -39,7 +40,7 @@ async function loadLive2DLibs() {
 export function createStage(host, { onStatus } = {}) {
   host.innerHTML = '<div class="portrait"><img alt=""><span class="emote"></span></div>';
   const box = host.querySelector(".portrait"), img = box.querySelector("img"), emote = box.querySelector(".emote");
-  const S = { kind: null, app: null, model: null, expr: "neutral", move: null, mouth: 0, speaking: false, audio: null, look: [0, 0] };
+  const S = { kind: null, base: "", faces: {}, app: null, model: null, expr: "neutral", move: null, mouth: 0, speaking: false, audio: null, look: [0, 0] };
 
   function status(state, message = "") { onStatus?.({ state, kind: S.kind, message }); }
 
@@ -62,6 +63,7 @@ export function createStage(host, { onStatus } = {}) {
 
   async function load(portrait, { name, color } = {}) {
     clearLive2D();
+    S.base = ""; S.faces = {};
     box.querySelector(".nameplate")?.remove(); delete box.dataset.plate;
     if (!portrait) return plate(name, color);
     const p = { ...portrait };
@@ -75,6 +77,7 @@ export function createStage(host, { onStatus } = {}) {
         const model = await PIXI.live2d.Live2DModel.from(p.src, { autoInteract: false });
         app.stage.addChild(model);
         S.app = app; S.model = model;
+        app.resize();  // 加载期间容器可能从 0×0 变成了正常大小（页面切回来了），补一次
         fitLive2D();
         app.ticker.add(tickLive2D);
         status("ready");
@@ -86,8 +89,13 @@ export function createStage(host, { onStatus } = {}) {
       }
     }
     S.kind = "image"; img.hidden = false;
+    S.base = p.src; S.faces = p.expressions || {};
+    Object.values(S.faces).forEach((src) => { new Image().src = src; });  // 预先加载，换表情时不闪
     const ok = await new Promise((done) => { img.onload = () => done(true); img.onerror = () => done(false); img.src = p.src; });
     if (!ok) { status("fallback", t("立绘加载失败")); return plate(name, color); }
+    img.onload = img.onerror = null;
+    if (S.faces[S.expr]) img.src = S.faces[S.expr];  // 加载期间已经换过表情：补上
+    box.classList.toggle("has-faces", Object.keys(S.faces).length > 0);
     status("ready");
   }
 
@@ -101,7 +109,8 @@ export function createStage(host, { onStatus } = {}) {
     m.x = (w - iw * scale) / 2;
     m.y = h * 0.04;
   }
-  new ResizeObserver(() => fitLive2D()).observe(box);
+  // 在隐藏的页面里加载时容器是 0×0；PixiJS 的 resizeTo 只跟着窗口变，所以容器一变就手动让画布跟上
+  new ResizeObserver(() => { S.app?.resize?.(); fitLive2D(); }).observe(box);
 
   function tickLive2D() {
     const core = S.model?.internalModel?.coreModel; if (!core) return;
@@ -121,7 +130,12 @@ export function createStage(host, { onStatus } = {}) {
   function setExpression(name) {
     S.expr = name in L2D_EXPR ? name : "neutral";
     box.dataset.expr = S.expr;
-    const e = EMOJI[S.expr] || "";
+    if (S.kind === "image" && S.base && !box.dataset.plate) {
+      const src = S.faces[S.expr] || S.base;
+      if (img.getAttribute("src") !== src) img.src = src;
+    }
+    box.classList.toggle("has-faces", Object.keys(S.faces).length > 0);
+    const e = Object.keys(S.faces).length ? "" : EMOJI[S.expr] || "";  // 有表情图就不用再冒小气泡
     emote.textContent = e; emote.classList.toggle("on", !!e);
     clearTimeout(setExpression._t);
     if (e) setExpression._t = setTimeout(() => emote.classList.remove("on"), 2600);

@@ -20,3 +20,6 @@ app/e2e/node_modules/
 app/e2e/shots/
 archive/decision-nav/frontend/node_modules/
 archive/decision-nav/frontend/dist/
+
+# 桌宠素材的中间文件（Q 版底图、绿幕视频），成品在 pet/plugin/assets
+pet/work/

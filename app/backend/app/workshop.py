@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from . import persona_io, personas
+from . import media, persona_io, personas
 from .auth import current_user, is_admin
 from .config import settings
 from .db import get_db
@@ -66,6 +66,13 @@ def _latest(db: Session, i: WorkshopItem) -> WorkshopVersion:
                      .order_by(WorkshopVersion.version.desc()).limit(1))
 
 
+def _cover(db: Session, i: WorkshopItem) -> str | None:
+    """卡片封面：最新版本的立绘（只给本站图片，Live2D 不算）。"""
+    p = ((_latest(db, i).package or {}).get("behavior") or {}).get("portrait") or {}
+    src = p.get("src") if p.get("kind") == "image" else None
+    return src if src and src.startswith(("/media/", "/static/assets/")) else None
+
+
 def card(db: Session, i: WorkshopItem, user: User, inst: WorkshopInstall | None = None) -> dict:
     author = db.get(User, i.author_id)
     votes = i.up + i.down
@@ -75,7 +82,7 @@ def card(db: Session, i: WorkshopItem, user: User, inst: WorkshopInstall | None 
             "status": i.status, "status_label": STATUS_LABELS[i.status], "status_note": i.status_note,
             "installs": i.installs, "up": i.up, "down": i.down, "comments": i.comments,
             "rating": round(i.up / votes, 2) if votes else None, "forked_from": i.forked_from,
-            "updated_at": i.updated_at.isoformat(),
+            "updated_at": i.updated_at.isoformat(), "portrait": _cover(db, i),
             "installed": {"character_id": inst.character_id, "version": inst.installed_version,
                           "update": inst.installed_version < i.latest_version} if inst else None}
 
@@ -309,7 +316,8 @@ def download(item_id: str, user: User = Depends(current_user), db: Session = Dep
     if not _visible(i, user):
         raise HTTPException(404, "作品不存在")
     v = _latest(db, i)
-    return Response(json.dumps(v.package, ensure_ascii=False, indent=2).encode(), media_type="application/json",
+    pkg = {**v.package, "behavior": media.embed(v.package.get("behavior"))}
+    return Response(json.dumps(pkg, ensure_ascii=False, indent=2).encode(), media_type="application/json",
                     headers={"Content-Disposition": f'attachment; filename="{v.package.get("id", "persona")}.krino.json"'})
 
 
@@ -343,7 +351,8 @@ async def upload(file: UploadFile = File(...), category: str = Form("other"), de
     def run():
         _check_rate(db, user)
         d = persona_io.parse_any(file.filename or "", data)
-        pkg = persona_io.to_package(d.persona, personas.validate_behavior(d.behavior), d.lore, d.slug, 1)
+        behavior = personas.store_images(d.behavior, user.id)  # 包里内嵌的形象图片存成文件，工坊里只存地址
+        pkg = persona_io.to_package(d.persona, personas.validate_behavior(behavior), d.lore, d.slug, 1)
         return _publish_package(db, user, pkg, item=None, title=d.persona["name"], tagline=d.persona.get("tagline", ""),
                                 description=description[:4000], category=category, tags=d.persona.get("tags") or [],
                                 changelog="上传", color=d.persona.get("color") or "#1414a8",

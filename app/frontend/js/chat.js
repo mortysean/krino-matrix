@@ -147,8 +147,16 @@ function msgHTML(m) {
     <div class="bubble-row"><div class="bubble${story ? " story" : ""}">${esc(m.content)}</div>
       <button class="speak-btn" data-speak="${m.id}" title="${t("朗读")}">${ICON.speaker}</button></div>
     ${story ? `<div class="who">${t("虚构故事")}</div>` : ""}
+    ${sourcesHTML(m.meta?.sources)}
     <div class="mem-pill-slot" data-for="${m.id}">${memPillHTML(C.jobs[m.id])}</div>
     ${S.me?.dev ? devTraceHTML(m) : ""}</div></div>`;
+}
+
+// 联网时她查过的网页：气泡下面一行小字，点了在新标签页打开
+function sourcesHTML(list) {
+  if (!list?.length) return "";
+  const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
+  return `<div class="sources">${t("查了")} ${list.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" title="${esc(s.title || s.url)}">${esc(host(s.url))}</a>`).join("")}</div>`;
 }
 
 function memPillHTML(job) {
@@ -269,15 +277,19 @@ async function* sse(res) {
 
 // ---------- 预设互动 / 安静事件 ----------
 async function sendEvent(body) {
-  if (C.pending || !S.charId) return;
+  if (C.pending || !S.charId) return;  // 她一次只回应一件事：上一句还没回来时，连点的互动和发送都忽略
+  C.pending = true;
+  $("#gestures")?.classList.add("busy");
   try {
     await ensureSession();
     const r = await api(`/api/sessions/${C.session.id}/events`, { body });
     if (r.user) C.session.messages.push(r.user);
     if (r.reply) C.session.messages.push(r.reply);
     if (r.user || r.reply) renderMessages();
+    C.pending = false;
     perform(r.actions);
   } catch (e) { if (body.type !== "idle") fail(e); }
+  finally { C.pending = false; $("#gestures")?.classList.remove("busy"); }
 }
 
 function activity() { C.lastActivity = Date.now(); C.idleCount = 0; }

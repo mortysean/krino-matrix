@@ -43,6 +43,7 @@ rsync -az --delete --exclude-from=- "$ROOT/" "$TARGET:$DEST/" <<'EOF'
 .pytest_cache/
 __pycache__/
 data/pgdata/
+data/media/
 data/models/qwen3-tts/
 data/models/voices/
 data/models/kokoro-zh/
@@ -54,6 +55,7 @@ archive/
 experiments/
 app/e2e/node_modules/
 app/e2e/shots/
+pet/
 EOF
 
 # 服务器上的配置：第一次生成，之后保留（里面有密钥）
@@ -76,9 +78,9 @@ LLM_PROVIDER=openrouter
 LLM_MODEL=~deepseek/deepseek-flash-latest
 OPENROUTER_API_KEY=$KEY
 LLM_REASONING=off
-TTS_PROVIDER=$( [ "$EDITION" = cn ] && echo dashscope || echo openai )
+TTS_PROVIDER=dashscope
 # 填上密钥后语音更像真人；没填时自动用本地 Kokoro。改完：sudo systemctl restart krino-world
-$( [ "$EDITION" = cn ] && echo '# DASHSCOPE_API_KEY=' || echo '# OPENAI_API_KEY=' )
+# DASHSCOPE_API_KEY=
 VLM_PROVIDER=mock
 STT_PROVIDER=browser
 KRINO_POLICY=rules

@@ -380,10 +380,20 @@ def test_portrait_validation(user):
                 {"kind": "live2d", "src": "/static/assets/whale-girl.png"}, {"kind": "video", "src": "/static/assets/whale-girl.png"}):
         r = user.put(f"/api/characters/{cid}", json={"behavior": {**c["behavior"], "portrait": bad}})
         assert r.status_code == 400, bad
-    for good in ({"kind": "live2d", "src": "/models/live2d/hiyori/Hiyori.model3.json"},
-                 {"kind": "image", "src": "data:image/png;base64,iVBORw0KGgo="}):
-        r = user.ok("put", f"/api/characters/{cid}", json={"behavior": {**c["behavior"], "portrait": good}})
-        assert r["behavior"]["portrait"] == good
+    r = user.ok("put", f"/api/characters/{cid}", json={"behavior": {**c["behavior"], "portrait": {"kind": "live2d", "src": "/models/live2d/hiyori/Hiyori.model3.json"}}})
+    assert r["behavior"]["portrait"]["kind"] == "live2d"
+    # 上传的图片（data URI）保存时写成文件，数据库里只存 /media 地址；打不开的图片直接拒绝
+    import base64
+    import io
+
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (8, 8), "red").save(buf, "PNG")
+    uri = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+    r = user.ok("put", f"/api/characters/{cid}", json={"behavior": {**c["behavior"], "portrait": {"kind": "image", "src": uri}}})
+    assert r["behavior"]["portrait"]["src"].startswith("/media/c/")
+    bad = {"kind": "image", "src": "data:image/png;base64,iVBORw0KGgo="}
+    assert user.put(f"/api/characters/{cid}", json={"behavior": {**c["behavior"], "portrait": bad}}).status_code == 400
     assert user.official["portrait"]["kind"] == "image"
 
 

@@ -26,14 +26,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import events, memory, policy
+from . import credits, events, memory, policy
 from .auth import current_user, user_settings
 from .config import chat_model_for, locale, settings
 from .db import SessionLocal, get_db
 from .i18n import tr
 from .llm import LLMError, get_llm
 from .models import Character, ChatSession, MemoryJob, Message, User, now
-from .personas import get_owned, lore_hits
+from .personas import ANIMATIONS, EXPRESSIONS, get_owned, lore_hits
 from .prompt import StreamFilter, build_system, parse_reply
 from .text import compact
 
@@ -165,34 +165,52 @@ def plan_turn(db: Session, user: User, sess: ChatSession, *, event: str, text: s
                            allow_sensitive=bool(us.get("save_sensitive")))
     bond = memory.get_bond(db, user.id, char.id)
     lore = lore_hits(char, query)
+    # 联网：只在正常聊天回复时给她搜索工具（主动开口、互动反应、讲故事不需要）；服务端和用户都可以关
+    web = p.mode == "respond" and settings.web_search != "off" and bool((us.get("interaction") or {}).get("web", True))
     ctx = build_system(char, user_name=user.display_name, memories=mems,
                        summary=memory.latest_summary(db, user.id, char.id), lore=lore,
                        bond=memory.bond_prompt(bond, char.name), current=memory.current_prompt(bond), mode=p.mode,
-                       perception=p.perception, gesture=policy.gesture_text(gesture) if gesture else None)
+                       perception=p.perception, gesture=policy.gesture_text(gesture) if gesture else None, web=web)
     p.system, p.recall, p.skipped = ctx.system, ctx.used, ctx.skipped
     p.history = _history(db, sess.id) or [{"role": "user", "content": event_text("quiet")}]
     if p.history[-1]["role"] != "user":
         p.history.append({"role": "user", "content": event_text("quiet")})
     first = db.scalar(select(Message.id).where(Message.session_id == sess.id, Message.role == "assistant").limit(1)) is None
-    p.llm_context = {"character": char, "mode": p.mode, "model": chat_model_for(char.model), "first_turn": first,
+    p.llm_context = {"payer": user.id, "character": char, "mode": p.mode, "model": chat_model_for(char.model), "first_turn": first,
                      "hits": mems, "lore": lore, "perception": p.perception,
-                     "gesture": policy.gesture_text(gesture) if gesture else None}
+                     "gesture": policy.gesture_text(gesture) if gesture else None,
+                     "web": web, "sources": []}  # sources：模型调用时把查过的网页填进来
     return p
 
 
-def _actions(p: Plan, char: Character, text: str, parsed_expr: str | None) -> list[dict]:
-    """把策略的选择变成前端 / 设备执行的结构化行为。模型只能建议表情；是否换表情、做什么动作由策略决定。"""
+def _actions(p: Plan, char: Character, text: str, parsed_expr: str | None, found: list | None = None,
+             user_settings: dict | None = None) -> list[dict]:
+    """把策略的选择变成前端 / 设备执行的结构化行为。模型只能建议表情；是否换表情、做什么动作由策略决定。
+    例外：她在括号里写的动作（found，见 cues.py）照着演，但仍守住硬约束：用户关了预设动作就不动，不在角色动作列表里的不做。"""
     out: list[dict] = []
     if text:
         out.append({"type": "say", "text": text, "story": p.decision.primary.action == "STORY"})
     if p.fixed_text in PERCEIVE_ASK.values():
         out.append({"type": "perceive_request"})
+    b = char.behavior or {}
+    exprs, anims = b.get("expressions") or EXPRESSIONS, b.get("animations") or ANIMATIONS
+    cue_expr = next((c.expression for c in found or [] if c.expression in exprs), None)
+    cue_anim = next((c.animation for c in found or [] if c.animation in anims), None)
+    if not ((user_settings or {}).get("interaction") or {}).get("animations", True):
+        cue_anim = None
+    emoted = animated = False
     for c in p.decision.extras:
         if c.action == "EMOTE":
-            expr = c.params.get("expression") or parsed_expr or char.behavior.get("default_expression", "calm")
+            expr = cue_expr or c.params.get("expression") or parsed_expr or b.get("default_expression", "calm")
             out.append({"type": "emote", "expression": expr})
-        elif c.action == "ANIMATE":
-            out.append({"type": "animate", "name": c.params["name"]})
+            emoted = True
+        elif c.action == "ANIMATE" and not animated:
+            out.append({"type": "animate", "name": cue_anim or c.params["name"]})
+            animated = True
+    if cue_expr and not emoted:
+        out.append({"type": "emote", "expression": cue_expr})
+    if cue_anim and not animated:
+        out.append({"type": "animate", "name": cue_anim})
     return out
 
 
@@ -203,7 +221,7 @@ def finalize(db: Session, p: Plan, raw: str) -> dict:
     user = db.get(User, p.user_id)
     parsed = parse_reply(raw, char) if raw else None
     text = parsed.text if parsed else (p.fixed_text or "")
-    acts = _actions(p, char, text, parsed.expression if parsed else None)
+    acts = _actions(p, char, text, parsed.expression if parsed else None, parsed.cues if parsed else None, user.settings)
     reply = None
     if text:
         reply = Message(session_id=sess.id, role="assistant", content=text,
@@ -211,7 +229,8 @@ def finalize(db: Session, p: Plan, raw: str) -> dict:
                                "animation": parsed.animation if parsed else None, "mood": parsed.mood if parsed else ""},
                         meta={"event": p.event_type, "decision": p.decision.as_dict(), "actions": acts,
                               "recall": p.recall, "recall_skipped": p.skipped, "perception": p.perception,
-                              "model": p.llm_context.get("model") if p.mode else None})
+                              "model": p.llm_context.get("model") if p.mode else None,
+                              "sources": p.llm_context.get("sources") or []})
         db.add(reply)
     suggestion = None
     if any(c.action == "REMEMBER" for c in p.decision.extras) and p.user_message_id:
@@ -352,7 +371,7 @@ def summarize(db: Session, user: User, s: ChatSession) -> dict | None:
     transcript = "\n".join(f"{('User' if en else '用户') if m.role != 'assistant' else char.name}{': ' if en else '：'}{m.content}" for m in msgs[-40:])
     llm = get_llm()
     r = llm.complete(system=SUMMARY_SYSTEM_EN if en else SUMMARY_SYSTEM, messages=[{"role": "user", "content": f"<transcript>\n{transcript}\n</transcript>"}],
-                     max_tokens=800, context={"task": "summary", "name": char.name,
+                     max_tokens=800, context={"task": "summary", "payer": user.id, "name": char.name,
                                               "history": [{"role": m.role, "content": m.content} for m in msgs]})
     if r.refused or not r.text.strip():
         db.commit()
@@ -363,7 +382,7 @@ def summarize(db: Session, user: User, s: ChatSession) -> dict | None:
                              sources=[x.uid for x in users][-20:])
     try:
         v = llm.complete(system=REFLECT_SYSTEM_EN if en else REFLECT_SYSTEM, messages=[{"role": "user", "content": m.content}], max_tokens=300,
-                         context={"task": "bond_reflect"})
+                         context={"task": "bond_reflect", "payer": user.id})
         if v.text.strip() and not v.refused:
             b.her_view = v.text.strip()[:300]
     except LLMError:
@@ -417,6 +436,7 @@ def get_session(sid: str, user: User = Depends(current_user), db: Session = Depe
 
 @router.post("/{sid}/messages")
 def send(sid: str, body: MessageIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    credits.check(db, user)
     s = _open(db, user, sid)
     p = plan_turn(db, user, s, event="message", text=body.text.strip(), image=decode_image(body.image), source=body.source)
     try:
@@ -429,6 +449,7 @@ def send(sid: str, body: MessageIn, user: User = Depends(current_user), db: Sess
 
 @router.post("/{sid}/stream")
 def send_stream(sid: str, body: MessageIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    credits.check(db, user)
     s = _open(db, user, sid)
     p = plan_turn(db, user, s, event="message", text=body.text.strip(), image=decode_image(body.image), source=body.source)
     db.commit()  # 用户消息先落库，流式生成在另一个数据库会话里收尾
@@ -439,6 +460,7 @@ def send_stream(sid: str, body: MessageIn, user: User = Depends(current_user), d
 @router.post("/{sid}/events")
 def send_event(sid: str, body: EventIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     """用户触发的预设互动、页面上的“安静了一阵”、眼镜模拟器分享的画面。"""
+    credits.check(db, user)
     s = _open(db, user, sid)
     p = plan_turn(db, user, s, event=body.type, text=body.text.strip(), gesture=body.gesture,
                   image=decode_image(body.image), idle_count=body.idle_count)

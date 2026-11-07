@@ -49,7 +49,7 @@ DEFAULT_USER_SETTINGS: dict = {
     "save_sensitive": False,
     "privacy": {"camera": False, "microphone": False},
     "voice": {"stt": "auto", "tts": "auto", "autoplay": True, "voice": ""},
-    "interaction": {"proactive": True, "idle_seconds": 45, "animations": True, "stories": True},
+    "interaction": {"proactive": True, "idle_seconds": 45, "animations": True, "stories": True, "web": True},  # web：允许她上网查资料
     "evaluator": {"mode": None},  # None = 跟随服务端 KRINO_POLICY
 }
 

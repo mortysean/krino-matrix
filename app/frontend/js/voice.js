@@ -73,16 +73,27 @@ async function recordAndTranscribe() {
 }
 
 // 朗读。返回 { audio?, done } ；audio 给 3D 形象做口型（浏览器朗读拿不到音频流，口型改用程序化）
-let current = null;
+let current = null, gen = 0;  // gen：每次停止或开始新的一句都加一，还在合成中的旧句子回来后作废，不会两句叠着读
 export function stopSpeaking() {
+  gen += 1;
   if (current?.audio) { current.audio.pause(); current.audio.src = ""; }
   window.speechSynthesis?.cancel();
   current = null;
 }
 
+// 朗读前去掉括号里的动作、*动作*、颜文字和 emoji（服务端也会再清理一遍）
+export function speakable(text) {
+  return (text || "")
+    .replace(/[（(][^（()）\n]{0,40}[）)]|\*[^*\n]{0,40}\*/g, "")
+    .replace(/[\p{So}\p{Sm}\p{Sk}\p{Co}()（）・°ﾟ｡´｀`ω∀▽ᴗ˘◕‿╹ㅂ\uFE30-\uFE4F]/gu, "")
+    .replace(/[ \t]{2,}/g, " ").trim();
+}
+
 export async function speak(text, voiceParams = {}) {
   stopSpeaking();
+  text = speakable(text);
   if (pref("tts") === "off" || !text) return { done: Promise.resolve() };
+  const my = gen;
   const rate = voiceParams.rate || 1, pitch = voiceParams.pitch || 1;
   if (await useServer("tts")) {
     let res;
@@ -90,9 +101,12 @@ export async function speak(text, voiceParams = {}) {
       res = await api("/api/voice/tts", { body: { text: text.slice(0, 600), rate, voice: voiceParams.voice || null }, raw: true });
     } catch (e) {  // 服务端语音出问题时退回浏览器朗读，不让她“哑掉”
       console.warn("服务端语音失败，改用浏览器朗读：", e.message);
+      if (my !== gen) return { done: Promise.resolve() };
       return browserSpeak(text, rate, pitch);
     }
-    const audio = new Audio(URL.createObjectURL(await res.blob()));
+    const blob = await res.blob();
+    if (my !== gen) return { done: Promise.resolve() };  // 合成期间又开始了新的一句（或被停止），这句不读了
+    const audio = new Audio(URL.createObjectURL(blob));
     const done = new Promise((r) => { audio.onended = r; audio.onerror = r; });
     current = { audio };
     await audio.play().catch(() => {});
@@ -103,7 +117,7 @@ export async function speak(text, voiceParams = {}) {
 
 function browserSpeak(text, rate, pitch) {
   if (!window.speechSynthesis) return { done: Promise.resolve() };
-  const u = new SpeechSynthesisUtterance(text.replace(/（[^）]{0,40}）|\*[^*]{0,40}\*/g, ""));
+  const u = new SpeechSynthesisUtterance(text);
   u.lang = speechLang(); u.rate = rate; u.pitch = pitch;
   const prefix = getLocale() === "en" ? "en" : "zh";
   const v = speechSynthesis.getVoices().find((x) => x.lang.startsWith(prefix));

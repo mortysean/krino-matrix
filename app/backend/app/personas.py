@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import persona_io
+from . import media, persona_io
 from .auth import current_user
 from .config import locale, settings
 from .db import get_db
@@ -98,21 +98,34 @@ def validate_behavior(data: dict | None) -> dict:
     return out
 
 
-PORTRAIT_SRC = re.compile(r"^(/static/assets/[\w\-./]+\.(png|jpe?g|webp)|/models/[\w\-./]+\.model3\.json"
+PORTRAIT_SRC = re.compile(r"^(/static/assets/[\w\-./]+\.(png|jpe?g|webp)|/media/[\w\-/]+\.(png|webp)|/models/[\w\-./]+\.model3\.json"
                           r"|data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)$")
 MAX_PORTRAIT_DATA = 2 * 1024 * 1024
 
 
-def validate_portrait(p) -> dict:
-    """2D 形象：image = 一张立绘；live2d = 服务器上的 Live2D 模型。不允许指向外部网址。"""
-    if not isinstance(p, dict) or p.get("kind") not in ("image", "live2d"):
-        raise PersonaError("portrait.kind 只能是 image 或 live2d")
-    src = str(p.get("src") or "")
+def _check_src(src: str) -> str:
     if ".." in src or not PORTRAIT_SRC.match(src) or len(src) > MAX_PORTRAIT_DATA * 4 // 3 + 64:
         raise PersonaError("立绘只能用本站的图片、上传的图片或服务器上的 Live2D 模型")
+    return src
+
+
+def validate_portrait(p) -> dict:
+    """2D 形象：image = 一张立绘；live2d = 服务器上的 Live2D 模型。不允许指向外部网址。
+    image 可以带 expressions：{表情: 图片}，换表情时换成那张（外观工作台生成的整套表情）。"""
+    if not isinstance(p, dict) or p.get("kind") not in ("image", "live2d"):
+        raise PersonaError("portrait.kind 只能是 image 或 live2d")
+    src = _check_src(str(p.get("src") or ""))
     if (p["kind"] == "live2d") != src.endswith(".model3.json"):
         raise PersonaError("portrait.kind 和 src 对不上")
-    return {"kind": p["kind"], "src": src}
+    out = {"kind": p["kind"], "src": src}
+    ex = p.get("expressions")
+    if ex and p["kind"] == "image":
+        if not isinstance(ex, dict) or any(k not in EXPRESSIONS for k in ex):
+            raise PersonaError(f"expressions 只能从 {', '.join(EXPRESSIONS)} 里选")
+        if any(str(v).startswith("data:") for v in ex.values()):
+            raise PersonaError("表情图只能用本站的图片")
+        out["expressions"] = {k: _check_src(str(v or "")) for k, v in ex.items()}
+    return out
 
 
 # ---------- 官方角色 ----------
@@ -339,9 +352,18 @@ def check_slot(db: Session, user: User) -> None:
         raise PersonaError(f"最多只能有 {settings.companion_limit} 位角色，先和一位告别再来吧")
 
 
+def store_images(behavior: dict | None, user_id: str) -> dict | None:
+    """形象里内嵌的图片（上传、导入、工坊上传的人设包）写成 /media 文件，数据库只存地址。"""
+    try:
+        return media.store(behavior, user_id)
+    except media.MediaError as e:
+        raise PersonaError(str(e)) from e
+
+
 def create(db: Session, user: User, *, persona: dict, behavior: dict | None, lore: list | None, slug: str = "",
            origin: dict | None = None) -> Character:
     check_slot(db, user)
+    behavior = store_images(behavior, user.id)
     persona = {**persona}
     persona.setdefault("color", "#1414a8")
     check_content(*(v for v in persona.values() if isinstance(v, str)), *(x.get("content", "") for x in lore or []))
@@ -447,7 +469,7 @@ def save(db: Session, c: Character, *, persona: dict | None = None, behavior: di
         for k in persona_io.TEXT_FIELDS:
             if len(str(new_p.get(k) or "")) > persona_io.MAX_FIELD:
                 raise PersonaError(f"「{FIELDS[k][0]}」太长了")
-    new_b = validate_behavior(behavior) if behavior is not None else c.behavior
+    new_b = validate_behavior(store_images(behavior, c.owner_id)) if behavior is not None else c.behavior
     new_l = persona_io._clean_lore(lore) if lore is not None else c.lore
     if (new_p, new_b, new_l) == (c.persona, c.behavior, c.lore):
         return c
@@ -482,7 +504,7 @@ GENERATE_SYSTEM = f"""你是 ACG 角色设定作者，根据用户的描述写�
 避免空泛的形容词和“AI 助手”腔调（不要“很高兴为你服务”“作为……”“领航员”“向导”之类）。"""
 
 
-def generate_draft(prompt: str, style: str | None) -> dict:
+def generate_draft(prompt: str, style: str | None, payer: str | None = None) -> dict:
     from .llm import LLMError, get_llm
 
     prompt = (prompt or "").strip()
@@ -492,7 +514,7 @@ def generate_draft(prompt: str, style: str | None) -> dict:
     ask = prompt + (f"\n（互动风格偏好：{style}）" if style in STYLES else "")
     try:
         r = get_llm().complete(system=GENERATE_SYSTEM, messages=[{"role": "user", "content": ask}], max_tokens=2000,
-                               context={"task": "persona", "prompt": prompt, "style": style})
+                               context={"task": "persona", "payer": payer, "prompt": prompt, "style": style})
     except LLMError as e:
         raise PersonaError(str(e)) from e
     m = re.search(r"\{.*\}", r.text or "", re.S)
@@ -564,8 +586,11 @@ def create_character(body: CharacterIn, user: User = Depends(current_user), db: 
 
 
 @router.post("/characters/generate")
-def generate(body: GenerateIn, user: User = Depends(current_user)):
-    return _err(lambda: generate_draft(body.prompt, body.style))
+def generate(body: GenerateIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    from . import credits
+
+    credits.check(db, user)
+    return _err(lambda: generate_draft(body.prompt, body.style, payer=user.id))
 
 
 @router.get("/characters/{cid}")
@@ -664,12 +689,14 @@ def farewell(cid: str, user: User = Depends(current_user), db: Session = Depends
 
 @router.get("/characters/{cid}/export")
 def export(cid: str, format: str = "json", user: User = Depends(current_user), db: Session = Depends(get_db)):
-    """导出人设：只有人格配置，不含私人记忆。"""
+    """导出人设：人格配置 + 形象（JSON 里内嵌图片；Markdown 只有文字和地址），不含私人记忆。"""
     c = get_owned(db, user, cid)
     if format == "md":
         body, mime, ext = persona_io.to_markdown(c.persona, c.behavior, c.lore, c.slug), "text/markdown", "md"
     else:
-        body, mime, ext = json.dumps(package_of(c), ensure_ascii=False, indent=2), "application/json", "krino.json"
+        pkg = package_of(c)
+        pkg["behavior"] = media.embed(pkg["behavior"])  # 形象图片内嵌进去：灵魂 + 肉体一个文件带走
+        body, mime, ext = json.dumps(pkg, ensure_ascii=False, indent=2), "application/json", "krino.json"
     return Response(body.encode("utf-8"), media_type=f"{mime}; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="{c.slug}.{ext}"'})
 

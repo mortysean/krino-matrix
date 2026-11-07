@@ -42,6 +42,7 @@ function logout() {
 $("#logout").onclick = () => bus.emit("logout");
 bus.on("logout", logout);
 
+
 // ---------- 角色 ----------
 function renderChars() {
   $("#char-list").innerHTML = S.chars.map((c) => `
@@ -71,7 +72,7 @@ bus.on("goto", (view) => show(view));
 
 // ---------- 页面 ----------
 async function show(view) {
-  if (S.view === "persona" && view !== "persona" && personaDirty() && !confirm(t("人格编辑还没保存，要离开吗？"))) return;
+  if (S.view === "persona" && view !== "persona" && personaDirty() && !confirm(t("工作台里的修改还没保存，要离开吗？"))) return;
   if (S.view === "settings" && view !== "settings") leaveGlasses();
   S.view = view;
   $$(".nav button").forEach((b) => b.classList.toggle("active", b.dataset.view === view));
@@ -99,7 +100,10 @@ async function boot() {
   api("/api/health").then((h) => $("#demo-badge").classList.toggle("hidden", !h.mock)).catch(() => {});
   S.chars = await api("/api/characters");
   select.done = false;
-  await select(S.chars.find((c) => c.id === S.charId)?.id || S.chars[0]?.id, "chat");
+  // 从外面带着 #workbench 进来（比如 DSH 桌宠插件里的“捏一个自己的伙伴”）：登录后直接打开工作台
+  const fromPet = location.hash === "#workbench";
+  if (fromPet) history.replaceState(null, "", location.pathname + location.search);
+  await select(S.chars.find((c) => c.id === S.charId)?.id || S.chars[0]?.id, fromPet ? "persona" : "chat");
   refreshAsks();
   hideBoot();
 }

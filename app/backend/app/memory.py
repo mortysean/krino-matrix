@@ -497,14 +497,14 @@ def apply_candidates(db: Session, *, user: User, cid: str, cands: list[dict], ms
     return out
 
 
-def _call_extractor(user_text: str, reply_text: str, known: list[str], story: bool) -> dict:
+def _call_extractor(user_text: str, reply_text: str, known: list[str], story: bool, payer: str | None = None) -> dict:
     en = locale() == "en"
     prompt = ("<known>\n" + ("\n".join(known) or ("(none)" if en else "（无）")) + "\n</known>\n"
               + (("<note>This turn is a fantasy story; the plot the user describes is fiction</note>\n" if en
                   else "<note>这一轮是幻想剧情，用户说的情节都是虚构的</note>\n") if story else "")
               + f"<user_message>\n{user_text}\n</user_message>\n<assistant_reply>\n{reply_text[:600]}\n</assistant_reply>")
     r = get_llm().complete(system=EXTRACT_SYSTEM_EN if en else EXTRACT_SYSTEM, messages=[{"role": "user", "content": prompt}], max_tokens=1200,
-                           context={"task": "extract", "user_text": user_text, "story": story})
+                           context={"task": "extract", "payer": payer, "user_text": user_text, "story": story})
     m = re.search(r"\{.*\}", r.text or "", re.S)
     if not m:
         raise MemoryError_("模型没有返回 JSON")
@@ -535,7 +535,7 @@ def run_job(db: Session, job: MemoryJob) -> dict:
     known = [f"{m.key or '-'}：{m.title}" for m in db.scalars(
         select(Memory).where(Memory.user_id == user.id, Memory.character_id == job.character_id,
                              Memory.status == "active", Memory.type != "summary").limit(30))]
-    raw = _call_extractor(msg.content, reply.content if reply else "", known, story)
+    raw = _call_extractor(msg.content, reply.content if reply else "", known, story, payer=user.id)
     cands, dropped, state = validate(raw, user_text=msg.content, story=story)
     applied = apply_candidates(db, user=user, cid=job.character_id, cands=cands, msg=msg)
     applied["dropped"] = dropped + applied["dropped"]

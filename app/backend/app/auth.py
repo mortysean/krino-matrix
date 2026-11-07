@@ -117,7 +117,7 @@ _ALLOWED = {  # 每个分组允许的键和取值，防止前端写进任意结�
     "privacy": {"camera": bool, "microphone": bool},
     "voice": {"stt": ("auto", "browser", "server", "off"), "tts": ("auto", "browser", "server", "off"),
               "autoplay": bool, "voice": str},
-    "interaction": {"proactive": bool, "idle_seconds": int, "animations": bool, "stories": bool},
+    "interaction": {"proactive": bool, "idle_seconds": int, "animations": bool, "stories": bool, "web": bool},
     "evaluator": {"mode": (None, "rules", "matrix", "off")},
 }
 

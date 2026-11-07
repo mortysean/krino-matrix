@@ -1,11 +1,12 @@
 // 03 工坊：一个网格。卡片上直接“领养”（一键导入成自己的角色并去聊天），点卡片看详情。
-// 发布在“角色 → 更多 → 发布到工坊”，或者这里右上角“上传”。管理员多一个“审核”入口。
+// 发布在“工作台 → 发布到工坊”，或者这里右上角“上传”（工作台“导出”的文件带着形象，可以直接上传）。管理员多一个“审核”入口。
 import { $, $$, S, api, bus, confirmBox, download, esc, fail, fmtTime, modal, t, toast, tr } from "./core.js";
 
 const W = { q: "", category: "", sort: "hot", page: 1, items: [], meta: null, mine: false };
 
 const meta = async () => (W.meta ||= await api("/api/workshop/meta"));
-const cover = (i) => `<div class="ws-cover" style="--c:${esc(i.color)}"><span>${esc([...(i.title || "?")][0])}</span><i class="mono">${esc(tr(i.category_label))}</i></div>`;
+const cover = (i) => `<div class="ws-cover ${i.portrait ? "has-img" : ""}" style="--c:${esc(i.color)}">${i.portrait ? `<img src="${esc(i.portrait)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('has-img');this.remove()">`
+  : `<span>${esc([...(i.title || "?")][0])}</span>`}<i class="mono">${esc(tr(i.category_label))}</i></div>`;
 
 function cardHTML(i, k = 0) {
   const btn = i.installed ? `<button class="small ghost" data-chat="${i.installed.character_id}">${t("去聊天")}</button>`
@@ -42,7 +43,7 @@ async function load(append = false) {
   const p = new URLSearchParams({ q: W.q, category: W.category, sort: W.sort, page: W.page, mine: W.mine });
   const r = await api("/api/workshop/items?" + p).catch((e) => (fail(e), { items: [], more: false }));
   W.items = append ? W.items.concat(r.items) : r.items;
-  $("#ws-grid").innerHTML = W.items.length ? W.items.map(cardHTML).join("") : `<p class="muted ws-empty">${W.mine ? t("你还没有发布过角色。在“角色 → 更多”里可以发布。") : t("没有找到。换个词试试？")}</p>`;
+  $("#ws-grid").innerHTML = W.items.length ? W.items.map(cardHTML).join("") : `<p class="muted ws-empty">${W.mine ? t("你还没有发布过角色。在“工作台”里点“发布到工坊”。") : t("没有找到。换个词试试？")}</p>`;
   $("#ws-more").classList.toggle("hidden", !r.more);
   bind($("#ws-grid"));
 }

@@ -1,0 +1,58 @@
+{
+  "name": "dsh-pet-krino",
+  "version": "0.1.0",
+  "description": "KRINO 娘：住在 DeepSeek Harness 里的 Q 版桌宠。十几段流畅的动漫动作，AI 干活时陪你看书敲键盘，要你确认时挥手提醒，做完了比个 V；点她会害羞，拖到哪儿待到哪儿。还能一键去 KRINO 世界，捏一个属于你的伙伴。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "assets/clips/*.webm",
+    "assets/clips/idle.png",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "icon.png"
+  ],
+  "icon": "icon.png",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "desktop-pet",
+    "pet",
+    "floating-widget",
+    "web-ui",
+    "cordis",
+    "krino",
+    "chibi",
+    "anime"
+  ],
+  "homepage": "https://www.krinomatrix.com",
+  "license": "SEE LICENSE IN LICENSE",
+  "dependencies": {
+    "schemastery": "^3.18.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    },
+    "compatibility": {
+      "dshReleases": {
+        "0.2.0-rc.2": "compatible"
+      }
+    }
+  }
+}

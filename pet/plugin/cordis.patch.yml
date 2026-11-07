@@ -1,0 +1,4 @@
+# KRINO 娘桌宠：往 web 界面的插件列表里加一行。这一行同时挂上服务端（动作视频、AI 状态）和浏览器端（桌宠本体）。
+- insert:
+    - id: dsh-pet-krino
+      name: dsh-pet-krino
