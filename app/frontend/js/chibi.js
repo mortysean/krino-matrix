@@ -28,6 +28,7 @@ export function createChibi(box) {
   box.prepend(wrap);
 
   const url = (name) => S.blobs[name] || S.base + S.def.clips[name];
+  const pickReady = (opts) => { const ready = (opts || []).filter((x) => S.blobs[x]); return pick(ready.length ? ready : opts); };
   const has = (name) => !!(name && S.def?.clips[name]);
 
   function stage(name) {  // 把下一段装进背后的 video，停在第一帧
@@ -37,14 +38,27 @@ export function createChibi(box) {
     v.onended = null; v.pause(); v.src = url(name); v.load();
   }
 
-  function show(name) {
+  // maxWait：这个片段多久还放不出来就算了（网慢时不让动作慢半拍地出现），在后台下好，下次就快了
+  function show(name, { maxWait = 0 } = {}) {
     if (!has(name)) return;
     const gen = ++S.gen;
     const back = vids[1 - front], cur = vids[front];
     if (staged !== name) { staged = name; back.src = url(name); back.load(); }
     try { back.currentTime = 0; } catch { /* 还没加载 */ }
     back.onended = () => { if (gen === S.gen) next(); };
+    let giveUp = 0;
+    if (maxWait && !S.blobs[name] && back.readyState < 3) {
+      giveUp = setTimeout(() => {
+        if (gen !== S.gen) return;
+        const g2 = ++S.gen;
+        back.onended = null; back.pause(); back.removeAttribute("src"); back.load(); staged = null;
+        cur.onended = () => { if (g2 === S.gen) next(); };  // 让正在放的这段照常接下去
+        if (cur.ended || cur.paused) next();
+        fetchClip(name);
+      }, maxWait);
+    }
     back.play().then(() => {
+      clearTimeout(giveUp);
       if (gen !== S.gen) return;
       back.classList.add("front"); cur.classList.remove("front");
       cur.onended = null;
@@ -74,7 +88,7 @@ export function createChibi(box) {
     if (!has(name)) return false;
     if (S.recent && performance.now() - S.recent.at < 400 && !strong) return true;  // 刚做了明确的动作：表情片段不去抢
     if (strong) S.recent = { at: performance.now() };
-    if (calm()) { S.queue = []; show(name); }
+    if (calm()) { S.queue = []; show(name, { maxWait: 1500 }); }
     else if (strong || !S.queue.length) S.queue = [name];
     return true;
   }
@@ -112,9 +126,9 @@ export function createChibi(box) {
   return {
     load,
     // 聊天里的动作名（wave、nod、shy……）→ 这个角色对应的片段
-    play(name) { return act(pick(S.def?.moves?.[name] || (has(name) ? [name] : []))); },
+    play(name) { return act(pickReady(S.def?.moves?.[name] || (has(name) ? [name] : []))); },
     // 表情 → 对应的片段（没有就不动）
-    expression(name) { const c = pick(S.def?.faces?.[name]); return c ? act(c, { strong: false }) : false; },
+    expression(name) { const c = pickReady(S.def?.faces?.[name]); return c ? act(c, { strong: false }) : false; },
     speaking(on) {
       S.talking = !!on;
       if (on && calm() && has(S.def?.talk) && S.clip !== S.def.talk) { S.queue = []; show(S.def.talk); }
