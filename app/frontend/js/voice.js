@@ -77,6 +77,7 @@ let current = null, gen = 0;  // gen：每次停止或开始新的一句都加�
 export function stopSpeaking() {
   gen += 1;
   if (current?.audio) { current.audio.pause(); current.audio.src = ""; }
+  if (current?.pcm) current.pcm.stop();
   window.speechSynthesis?.cancel();
   current = null;
 }
@@ -104,12 +105,13 @@ export async function speak(text, voiceParams = {}) {
   if (await useServer("tts")) {
     let res;
     try {
-      res = await api("/api/voice/tts", { body: { text: text.slice(0, 600), rate, voice: voiceParams.voice || null, style: voiceParams.style || null }, raw: true });
+      res = await api("/api/voice/tts", { body: { text: text.slice(0, 600), rate, voice: voiceParams.voice || null, style: voiceParams.style || null, stream: canStream() }, raw: true });
     } catch (e) {  // 服务端语音出问题时退回浏览器朗读，不让她“哑掉”
       console.warn("服务端语音失败，改用浏览器朗读：", e.message);
       if (my !== gen) return { done: Promise.resolve() };
       return browserSpeak(text, rate, pitch);
     }
+    if ((res.headers.get("content-type") || "").startsWith("audio/pcm")) return playPcm(res, my);  // 边下边播
     const blob = await res.blob();
     if (my !== gen) return { done: Promise.resolve() };  // 合成期间又开始了新的一句（或被停止），这句不读了
     const audio = new Audio(URL.createObjectURL(blob));
@@ -119,6 +121,56 @@ export async function speak(text, voiceParams = {}) {
     return { audio, done };
   }
   return browserSpeak(text, rate, pitch);
+}
+
+// ---------- 流式朗读：服务端边合成边发 16-bit PCM，这里收到一段就排进播放队列 ----------
+let actx = null;
+const AC = window.AudioContext || window.webkitAudioContext;
+function audioCtx() {
+  if (!AC) return null;
+  actx ||= new AC();
+  if (actx.state === "suspended") actx.resume().catch(() => {});
+  return actx;
+}
+// 浏览器要求用户先点过、按过键才能出声：第一次交互时就把播放器准备好
+["pointerdown", "keydown"].forEach((ev) => addEventListener(ev, () => audioCtx(), { once: true, capture: true }));
+const canStream = () => !!AC && !!window.ReadableStream;
+
+function playPcm(res, my) {
+  const ctx = audioCtx();
+  const rate = +(res.headers.get("x-sample-rate") || 24000);
+  const reader = res.body.getReader();
+  let at = 0, left = null, stopped = false, last = null, finish;
+  const done = new Promise((r) => (finish = r));
+  const nodes = new Set();
+  const pcm = { stop() { stopped = true; reader.cancel().catch(() => {}); nodes.forEach((n) => { try { n.stop(); } catch {} }); finish(); } };
+  current = { pcm };
+  (async () => {
+    try {
+      for (;;) {
+        const { value, done: end } = await reader.read();
+        if (end || stopped || my !== gen) break;
+        let bytes = value;
+        if (left) { const m = new Uint8Array(left.length + bytes.length); m.set(left); m.set(bytes, left.length); bytes = m; left = null; }
+        if (bytes.length % 2) { left = bytes.slice(-1); bytes = bytes.slice(0, -1); }
+        if (!bytes.length) continue;
+        const i16 = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.length / 2);
+        const buf = ctx.createBuffer(1, i16.length, rate);
+        const ch = buf.getChannelData(0);
+        for (let i = 0; i < i16.length; i++) ch[i] = i16[i] / 32768;
+        const src = ctx.createBufferSource();
+        src.buffer = buf; src.connect(ctx.destination);
+        at = Math.max(at, ctx.currentTime + 0.05);  // 第一段留 50ms 余量；之后首尾相接
+        src.start(at); at += buf.duration;
+        nodes.add(src); src.onended = () => nodes.delete(src);
+        last = src;
+      }
+    } catch { /* 断开：已经收到的照常播完 */ }
+    if (stopped || my !== gen) return finish();
+    if (!last) return finish();
+    last.onended = () => { nodes.delete(last); finish(); };
+  })();
+  return { done };
 }
 
 function browserSpeak(text, rate, pitch) {

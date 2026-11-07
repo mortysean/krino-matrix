@@ -139,6 +139,51 @@ def _qwen(text: str, voice: str | None, speed: float) -> bytes:
     return r.content
 
 
+def _qwen_stream(text: str, voice: str | None, speed: float):
+    """自建语音服务的流式合成，原样转给浏览器（audio/pcm，24kHz 单声道 16-bit）。
+    第一段声音拿到了才开始回应；连不上、出错就返回 None，由调用方按整句合成（还会退回 Kokoro）。"""
+    text = speakable(text)
+    vs = _qwen_voices()
+    if not text or not vs:
+        return None
+    from fastapi.responses import StreamingResponse
+
+    from .tts_local import FALLBACK
+
+    voice = {v: k for k, v in FALLBACK.items()}.get(voice or "", voice)
+    name = voice if voice in vs else vs[0]
+    client = httpx.Client(timeout=httpx.Timeout(60, connect=3), trust_env=False)
+    try:
+        cm = client.stream("POST", settings.qwen_tts_url.rstrip("/") + "/v1/audio/speech",
+                           json={"input": text, "voice": name, "speed": speed, "stream": True})
+        r = cm.__enter__()
+        if r.status_code != 200 or not r.headers.get("content-type", "").startswith("audio/pcm"):
+            cm.__exit__(None, None, None); client.close()
+            return None
+        it = r.iter_bytes()
+        first = next(it, b"")
+        if not first:
+            cm.__exit__(None, None, None); client.close()
+            return None
+    except httpx.HTTPError as e:
+        log.warning("流式语音不可用，改整句合成：%s", e)
+        client.close()
+        return None
+
+    def gen():
+        try:
+            yield first
+            yield from it
+        except httpx.HTTPError as e:
+            log.warning("流式语音中途断开：%s", e)
+        finally:
+            cm.__exit__(None, None, None); client.close()
+
+    rate = r.headers.get("x-sample-rate", "24000")
+    return StreamingResponse(gen(), media_type="audio/pcm", headers={"X-Sample-Rate": rate, "Cache-Control": "no-store",
+                                                                    "X-Accel-Buffering": "no"})
+
+
 def _styles() -> dict:
     """角色音色的声音描述（app/tts/voices.py，和自建语音服务共用一份）。"""
     if not _style_cache:
@@ -453,12 +498,19 @@ class TTSIn(BaseModel):
     voice: str | None = Field(default=None, max_length=40)
     rate: float = Field(default=1.0, ge=0.5, le=2.0)
     style: str | None = Field(default=None, max_length=300)  # 角色自己的声音描述（一句话生成的角色才有）
+    stream: bool = False  # 边合成边返回 16-bit PCM（24kHz 单声道）：第一段声音零点几秒就到，不用等整句
 
 
 @router.post("/voice/tts")
 def tts(body: TTSIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     credits.check(db, user)
     t0 = time.perf_counter()
+    if body.stream and settings.tts_provider == "qwen":
+        resp = _qwen_stream(body.text, body.voice, body.rate)
+        if resp is not None:
+            events.record("voice", "tts", user_id=user.id, latency_ms=(time.perf_counter() - t0) * 1000,
+                          payload={"provider": "qwen", "chars": len(body.text), "stream": True})
+            return resp
     try:
         audio, mime = synthesize(body.text, body.voice, body.rate, body.style)
     except ServiceError as e:
