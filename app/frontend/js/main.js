@@ -48,7 +48,7 @@ function renderChars() {
   $("#char-list").innerHTML = S.chars.map((c) => `
     <div class="char-item ${c.id === S.charId ? "active" : ""}" data-id="${c.id}" style="--c:${esc(c.color)}">
       ${avaHTML(c)}
-      <div><div class="name">${esc(c.name)}</div><div class="muted small">${esc(c.tagline).slice(0, 14)}</div></div>
+      <div class="char-text"><div class="name">${esc(c.name)}</div><div class="muted small tagline" title="${esc(c.tagline)}">${esc(c.tagline)}</div></div>
     </div>`).join("");
   $$(".char-item").forEach((el) => (el.onclick = () => select(el.dataset.id)));
 }
