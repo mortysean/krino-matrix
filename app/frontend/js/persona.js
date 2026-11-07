@@ -18,6 +18,7 @@ export async function personaPage() {
   const root = $("#persona-page");
   const [c, sc, vc] = await Promise.all([api("/api/characters/" + S.charId), schema(), voiceConfig()]).catch((e) => (fail(e), []));
   if (!c) return;
+  VOICE_LABELS = vc.tts.labels || {};
   S.chars = await api("/api/characters");
   P.dirty = false;
   P.c = c;
@@ -128,12 +129,11 @@ document.addEventListener("click", async (e) => {  // 弹窗里的按钮（弹�
   if (e.target.id === "gen-go") {
     const prompt = $("#gen-prompt").value.trim();
     if (!prompt) return $("#gen-prompt").focus();
-    e.target.disabled = true; $("#gen-out").innerHTML = '<p class="muted small mono">DRAWING…</p>';
-    try {
-      const d = await api("/api/characters/generate", { body: { prompt } });
-      const c = await api("/api/characters", { body: d });
-      bodyPrompt(c.id, prompt);  // 灵魂写好了，肉体的描述也填上：在工作台点“生成新形象”就行
-      $("#modal").classList.add("hidden"); toast(t("欢迎 {name}：点左边“生成新形象”给她一个样子", { name: c.name }), 5000);
+    e.target.disabled = true; $("#gen-out").innerHTML = `<p class="muted small">${t("正在写她的性格和声音，再画她的样子，大约一分钟…")}</p>`;
+    try {  // 一句话：灵魂 + 形象 + 声音一起生成
+      const { character: c } = await api("/api/workbench/character", { body: { prompt } });
+      bodyPrompt(c.id, prompt);
+      $("#modal").classList.add("hidden"); toast(t("欢迎 {name}！性格、样子和声音都好了，在这里可以接着改", { name: c.name }), 5000);
       await reloadChars(c.id); bus.emit("select", { id: c.id, view: "persona" });
     } catch (err) { $("#gen-out").innerHTML = `<p class="error">${esc(err.message)}</p>`; }
     finally { e.target.disabled = false; }
@@ -210,9 +210,10 @@ export function initPersona() {}
 
 // 按人设设计的音色显示角色名；Kokoro 编号原样显示
 const ROLE_VOICES = { dafeiyu: "大肥鱼的声音", krino: "KRINO 的声音" };
+let VOICE_LABELS = {};  // 生成角色可选的音色说明（服务端给）
 function voiceLabel(v) {
   const role = ROLE_VOICES[v.replace(/-(zh|en)$/, "")];
-  return role ? t(role) : v;
+  return role ? t(role) : VOICE_LABELS[v] || v;
 }
 
 function voiceNote(tts) {

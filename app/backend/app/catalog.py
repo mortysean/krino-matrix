@@ -25,7 +25,7 @@ def picks() -> list[dict]:
     """当前站点版本的官方精选：[{persona, behavior, lore, category}]。"""
     o = official()
     kp, kb = krino()
-    return [{**o, "category": "companion"}, {"persona": kp, "behavior": kb, "lore": [], "category": "companion"}]
+    return [{"persona": kp, "behavior": kb, "lore": [], "category": "companion"}, {**o, "category": "companion"}]  # KRINO 在前
 
 
 def _system_user(db: Session) -> User:

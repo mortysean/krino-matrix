@@ -155,9 +155,9 @@ def register(body: Credentials, db: Session = Depends(get_db)):
                 display_name=body.display_name or body.username, settings={})
     db.add(user)
     db.flush()
-    from .personas import adopt_official
+    from .personas import adopt_officials
 
-    adopt_official(db, user)  # 每个新用户都有一位默认官方角色 WHALE GIRL
+    adopt_officials(db, user)  # 每个新用户都有两位官方角色：KRINO（第一位，默认打开）和大肥鱼
     db.commit()
     return {"token": issue_token(db, user), "user": user_out(user)}
 

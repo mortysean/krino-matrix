@@ -157,6 +157,7 @@ def _persona(prompt: str, style: str | None) -> str:
         "interests": "- 收集贝壳", "preferences": "- 开心时会转圈", "worldview": "海边的小镇。",
         "relationships": "- 和你：刚认识的朋友", "greeting": "你来了。今晚的潮声很好听。",
         "lore": [{"name": "海边小镇", "content": "一座只有一条街的小镇，街尾是她常去的灯塔。"}],
+        "appearance": _short(prompt, 120), "voice": "longanlingxin_v3.1", "voice_style": "温柔、轻声细语，语速偏慢",
     }, ensure_ascii=False)
 
 

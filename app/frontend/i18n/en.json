@@ -679,5 +679,16 @@
   "大肥鱼 · Q 版": "Whale-chan · chibi",
   "KRINO · Q 版": "KRINO · chibi",
   "会动": "Animated",
-  "Q 版小人加载失败": "Couldn't load the chibi"
+  "Q 版小人加载失败": "Couldn't load the chibi",
+  "角色刚换过，请再发一次": "You just switched characters. Please send it again.",
+  "这段对话属于另一个角色，已经帮你切回来了，请再发一次": "That chat belongs to another character. We've switched it back; please send again.",
+  "用一句话描述你想要的角色（人、动物、机器人都行），或者想改哪里": "Describe the character you want in one sentence (a person, an animal, a robot…), or what to change",
+  "一键生成角色": "Generate character",
+  "性格、样子和声音一起生成；会新建一个角色，{name} 不会被改动": "Personality, look and voice in one go. This creates a new character; {name} stays as she is.",
+  "性格、样子和声音一起生成，换掉现在的（之前的版本可以在“更多 → 历史版本”里恢复）": "Personality, look and voice in one go, replacing the current ones (restore older versions from More → History).",
+  "先写一句你想要什么样的角色": "Describe the character you want first",
+  "正在写她的性格和声音，再画她的样子，大约一分钟…": "Writing her personality and voice, then drawing her. About a minute…",
+  "新建了「{name}」：性格、样子和声音都好了。{old} 没有改动": "Created “{name}” with a personality, look and voice. {old} is unchanged.",
+  "「{name}」换好了：性格、样子和声音都是新的。之前的版本在“更多 → 历史版本”里": "“{name}” is updated: new personality, look and voice. Older versions are under More → History.",
+  "欢迎 {name}！性格、样子和声音都好了，在这里可以接着改": "Welcome, {name}! Personality, look and voice are ready. Keep tweaking here."
 }

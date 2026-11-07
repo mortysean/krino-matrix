@@ -16,11 +16,16 @@ def _png(color=(40, 60, 200)) -> str:
 
 # ---------- 默认角色、文字互动 ----------
 
-def test_new_user_gets_official_whale_girl(user):
+def test_new_user_gets_krino_then_whale_girl(user):
+    """新用户有两位官方角色：KRINO 第一位（默认打开），大肥鱼第二位。两人是不同的人设、音色和形象。"""
     chars = user.ok("get", "/api/characters")
-    assert len(chars) == 1 and chars[0]["official"] and chars[0]["name"] == "大肥鱼" and chars[0]["ai"] is True
-    full = user.ok("get", f"/api/characters/{chars[0]['id']}")
-    assert "AI" in full["persona"]["boundaries"]
+    assert [c["name"] for c in chars] == ["KRINO", "大肥鱼"] and all(c["official"] and c["ai"] for c in chars)
+    k, w = (user.ok("get", f"/api/characters/{c['id']}") for c in chars)
+    assert "AI" in w["persona"]["boundaries"] and "AI" in k["persona"]["boundaries"]
+    assert "本肥鱼" not in json.dumps(k["persona"], ensure_ascii=False)
+    assert k["behavior"]["voice"]["voice"] == "krino-zh" and w["behavior"]["voice"]["voice"] == "dafeiyu-zh"
+    assert k["behavior"]["portrait"]["src"].endswith("/krino/chibi.json") and w["behavior"]["portrait"]["src"].endswith("/whale/chibi.json")
+    assert "coffee" in k["behavior"]["animations"] and "eat" in w["behavior"]["animations"] and "eat" not in k["behavior"]["animations"]
 
 
 def test_text_chat_returns_reply_and_structured_actions(user):
@@ -448,3 +453,53 @@ def test_gesture_falls_back_when_character_lacks_the_action():
         ev = policy.InteractionEvent(type="gesture", gesture=g)
         cands = policy.build_candidates(ev, policy.PolicyContext(behavior={"animations": base}, user_settings={}))
         assert any(c.action == "ANIMATE" and c.params["name"] == want and not c.blocked for c in cands), g
+
+
+def test_each_character_has_its_own_chat_and_memory(user):
+    """不同角色是不同的对话、不同的记忆：发给 KRINO 的话不会进大肥鱼的对话和记忆；发错会话的请求直接拒绝。"""
+    k, w = user.krino["id"], user.official["id"]
+    ks, ws = user.session(k), user.session(w)
+    user.say(ks, "我叫小林，我最喜欢喝燕麦拿铁")
+    assert not [m for m in user.memories(w) if "燕麦" in m["content"]]  # 大肥鱼不知道
+    assert [m for m in user.memories(k) if "燕麦" in m["content"]]      # KRINO 记住了
+    # 页面已经切到 KRINO，请求却还拿着大肥鱼的会话：拒绝，不让大肥鱼来回答
+    for path, body in ((f"/api/sessions/{ws}/messages", {"text": "你是谁"}), (f"/api/sessions/{ws}/stream", {"text": "你是谁"}),
+                       (f"/api/sessions/{ws}/events", {"type": "gesture", "gesture": "wave"})):
+        r = user.post(path, json={**body, "character_id": k})
+        assert r.status_code == 409, path
+    assert user.post(f"/api/sessions/{ks}/messages", json={"text": "你是谁", "character_id": k}).status_code == 200
+
+
+def test_krino_adopted_from_workshop_becomes_official(user):
+    """以前 KRINO 只能从工坊领养（收不到官方更新）。启动时把它认作官方 KRINO：没改过的换上新版（Q 版小人等）。"""
+    from sqlalchemy import select
+
+    from app import personas
+    from app.db import SessionLocal
+    from app.models import Character, WorkshopItem
+    db = SessionLocal()
+    c = db.get(Character, user.krino["id"])
+    item = db.scalar(select(WorkshopItem.id).where(WorkshopItem.title == "KRINO"))
+    # 做成“以前从工坊领养的”样子：没有官方模板标记，形象还是旧立绘
+    c.origin = {"source": "workshop", "workshop": {"own": False, "item": item, "version": 3}}
+    c.behavior = {**c.behavior, "portrait": {"kind": "image", "src": "/static/assets/krino.png"}}
+    db.commit()
+    personas.refresh_official(db)
+    db.refresh(c)
+    assert c.origin.get("template") == "krino" and c.behavior["portrait"]["kind"] == "chibi"
+    db.close()
+
+
+def test_existing_users_get_krino_once(user):
+    """以前注册、只有大肥鱼的用户：启动时补一个 KRINO（排在第一位），再启动不会重复补。"""
+    from app import personas
+    from app.db import SessionLocal
+    from app.models import Character
+    db = SessionLocal()
+    db.delete(db.get(Character, user.krino["id"]))
+    db.commit()
+    assert [c["name"] for c in user.ok("get", "/api/characters")] == ["大肥鱼"]
+    personas.refresh_official(db)
+    personas.refresh_official(db)
+    assert [c["name"] for c in user.ok("get", "/api/characters")] == ["KRINO", "大肥鱼"]
+    db.close()

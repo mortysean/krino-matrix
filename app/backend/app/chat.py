@@ -400,6 +400,7 @@ class MessageIn(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
     image: str | None = Field(default=None, max_length=8_000_000)  # data URL
     source: str = Field(default="app", pattern="^(app|voice|glasses)$")
+    character_id: str | None = Field(default=None, max_length=32)  # 页面上正在聊的角色：和会话对不上就拒绝，防止串到别的角色
 
 
 class EventIn(BaseModel):
@@ -408,6 +409,13 @@ class EventIn(BaseModel):
     idle_count: int = Field(default=1, ge=0, le=100)
     text: str = Field(default="", max_length=400)
     image: str | None = Field(default=None, max_length=8_000_000)
+    character_id: str | None = Field(default=None, max_length=32)
+
+
+def _same_character(s: ChatSession, character_id: str | None) -> None:
+    """每个角色是自己的对话、自己的记忆。前端切换角色的瞬间，旧会话的请求不能落到新角色上（反过来也一样）。"""
+    if character_id and character_id != s.character_id:
+        raise HTTPException(409, "这段对话属于另一个角色，已经帮你切回来了，请再发一次")
 
 
 @router.get("")
@@ -439,6 +447,7 @@ def get_session(sid: str, user: User = Depends(current_user), db: Session = Depe
 def send(sid: str, body: MessageIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     credits.check(db, user)
     s = _open(db, user, sid)
+    _same_character(s, body.character_id)
     p = plan_turn(db, user, s, event="message", text=body.text.strip(), image=decode_image(body.image), source=body.source)
     try:
         return run_turn(db, p)
@@ -452,6 +461,7 @@ def send(sid: str, body: MessageIn, user: User = Depends(current_user), db: Sess
 def send_stream(sid: str, body: MessageIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     credits.check(db, user)
     s = _open(db, user, sid)
+    _same_character(s, body.character_id)
     p = plan_turn(db, user, s, event="message", text=body.text.strip(), image=decode_image(body.image), source=body.source)
     db.commit()  # 用户消息先落库，流式生成在另一个数据库会话里收尾
     return StreamingResponse(stream_turn(p), media_type="text/event-stream",
@@ -463,6 +473,7 @@ def send_event(sid: str, body: EventIn, user: User = Depends(current_user), db: 
     """用户触发的预设互动、页面上的“安静了一阵”、眼镜模拟器分享的画面。"""
     credits.check(db, user)
     s = _open(db, user, sid)
+    _same_character(s, body.character_id)
     p = plan_turn(db, user, s, event=body.type, text=body.text.strip(), gesture=body.gesture,
                   image=decode_image(body.image), idle_count=body.idle_count)
     try:

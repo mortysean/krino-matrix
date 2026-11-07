@@ -268,7 +268,7 @@ def info(user: User = Depends(current_user), db: Session = Depends(get_db)):
 class DesignIn(BaseModel):
     prompt: str = Field(min_length=1, max_length=500)
     base: str | None = Field(default=None, max_length=200)  # 有参考图 = 在这张上修改
-    n: int = Field(default=4, ge=1, le=4)
+    n: int = Field(default=1, ge=1, le=4)  # 默认一张：一个角色一个形象
 
 
 @router.post("/design")
@@ -341,3 +341,51 @@ def upload(body: UploadIn, user: User = Depends(current_user)):
 def media_root():
     return media.root()
 
+
+
+# ---------- 一句话生成整个角色：灵魂 + 肉体 + 声音 ----------
+
+class CharacterIn(BaseModel):
+    prompt: str = Field(min_length=1, max_length=500)
+    character_id: str | None = Field(default=None, max_length=32)  # 在哪个角色的工作台上点的；不给 = 新建一个角色
+
+
+@router.post("/character")
+def character(body: CharacterIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """先写灵魂（人设、开场白、对话示例，顺便挑好音色、写好外貌），再按外貌画一张形象。
+    在官方角色（KRINO、大肥鱼）的工作台上点：新建一个角色，官方角色保持不变；
+    在自己的角色上点：直接换成新的（旧的留在版本历史里，可以恢复）。"""
+    from . import personas
+
+    c = personas.get_owned(db, user, body.character_id) if body.character_id else None
+    try:
+        check_content(body.prompt)
+    except PersonaError as e:
+        raise HTTPException(400, str(e)) from e
+    official = c is None or personas.template_of(c) is not None  # 新建（官方角色不覆盖）
+    if official:
+        try:
+            personas.check_slot(db, user)
+        except PersonaError as e:
+            raise HTTPException(400, str(e)) from e
+    _check_quota(db, user, 1)
+    try:
+        d = personas.generate_draft(body.prompt, None, payer=user.id)
+    except PersonaError as e:
+        raise HTTPException(400, str(e)) from e
+    lang = "en" if locale() == "en" else "zh"
+    look = f"{body.prompt}。{d.get('appearance') or ''}" if lang == "zh" else f"{body.prompt}. {d.get('appearance') or ''}"
+    image = _run(user, "design", [{"text": PROMPTS[lang]["design"].format(prompt=look[:800])}], 1, f"{MAX_W}*{MAX_H}")[0]
+    behavior = {**d["behavior"], "portrait": {"kind": "image", "src": image}}
+    try:
+        if official:
+            new = personas.create(db, user, persona=d["persona"], behavior=behavior, lore=d["lore"],
+                                  origin={"source": "created", "prompt": body.prompt[:200]})
+        else:
+            keep = {k: v for k, v in (c.behavior or {}).items() if k not in ("portrait", "voice", "animations")}
+            new = personas.save(db, c, persona=d["persona"], behavior={**keep, "portrait": behavior["portrait"], "voice": behavior["voice"]},
+                                lore=d["lore"], note="一句话重新生成")
+    except PersonaError as e:
+        raise HTTPException(400, str(e)) from e
+    db.commit()
+    return {"character": personas.full(new), "created": official, "used": _used_today(db, user.id)}

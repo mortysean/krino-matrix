@@ -50,8 +50,12 @@ class Helper:
         return r.json()
 
     @property
-    def official(self):
-        return next(c for c in self.ok("get", "/api/characters") if c["official"])
+    def official(self):  # 官方大肥鱼（大部分测试围绕她）
+        return next(c for c in self.ok("get", "/api/characters") if c["official"] and c["slug"].startswith("whale-girl"))
+
+    @property
+    def krino(self):  # 官方 KRINO
+        return next(c for c in self.ok("get", "/api/characters") if c["official"] and c["slug"].startswith("krino"))
 
     def session(self, cid):
         return self.ok("post", "/api/sessions", json={"character_id": cid})["id"]

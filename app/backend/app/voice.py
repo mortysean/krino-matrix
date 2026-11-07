@@ -197,11 +197,44 @@ def _openai(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
     return r.content, r.headers.get("content-type", "audio/mpeg")
 
 
-def _dashscope(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
+# 生成的角色可以选的百炼音色（qwen-audio-3.1-tts-flash）：id → (中文说明, 英文说明, 语言)。
+# 官方的 KRINO、大肥鱼用自己的角色音色（app/tts/voices.py）；一句话生成的角色从这里挑一个，再配一句声音描述（behavior.voice.style）
+VOICE_CATALOG = {
+    "qiaoxiaojiao_v3.1": ("俏丽可爱的少女", "cute, pretty girl", "zh"),
+    "longanlingxi_v3.1": ("甜美可爱", "sweet and cute", "zh"),
+    "longhua_v3.1": ("元气甜美", "energetic and sweet", "zh"),
+    "longanhuan_v3.1": ("欢脱元气", "cheerful and lively", "zh"),
+    "longanlingxin_v3.1": ("温柔治愈", "gentle and soothing", "zh"),
+    "xuyanchu_v3.1": ("沉稳磁性的御姐", "calm, magnetic, mature", "zh"),
+    "guyunshu_v3.1": ("成熟稳重", "mature and steady", "zh"),
+    "longanya_v3.1": ("高雅有气质", "elegant", "zh"),
+    "xuyuyuan_v3.1": ("知性", "intellectual", "zh"),
+    "longling_v3.1": ("稚气童声", "childlike", "zh"),
+    "xunanchuan_v3.1": ("磁性男声", "magnetic male", "zh"),
+    "longshu_v3.1": ("沉稳男声", "calm male", "zh"),
+    "longanyang_v3.1": ("阳光少年", "sunny boy", "zh"),
+    "Cally_v3.1": ("美式甜美女声", "sweet American girl", "en"),
+    "Ava_v3.1": ("美式年轻女声", "young American woman", "en"),
+    "Emily_v3.1": ("英式冷静女声", "calm British woman", "en"),
+    "Luna_v3.1": ("英式柔和女声", "soft British woman", "en"),
+    "Donna_v3.1": ("美式成熟女声", "mature American woman", "en"),
+    "Brian_v3.1": ("美式男声", "American man", "en"),
+    "Eric_v3.1": ("英式男声", "British man", "en"),
+}
+
+
+def catalog_voices(lang: str | None = None) -> list[str]:
+    lang = lang or ("en" if locale() == "en" else "zh")
+    return [k for k, v in VOICE_CATALOG.items() if v[2] == lang]
+
+
+def _dashscope(text: str, voice: str | None, speed: float, style: str | None = None) -> tuple[bytes, str]:
     """阿里云百炼：系统音色 + 声音描述。返回的是 24 小时有效的音频链接，取回来再给浏览器。
     qwen-audio-* 走 SpeechSynthesizer 接口（字段是 instruction）；qwen3-tts-* 走多模态生成接口（字段是 instructions）。"""
     if not settings.dashscope_api_key:
         raise ServiceError("没有配置 DASHSCOPE_API_KEY")
+    if voice in VOICE_CATALOG and settings.dashscope_tts_model.startswith("qwen-audio"):  # 生成的角色：清单里的音色 + 她自己的声音描述
+        return _dashscope_call(text, voice, (style or VOICE_CATALOG[voice][0]).strip()[:300], VOICE_CATALOG[voice][2])
     role = _role(voice)
     style = _styles()[role]
     model = settings.dashscope_tts_model
@@ -221,6 +254,34 @@ def _dashscope(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
     try:
         with _client() as c:
             r = c.post(url, json=body, headers={"Authorization": f"Bearer {settings.dashscope_api_key}"})
+            if r.status_code != 200:
+                log.error("百炼 TTS %s: %s", r.status_code, r.text[:300])
+                raise ServiceError(f"百炼语音出错（{r.status_code}）")
+            audio = (r.json().get("output") or {}).get("audio") or {}
+            if audio.get("data"):
+                return base64.b64decode(audio["data"]), "audio/wav"
+            if not audio.get("url"):
+                raise ServiceError("百炼语音没有返回音频")
+            a = c.get(audio["url"])
+    except httpx.HTTPError as e:
+        raise ServiceError("无法连接百炼语音") from e
+    except ValueError as e:
+        raise ServiceError("百炼语音返回的不是 JSON") from e
+    if a.status_code != 200:
+        raise ServiceError(f"取百炼音频出错（{a.status_code}）")
+    return a.content, a.headers.get("content-type", "audio/wav").split(";")[0]
+
+
+def _dashscope_call(text: str, voice: str, instruct: str, lang: str) -> tuple[bytes, str]:
+    base = (f"https://{settings.dashscope_workspace}.{settings.dashscope_region}.maas.aliyuncs.com/api/v1"
+            if settings.dashscope_workspace else settings.dashscope_base_url.rstrip("/"))
+    body = {"model": settings.dashscope_tts_model, "input": {
+        "text": text, "voice": voice, "format": "wav", "sample_rate": 24000,
+        "instruction": ("Speak in English. " if lang == "en" else "用中文说。") + instruct}}
+    try:
+        with _client() as c:
+            r = c.post(base + "/services/audio/tts/SpeechSynthesizer", json=body,
+                       headers={"Authorization": f"Bearer {settings.dashscope_api_key}"})
             if r.status_code != 200:
                 log.error("百炼 TTS %s: %s", r.status_code, r.text[:300])
                 raise ServiceError(f"百炼语音出错（{r.status_code}）")
@@ -261,7 +322,7 @@ def _elevenlabs(text: str, voice: str | None, speed: float) -> tuple[bytes, str]
 CLOUD = {"openai": _openai, "dashscope": _dashscope, "elevenlabs": _elevenlabs}
 
 
-def synthesize(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
+def synthesize(text: str, voice: str | None, speed: float, style: str | None = None) -> tuple[bytes, str]:
     p = settings.tts_provider
     text = speakable(text)
     if not text:
@@ -271,6 +332,8 @@ def synthesize(text: str, voice: str | None, speed: float) -> tuple[bytes, str]:
     try:  # 首选的服务不在或出错就退回本地 Kokoro，不让她哑掉
         if p == "qwen":
             return _qwen(text, voice, speed), "audio/wav"
+        if p == "dashscope":
+            return _dashscope(text, voice, speed, style)
         if p in CLOUD:
             return CLOUD[p](text, voice, speed)
     except ServiceError as e:
@@ -353,7 +416,9 @@ def _tts_config() -> dict:
     keys = {"openai": settings.tts_api_key, "dashscope": settings.dashscope_api_key, "elevenlabs": settings.elevenlabs_api_key}
     if keys.get(p):
         roles = [k for k in _styles() if k.endswith("-en" if locale() == "en" else "-zh")]
-        return {"provider": p, "server": True, "voices": roles, "default": roles[0]}
+        extra = catalog_voices() if p == "dashscope" else []
+        labels = {k: VOICE_CATALOG[k][1 if locale() == "en" else 0] for k in extra}
+        return {"provider": p, "server": True, "voices": roles + extra, "labels": labels, "default": roles[0]}
     if p in ("local", "qwen", *CLOUD):
         from . import tts_local
 
@@ -384,6 +449,7 @@ class TTSIn(BaseModel):
     text: str = Field(min_length=1, max_length=600)
     voice: str | None = Field(default=None, max_length=40)
     rate: float = Field(default=1.0, ge=0.5, le=2.0)
+    style: str | None = Field(default=None, max_length=300)  # 角色自己的声音描述（一句话生成的角色才有）
 
 
 @router.post("/voice/tts")
@@ -391,7 +457,7 @@ def tts(body: TTSIn, user: User = Depends(current_user), db: Session = Depends(g
     credits.check(db, user)
     t0 = time.perf_counter()
     try:
-        audio, mime = synthesize(body.text, body.voice, body.rate)
+        audio, mime = synthesize(body.text, body.voice, body.rate, body.style)
     except ServiceError as e:
         raise HTTPException(503, str(e)) from e
     events.record("voice", "tts", user_id=user.id, latency_ms=(time.perf_counter() - t0) * 1000,

@@ -48,7 +48,7 @@ const user = "e2e" + Date.now().toString(36);
 
 console.log(`KRINO WORLD e2e → ${URL_}`);
 
-await step("注册并进入，默认角色是大肥鱼", async () => {
+await step("注册并进入：KRINO 第一位、默认打开，大肥鱼第二位", async () => {
   await page.goto(URL_);
   await page.waitForSelector("#auth:not(.hidden)", { timeout: 15000 });
   await shot("01-auth");
@@ -56,9 +56,30 @@ await step("注册并进入，默认角色是大肥鱼", async () => {
   await page.fill("[name=password]", "secret123");
   await page.click("[data-action=register]");
   await page.waitForSelector("#app:not(.hidden)", { timeout: 15000 });
-  await page.waitForFunction(() => document.querySelector("#chat-name")?.textContent === "大肥鱼", null, { timeout: 10000 })
+  await page.waitForFunction(() => document.querySelector("#chat-name")?.textContent === "KRINO", null, { timeout: 10000 })
     .catch(async () => { throw new Error("默认角色名不对：" + await page.textContent("#chat-name")); });
+  const names = await page.$$eval(".char-list .char-item .name", (xs) => xs.map((x) => x.textContent.trim()));
+  expect(names[0] === "KRINO" && names[1] === "大肥鱼", "角色顺序不对：" + names.join(","));
   expect(await page.locator(".nav button").count() === 4, "导航应该只有 4 项");
+});
+
+await step("不串台：网慢时连点切换再说话，话只进最后选中的角色", async () => {
+  const cdp = await ctx.newCDPSession(page);
+  await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 900, downloadThroughput: -1, uploadThroughput: -1 });
+  await page.click(".char-list .char-item:has(.name:text-is(\"大肥鱼\"))");
+  await page.click(".char-list .char-item:has(.name:text-is(\"KRINO\"))");  // 马上又切回 KRINO
+  await page.fill("#chat-input", "串台测试一二三");
+  await page.press("#chat-input", "Enter");
+  await page.waitForFunction(() => document.querySelector("#chat-name")?.textContent === "KRINO"
+    && [...document.querySelectorAll(".msg.user")].some((m) => m.textContent.includes("串台测试一二三"))
+    && document.querySelectorAll(".msg.assistant").length >= 1 && !document.querySelector(".typing"), null, { timeout: 30000 })
+    .catch(async () => { throw new Error("话没出现在 KRINO 的对话里：" + await page.textContent("#messages")); });
+  await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+  // 大肥鱼的对话里不能有这句（后面的步骤从她干净的对话开始）
+  await page.click(".char-list .char-item:has(.name:text-is(\"大肥鱼\"))");
+  await page.waitForFunction(() => document.querySelector("#chat-name")?.textContent === "大肥鱼", null, { timeout: 10000 });
+  await page.waitForTimeout(1500);
+  expect(!(await page.textContent("#messages")).includes("串台测试一二三"), "大肥鱼的对话里出现了发给 KRINO 的话");
 });
 
 await step("Q 版小人：默认是大肥鱼，在动，聊天能触发动作", async () => {
@@ -150,42 +171,42 @@ await step("联网：问天气 → 她查了一下，来源在气泡下面，正
   await shot("07-web");
 });
 
-await step("工作台：一句话生成形象 → 整套表情 → 保存后聊天里换上", async () => {
+await step("工作台：一句话生成角色（性格 + 一张形象 + 声音）→ 整套表情 → 聊天里换上", async () => {
   await page.click('.nav [data-view="persona"]');
   await page.waitForSelector("#wb-prompt");
-  await page.fill("#wb-prompt", "蓝色长发、鲸鱼发饰、蓝白连帽卫衣");
+  const greetBefore = await page.inputValue("[data-p=greeting]");
+  await page.fill("#wb-prompt", "一只戴围巾、爱读诗的小水獭");
   await page.click("#wb-new");
-  await page.waitForFunction(() => document.querySelector(".wb-stage img")?.src.includes("/media/"), null, { timeout: 30000 })
-    .catch(async () => { throw new Error("没有生成出新形象：" + (await page.$eval(".wb-stage", (e) => e.innerText + " | " + e.innerHTML.slice(0, 160)).catch(() => "?")) + " | toast " + await page.textContent("#toast").catch(() => "")); });
-  expect(await page.locator(".pick-portrait .portrait-opt img[src*='/media/']").count() >= 4, "候选不到 4 张");
-  expect(await page.$eval("#p-save", (b) => b.classList.contains("dirty")), "生成后“保存”没有提示未保存");
+  // 在官方角色（大肥鱼）上点：新建一个角色，打开她的工作台
+  await page.waitForFunction(() => { const a = document.querySelector(".cast-card.active b")?.textContent; return a && a !== "大肥鱼" && a !== "KRINO"
+    && document.querySelector(".wb-stage img")?.src.includes("/media/"); }, null, { timeout: 60000 })
+    .catch(async () => { throw new Error("没有新建出角色：" + await page.textContent("#toast").catch(() => "")); });
+  const name = await page.textContent(".cast-card.active b");
+  expect((await page.inputValue("[data-p=greeting]")) !== greetBefore, "灵魂还是原来的");
+  expect(await page.locator(".pick-portrait .portrait-opt img[src*='/media/']").count() === 1, "应该只生成一张形象");
+  expect((await page.inputValue("[data-v=voice]")) === "longanlingxin_v3.1", "声音没换：" + await page.inputValue("[data-v=voice]"));
+  expect(!(await page.$eval("#p-save", (b) => b.classList.contains("dirty"))), "生成的角色应该已经存好");
   await page.click("#wb-faces");
   await page.waitForFunction(() => document.querySelectorAll(".wb-face img").length >= 10, null, { timeout: 60000 })
     .catch(() => { throw new Error("整套表情没生成出来"); });
   await shot("07-workbench");
-  const src = await page.$eval(".wb-stage img", (i) => i.getAttribute("src"));
-  // 表情生成好就自动存进角色：不点保存、刷新页面，表情还在
   await page.waitForFunction(() => !document.querySelector("#p-save").classList.contains("dirty"), null, { timeout: 10000 })
     .catch(() => { throw new Error("表情生成后没有自动保存"); });
   await page.reload();
   await page.waitForSelector("#app:not(.hidden)");
+  await page.click(`.char-list .char-item:has(.name:text-is("${name}"))`);
   await page.click('.nav [data-view="persona"]');
   await page.waitForFunction(() => document.querySelectorAll(".wb-face img").length >= 10, null, { timeout: 15000 })
     .catch(() => { throw new Error("刷新后表情没了"); });
-  // 点别的立绘再点回来，表情跟着回来
-  await page.click('.portrait-opt[data-portrait*="krino.png"]');
-  await page.click(`.portrait-opt[data-portrait*="${src}"]`);
-  expect(await page.locator(".wb-face img").count() >= 10, "切回原来那张立绘，表情没跟着回来");
   await page.click('.nav [data-view="chat"]');
-  await page.waitForFunction((s) => document.querySelector(".portrait > img:not([hidden])")?.getAttribute("src")?.includes("/media/"), src, { timeout: 15000 })
+  await page.waitForFunction(() => document.querySelector(".portrait > img:not([hidden])")?.getAttribute("src")?.includes("/media/"), null, { timeout: 15000 })
     .catch(() => { throw new Error("聊天页没有换上新形象"); });
   expect(await page.$eval(".portrait", (b) => b.classList.contains("has-faces")), "聊天页没有拿到整套表情");
-  // 换回大肥鱼立绘，后面的步骤按默认形象走
-  await page.click('.nav [data-view="persona"]');
-  await page.waitForSelector('.portrait-opt[data-portrait*="whale-girl.png"]');
-  await page.click('.portrait-opt[data-portrait*="whale-girl.png"]');
-  await page.click("#p-save");
-  await page.waitForTimeout(800);
+  // 大肥鱼没被改动；后面的步骤回到她
+  await page.click(".char-list .char-item:has(.name:text-is(\"大肥鱼\"))");
+  await page.waitForFunction(() => document.querySelector("#chat-name")?.textContent === "大肥鱼", null, { timeout: 10000 });
+  await page.waitForTimeout(1500);
+  expect(!((await page.$eval(".portrait > img", (i) => i.hidden ? "" : i.getAttribute("src")).catch(() => "")) || "").includes("/media/"), "大肥鱼的形象被改成了新生成的");
 });
 
 await step("工坊：没有重复，一键领养后直接去聊天", async () => {

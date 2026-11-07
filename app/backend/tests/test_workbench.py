@@ -47,7 +47,7 @@ def test_workbench_design_edit_expressions_apply(user, monkeypatch):
     assert Image.open(io.BytesIO(img.content)).getpixel((2, 2))[3] == 0  # 白底去掉了
 
     edit = user.ok("post", "/api/workbench/design", json={"prompt": "头发换成粉色", "base": first})
-    assert len(edit["images"]) == 2  # 修改最多两张
+    assert len(edit["images"]) == 1  # 一个角色一张形象
     faces = user.ok("post", "/api/workbench/expressions", json={"base": first, "expressions": ["happy", "shy"]})
     assert set(faces["images"]) == {"happy", "shy"} and not faces["errors"]
 
@@ -192,3 +192,21 @@ def test_kaomoji_never_spoken():
     assert speakable("(・_・ゞ我不知道。") == "我不知道。"
     assert speakable("Hello (world) and m(_ _)m thanks") == "Hello and thanks"
     assert speakable("email: a_b@x.com，价格 $5") == "email: a_b@x.com，价格 $5"
+
+
+def test_one_sentence_makes_soul_body_and_voice(user, monkeypatch):
+    """工作台一句话：灵魂 + 一张形象 + 声音一起生成。官方角色上点 → 新建角色（KRINO 不变）；自己的角色上点 → 直接换掉（可恢复）。"""
+    monkeypatch.setattr(settings, "tts_provider", "dashscope")
+    k = user.krino
+    before = user.ok("get", f"/api/characters/{k['id']}")
+    r = user.ok("post", "/api/workbench/character", json={"prompt": "一只戴围巾、爱读诗的小水獭", "character_id": k["id"]})
+    c = r["character"]
+    assert r["created"] and c["id"] != k["id"] and c["name"] != "KRINO"
+    assert c["behavior"]["portrait"]["kind"] == "image" and c["behavior"]["portrait"]["src"].startswith("/media/")
+    assert c["behavior"]["voice"]["voice"] == "longanlingxin_v3.1" and "温柔" in c["behavior"]["voice"]["style"]
+    assert "glasses" not in c["behavior"]["animations"]  # 普通形象只会通用动作
+    assert user.ok("get", f"/api/characters/{k['id']}")["persona"] == before["persona"]  # KRINO 原样
+    assert len(r["character"]["behavior"]["portrait"]) and r["used"] == 1  # 只生成一张
+    # 在自己的角色上再生成：原地换掉，版本 +1
+    r2 = user.ok("post", "/api/workbench/character", json={"prompt": "一个总在打瞌睡的机器人管家", "character_id": c["id"]})
+    assert not r2["created"] and r2["character"]["id"] == c["id"] and r2["character"]["version"] == c["version"] + 1

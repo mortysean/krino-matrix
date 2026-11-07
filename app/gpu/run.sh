@@ -9,6 +9,7 @@ cd "$(dirname "$0")"
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate krino_matrix
 export CUDA_DEVICE_ORDER=PCI_BUS_ID  # 编号和 nvidia-smi 一致（默认最快的卡排前面，会对不上）
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}  # 用环境里的新 libstdc++（系统的太旧，sqlite3/ICU 加载不了）
 GPU_MAIN=${GPU_MAIN:-2}
 GPU_AUX=${GPU_AUX:-4}
 MODELS=$(cd .. && pwd)/models

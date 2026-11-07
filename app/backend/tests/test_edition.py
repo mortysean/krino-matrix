@@ -108,7 +108,8 @@ def test_dashscope_tts_uses_persona_voice(monkeypatch):
     assert calls[0][1].endswith("/services/audio/tts/SpeechSynthesizer") and body["model"] == "qwen-audio-3.1-tts-flash"
     assert body["input"]["voice"] == "qiaoxiaojiao_v3.1" and "萝莉" in body["input"]["instruction"]  # 大肥鱼：萝莉音
     assert calls[1] == ("GET", "https://oss.example/a.wav", None)
-    assert voice._tts_config()["voices"] == ["dafeiyu-zh", "krino-zh"]
+    vs = voice._tts_config()["voices"]
+    assert vs[:2] == ["dafeiyu-zh", "krino-zh"] and "qiaoxiaojiao_v3.1" in vs  # 官方两人的音色在前，后面是生成角色可选的
 
 
 def test_tts_skips_actions_and_kaomoji(monkeypatch):

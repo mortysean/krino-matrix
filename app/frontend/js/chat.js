@@ -11,7 +11,7 @@ import { renderDrawer, refreshAsks } from "./memory.js";
 const GESTURES = [["wave", "挥手"], ["pat_head", "摸摸头"], ["high_five", "击掌"], ["poke", "戳一下"], ["cheer_up", "加油"]];
 
 const C = {
-  session: null, pending: false, listening: null, image: null, stage: null, portraitFor: null,
+  session: null, loading: null, loadTok: 0, pending: false, listening: null, image: null, stage: null, portraitFor: null,
   autoRead: storeGet("krino_autoread") !== "0", lastActivity: Date.now(), idleCount: 0, seen: new Set(), jobs: {},
 };
 
@@ -82,16 +82,24 @@ function rememberChip(a) {
 }
 
 // ---------- 会话：自动管理 ----------
+// 每个角色是自己的对话、自己的记忆：会话一定要属于页面上正在聊的那个角色。
+// 切换角色时立刻放下旧会话；加载回来时角色已经又换了的，结果作废（连点切换时不会串）
 async function loadSession() {
-  const list = await api("/api/sessions?character_id=" + S.charId);
+  const cid = S.charId, tok = ++C.loadTok;
+  const list = await api("/api/sessions?character_id=" + cid);
   const open = list.find((s) => !s.ended);
-  C.session = open ? await api("/api/sessions/" + open.id) : null;
+  const sess = open ? await api("/api/sessions/" + open.id) : null;
+  if (tok !== C.loadTok || cid !== S.charId) return;
+  C.session = sess;
   renderMessages();
 }
 
 async function ensureSession() {
-  if (C.session && !C.session.ended) return;
-  const s = await api("/api/sessions", { body: { character_id: S.charId } });
+  if (C.loading) await C.loading.catch(() => {});  // 刚切换角色、会话还在加载：等它，不要另开一个
+  if (C.session && !C.session.ended && C.session.character_id === S.charId) return;
+  const cid = S.charId;
+  const s = await api("/api/sessions", { body: { character_id: cid } });
+  if (cid !== S.charId) throw new Error(t("角色刚换过，请再发一次"));
   C.session = { ...s, messages: [] };
 }
 
@@ -217,15 +225,17 @@ async function send(text, { source = "app" } = {}) {
   $("#send-btn").disabled = true;
   try {
     await ensureSession();
+    const sid = C.session.id, cid = S.charId;
+    const here = () => C.session?.id === sid && S.charId === cid;  // 还在同一个角色的同一段对话里
     const image = C.image; clearImage();
     C.session.messages.push({ id: "tmp", role: "user", content: text, meta: { image: !!image, source } });
     renderMessages();
     if ($("#chat-input").value.trim() === text) $("#chat-input").value = "";
     C.stage?.play("think").catch(() => {});
-    const res = await api(`/api/sessions/${C.session.id}/stream`, { body: { text, image, source: source === "voice" ? "voice" : "app" }, raw: true });
+    const res = await api(`/api/sessions/${sid}/stream`, { body: { text, image, source: source === "voice" ? "voice" : "app", character_id: cid }, raw: true });
     let live = null, done = null, error = null;
     for await (const [ev, data] of sse(res)) {
-      if (ev === "delta") {
+      if (ev === "delta" && here()) {
         if (!live) {
           C.pending = false; renderMessages();
           live = document.createElement("div");
@@ -240,6 +250,7 @@ async function send(text, { source = "app" } = {}) {
       if (ev === "error") error = data.message;
     }
     if (error) throw new Error(error);
+    if (!here()) return;  // 中途换了角色：这句回复留在原来那个角色的对话里，回去就能看到
     C.session.messages.pop();
     C.pending = false;
     if (done.user) C.session.messages.push(done.user);
@@ -250,6 +261,7 @@ async function send(text, { source = "app" } = {}) {
     if (done.memory_job && done.reply) watchJob(done.memory_job, done.reply.id);
   } catch (e) {
     C.pending = false;
+    if (e.status === 409) loadSession().catch(() => {});  // 后端发现会话和角色对不上：重新加载当前角色的会话
     if (C.session?.messages?.at(-1)?.id === "tmp") C.session.messages.pop();
     renderMessages();
     $("#chat-input").value = text;
@@ -284,7 +296,9 @@ async function sendEvent(body) {
   $("#gestures")?.classList.add("busy");
   try {
     await ensureSession();
-    const r = await api(`/api/sessions/${C.session.id}/events`, { body });
+    const sid = C.session.id, cid = S.charId;
+    const r = await api(`/api/sessions/${sid}/events`, { body: { ...body, character_id: cid } });
+    if (C.session?.id !== sid || S.charId !== cid) return;  // 中途换了角色
     if (r.user) C.session.messages.push(r.user);
     if (r.reply) C.session.messages.push(r.reply);
     if (r.user || r.reply) renderMessages();
@@ -377,7 +391,11 @@ export function initChat() {
     if (!c) return;
     $("#chat-name").textContent = c.name;
     C.jobs = {};
-    await Promise.all([loadSession().catch(fail), ensureStage().catch(fail)]);
+    C.session = null;  // 立刻放下上一个角色的会话：加载完之前发的话也不会进到她那里
+    stopSpeaking();
+    renderMessages();
+    C.loading = loadSession();
+    await Promise.all([C.loading.catch(fail), ensureStage().catch(fail)]);
     refreshAsks();
     if (!$("#drawer").classList.contains("hidden")) renderDrawer($("#drawer-body"));
     if (!C.session) greet();

@@ -104,7 +104,7 @@ export async function speak(text, voiceParams = {}) {
   if (await useServer("tts")) {
     let res;
     try {
-      res = await api("/api/voice/tts", { body: { text: text.slice(0, 600), rate, voice: voiceParams.voice || null }, raw: true });
+      res = await api("/api/voice/tts", { body: { text: text.slice(0, 600), rate, voice: voiceParams.voice || null, style: voiceParams.style || null }, raw: true });
     } catch (e) {  // 服务端语音出问题时退回浏览器朗读，不让她“哑掉”
       console.warn("服务端语音失败，改用浏览器朗读：", e.message);
       if (my !== gen) return { done: Promise.resolve() };

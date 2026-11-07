@@ -1,5 +1,6 @@
 // 工作台的“肉体”半边：她的形象。嵌在 02 工作台页（persona.js）左栏，和右栏的“灵魂”一起点一次“保存”生效。
-// 一键原则：写一句描述 → “生成新形象” → 点一张喜欢的 →（可选）写一句 → “在这张上改” → “一键生成整套表情”。
+// 一键原则：写一句描述 → “一键生成角色”（性格、样子、声音一起出来；在官方角色上点会新建一个角色，不改动她）
+// →（可选）写一句 → “在这张上改” → “一键生成整套表情”。
 // 也可以选内置立绘、Live2D，或上传自己画的。生成的立绘先是草稿，点页面顶上的“保存”才写进角色；
 // 整套表情花的额度多，生成好就自动连同这张立绘存进角色（右栏没保存的人设修改不受影响）。
 import { $, $$, S, api, bus, esc, fail, t, toast } from "./core.js";
@@ -63,15 +64,16 @@ export async function bodyPanel(host, c, { onChange } = {}) {
     if (saved && !tiles.some((x) => x.src === saved.src)) tiles.unshift({ ...saved, label: "现在的" });
     if (p && !tiles.some((x) => x.src === p.src)) tiles.unshift({ ...p, label: "" });
     const off = d.busy || !info.ready ? "disabled" : "";
+    const official = !!c.official || !!(c.origin && c.origin.template);
     host.innerHTML = `
       <div class="wb-stage">
         ${img ? `<img src="${esc(p.src)}" alt="">` : p?.kind === "chibi" ? `<div class="wb-chibi"></div>` : p ? `<span class="l2d-tag">Live2D</span>` : `<div class="wb-empty">${t("还没有形象：在下面写一句描述，点“生成新形象”")}</div>`}
         ${d.busy ? `<div class="wb-busy"><i></i>${esc(d.busy)}</div>` : ""}
       </div>
-      <label>${t("描述她的样子，或者想改哪里")}
+      <label>${t("用一句话描述你想要的角色（人、动物、机器人都行），或者想改哪里")}
         <textarea id="wb-prompt" rows="3" maxlength="500" placeholder="${t("比如：蓝色长发、鲸鱼发饰、蓝白连帽卫衣、抱着一碗白米饭、傲娇的表情")}">${esc(d.prompt || "")}</textarea></label>
       <div class="row wb-actions">
-        <button id="wb-new" ${off}>${t("生成新形象")}</button>
+        <button id="wb-new" ${off} title="${esc(t(official ? "性格、样子和声音一起生成；会新建一个角色，{name} 不会被改动" : "性格、样子和声音一起生成，换掉现在的（之前的版本可以在“更多 → 历史版本”里恢复）", { name: c.name }))}">${t("一键生成角色")}</button>
         ${img ? `<button class="ghost" id="wb-edit" ${off}>${t("在这张上改")}</button>` : ""}
         <span class="grow"></span>
         <span class="muted small">${info.ready ? (info.credit_limited ? "" : t("今天还能生成 {n} 张", { n: left })) : t("图像服务没有配置（需要 DASHSCOPE_API_KEY）")}</span>
@@ -115,11 +117,12 @@ export async function bodyPanel(host, c, { onChange } = {}) {
 
   async function generate(base) {
     const prompt = (d.prompt || "").trim();
-    if (!prompt) { $("#wb-prompt", host).focus(); return toast(base ? "先写一句想怎么改" : "先写一句她长什么样"); }
-    d.busy = t(base ? "正在修改，大约半分钟…" : "正在生成 4 张，大约半分钟…");
+    if (!prompt) { $("#wb-prompt", host).focus(); return toast(base ? "先写一句想怎么改" : "先写一句你想要什么样的角色"); }
+    if (!base) return whole(prompt);
+    d.busy = t("正在修改，大约半分钟…");
     render();
     try {
-      const r = await api("/api/workbench/design", { body: { prompt, base, n: 4 } });
+      const r = await api("/api/workbench/design", { body: { prompt, base, n: 1 } });
       info.used = r.used;
       const x = cur();
       x.candidates = [...r.images, ...x.candidates.filter((u) => !r.images.includes(u))].slice(0, 8);
@@ -128,6 +131,25 @@ export async function bodyPanel(host, c, { onChange } = {}) {
     d.busy = cur().busy = "";
     redraw();
     onChange?.();
+  }
+
+  // 一句话生成整个角色：灵魂 + 一张形象 + 声音
+  async function whole(prompt) {
+    d.busy = t("正在写她的性格和声音，再画她的样子，大约一分钟…");
+    render();
+    try {
+      const r = await api("/api/workbench/character", { body: { prompt, character_id: c.id } });
+      info.used = r.used;
+      const n = r.character;
+      drafts[n.id] = { version: n.version, portrait: { ...n.behavior.portrait }, candidates: [n.behavior.portrait.src], faces: {}, prompt, busy: "", pending: new Set() };
+      toast(r.created ? t("新建了「{name}」：性格、样子和声音都好了。{old} 没有改动", { name: n.persona.name, old: c.name })
+        : t("「{name}」换好了：性格、样子和声音都是新的。之前的版本在“更多 → 历史版本”里", { name: n.persona.name }), 6000);
+      S.chars = await api("/api/characters");
+      bus.emit("character:changed");
+      bus.emit("chars", n.id);  // 打开新角色（或刷新这个角色）的工作台
+    } catch (e) { fail(e); }
+    d.busy = cur().busy = "";
+    redraw();
   }
 
   async function faces() {
