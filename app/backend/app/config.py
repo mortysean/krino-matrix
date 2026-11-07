@@ -93,6 +93,9 @@ class Settings:
     hear_provider: str = field(default_factory=lambda: _env("HEAR_PROVIDER", "dashscope"))
     hear_model: str = field(default_factory=lambda: _env("HEAR_MODEL", "qwen3-omni-flash"))
     hear_max_seconds: int = field(default_factory=lambda: _int("HEAR_MAX_SECONDS", 60))
+    # 她直接听着回答；同时（并行，不增加等待）用识别模型记下你说的原话，存进对话记录和记忆
+    hear_asr_model: str = field(default_factory=lambda: _env("HEAR_ASR_MODEL", "qwen3-asr-flash"))
+    hear_asr_price: float = field(default_factory=lambda: _float("HEAR_ASR_PRICE", 0.00022))  # 元 / 秒
     # 价格（元 / 百万 token，按百炼北京价估算；用来记积分）
     hear_price_text_in: float = field(default_factory=lambda: _float("HEAR_PRICE_TEXT_IN", 3.2))
     hear_price_audio_in: float = field(default_factory=lambda: _float("HEAR_PRICE_AUDIO_IN", 15.8))

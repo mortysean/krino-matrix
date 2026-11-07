@@ -31,7 +31,7 @@ from .auth import current_user, user_settings
 from .config import chat_model_for, locale, settings
 from .db import SessionLocal, get_db
 from .i18n import tr
-from .llm import LLMError, get_hear_llm, get_llm
+from .llm import LLMError, get_hear_llm, get_llm, transcribe_for_record
 from .models import Character, ChatSession, MemoryJob, Message, User, now
 from .personas import ANIMATIONS, EXPRESSIONS, get_owned, lore_hits
 from .prompt import StreamFilter, build_system, parse_reply, prompt_heard
@@ -71,6 +71,7 @@ class Plan:
     fixed_text: str | None = None    # 不调模型时的固定台词（请求画面）
     event_type: str = "message"
     audio: bool = False              # 这一轮是语音：录音在 llm_context["audio"]，交给能直接听的模型
+    transcript: object = None        # 同时在记的原话（Future）：存进对话记录
 
 
 def decode_audio(data_url: str) -> str:
@@ -241,7 +242,13 @@ def finalize(db: Session, p: Plan, raw: str) -> dict:
     text = parsed.text if parsed else (p.fixed_text or "")
     if p.audio and p.user_message_id:  # 语音：把她听到的原话存成你这句话（对话记录、记忆整理、标题都用它）
         um = db.get(Message, p.user_message_id)
-        heard = parsed.heard if parsed else ""
+        heard = ""
+        if p.transcript is not None:
+            try:
+                heard = p.transcript.result(timeout=25)
+            except Exception:  # noqa: BLE001  记不下来就用她自己写的 <heard>，再不行就标成“语音”
+                heard = ""
+        heard = heard or (parsed.heard if parsed else "")
         if um is not None:
             um.content = heard or tr("（语音，没听清）")
             um.meta = {**(um.meta or {}), "audio": True, "heard": bool(heard)}
@@ -295,6 +302,12 @@ def hear_turn(p: Plan, audio_b64: str) -> None:
     p.audio = True
     p.llm_context.update({"audio": audio_b64, "lang": locale(), "web": False})
     p.system += "\n\n" + prompt_heard()
+    p.transcript = _ASR_POOL.submit(transcribe_for_record, audio_b64, p.user_id)  # 并行记下原话，不耽误她回答
+
+
+from concurrent.futures import ThreadPoolExecutor  # noqa: E402
+
+_ASR_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="asr")
 
 
 def run_turn(db: Session, p: Plan) -> dict:

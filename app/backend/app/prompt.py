@@ -28,8 +28,7 @@ TEXT = {
         "summary": "## 上次见面（之前会话的摘要，可能不完整）", "current": "## 此刻（临时状态，过一阵会过期）",
         "heard": ("## 这一轮：对方是用声音和你说话的\n你直接听得到对方的声音：语气、情绪、停顿、笑声、叹气都能听出来。"
                   "像面对面一样回应，可以自然地回应你听出来的情绪，但不要每次都点评对方的声音。"
-                  "听不清就直说，不要猜。\n输出格式：先写你的回复；回复之后另起一行写 <heard>对方说的原话</heard>（照原样写下来，听不清的地方写……），"
-                  "最后再写 <state> 标签。"),
+                  "听不清就直说，不要猜。"),
         "web": "## 上网\n今天是 {date}（{weekday}）。你可以上网查资料：对方问到需要最新或准确信息的事（天气、新闻、比赛、价格、"
                "上映时间、某个具体事实）时再查；闲聊、谈心、讲故事不要查。查到后用你自己的口吻挑重点说，不要贴网址、不要写来源链接、"
                "不要念出“根据搜索结果”这类话。查不到或拿不准就直说。",
@@ -71,8 +70,7 @@ animation 选一个最贴合这句话内容和情绪的动作，让形象鲜活�
         "summary": "## Last time (summary of an earlier chat, may be incomplete)", "current": "## Right now (temporary, expires soon)",
         "heard": ("## This turn: they're talking to you out loud\nYou can hear their voice directly: tone, mood, pauses, laughs, sighs. "
                   "Respond as if face to face; you can respond to the feeling you hear, but don't comment on their voice every time. "
-                  "If you can't make it out, say so; don't guess.\nFormat: write your reply first; then on a new line write <heard>exactly what they said</heard> "
-                  "(write ... for parts you couldn't make out), and finally the <state> tag."),
+                  "If you can't make it out, say so; don't guess."),
         "web": "## The web\nToday is {date} ({weekday}). You can search the web: do it when they ask about something that needs "
                "current or exact facts (weather, news, games, prices, release dates, a specific fact); don't search for small talk, "
                "feelings or stories. Say what you found in your own voice, briefly. No URLs, no source links, no \"according to search "
