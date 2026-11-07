@@ -74,6 +74,20 @@ class Plan:
     transcript: object = None        # 同时在记的原话（Future）：存进对话记录
 
 
+# 需要最新信息的说法：天气、新闻、价格、比分、日期、“查一下”……（宁可多带几次，也别漏掉明显该查的）
+_WEB_HINT = re.compile(
+    r"天气|气温|下雨|下雪|台风|新闻|头条|热搜|最新|最近.{0,6}(?:消息|情况|发布|上映|比赛)|现在.{0,4}(?:多少|几点|什么情况)|"
+    r"价格|多少钱|股价|汇率|比特币|币价|油价|金价|比分|赛况|谁赢|排名|上映|发布会|发售|开售|票房|航班|路况|限行|"
+    r"查一下|查查|帮我查|搜一下|搜搜|上网|网上|百度|谷歌|几号|星期几|周几|"
+    r"weather|forecast|\bnews\b|headline|latest|price|how much|stock|"
+    r"exchange rate|bitcoin|score|who won|ranking|release|launch|flight|traffic|look up|search|google|what day|what date",
+    re.I)
+
+
+def needs_web(text: str) -> bool:
+    return bool(text and _WEB_HINT.search(text))
+
+
 def decode_audio(data_url: str) -> str:
     """录音：浏览器录好的 16kHz 单声道 WAV（data URL）→ base64。太长、不是 WAV 的拒绝。"""
     m = re.fullmatch(r"data:audio/(?:wav|x-wav|wave);base64,([A-Za-z0-9+/=\s]+)", data_url.strip())
@@ -185,7 +199,9 @@ def plan_turn(db: Session, user: User, sess: ChatSession, *, event: str, text: s
     bond = memory.get_bond(db, user.id, char.id)
     lore = lore_hits(char, query)
     # 联网：只在正常聊天回复时给她搜索工具（主动开口、互动反应、讲故事不需要）；服务端和用户都可以关
-    web = p.mode == "respond" and settings.web_search != "off" and bool((us.get("interaction") or {}).get("web", True))
+    # 而且只在这句话像是需要最新信息时才带：带着搜索工具每句都要多等 0.7~1.3 秒（国内服务器实测），闲聊不值得
+    web = (p.mode == "respond" and settings.web_search != "off" and bool((us.get("interaction") or {}).get("web", True))
+           and needs_web(text))
     ctx = build_system(char, user_name=user.display_name, memories=mems,
                        summary=memory.latest_summary(db, user.id, char.id), lore=lore,
                        bond=memory.bond_prompt(bond, char.name), current=memory.current_prompt(bond), mode=p.mode,

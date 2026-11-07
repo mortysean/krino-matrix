@@ -85,3 +85,12 @@ def test_she_hears_voice_directly(user):
     assert user.post(f"/api/sessions/{sid}/stream", json={"audio": "data:audio/wav;base64,AAAA", "character_id": k}).status_code == 400
     assert user.post(f"/api/sessions/{sid}/stream", json={"audio": _wav(70), "character_id": k}).status_code == 413
     assert user.post(f"/api/sessions/{sid}/stream", json={"character_id": k}).status_code == 400
+
+
+def test_web_tool_only_when_needed():
+    """带着搜索工具每句都会慢 0.7~1.3 秒：只在像是需要最新信息的话里带。"""
+    from app.chat import needs_web
+    for q in ("今天杭州天气怎么样", "帮我查一下新闻", "比特币多少钱", "今天几号", "What's the weather like?", "any news?"):
+        assert needs_web(q), q
+    for q in ("你好呀", "今天有点累", "晚安", "给我讲个冷笑话", "I had a long day today", "What's new with you?"):
+        assert not needs_web(q), q
