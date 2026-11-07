@@ -10,6 +10,7 @@ source ~/miniconda3/etc/profile.d/conda.sh
 conda activate krino_matrix
 export CUDA_DEVICE_ORDER=PCI_BUS_ID  # 编号和 nvidia-smi 一致（默认最快的卡排前面，会对不上）
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}  # 用环境里的新 libstdc++（系统的太旧，sqlite3/ICU 加载不了）
+export VLLM_USE_FLASHINFER_SAMPLER=0  # FlashInfer 采样器要现场用 nvcc 编译，系统的 CUDA 11.5 太旧；用 vllm 自带的
 GPU_MAIN=${GPU_MAIN:-2}
 GPU_AUX=${GPU_AUX:-4}
 MODELS=$(cd .. && pwd)/models

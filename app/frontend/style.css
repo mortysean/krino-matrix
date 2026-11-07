@@ -683,3 +683,6 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 .wb-chibi { position: absolute; inset: 4% 6% 2%; }
 .portrait-opt { position: relative; }
 .portrait-opt .chibi-tag { position: absolute; top: 4px; right: 4px; font: normal 10px var(--sans); background: var(--char, #1414a8); color: #fff; padding: 0 5px; }
+
+/* 眼镜模拟器：输入框单独一行，不被按钮挤窄 */
+.glasses .g-text { width: 100%; margin: 10px 0 0; }

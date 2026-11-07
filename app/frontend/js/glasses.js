@@ -17,7 +17,13 @@ function log(dir, text) {
 }
 
 function send(msg) {
-  if (G.ws?.readyState !== 1) return toast("先连接模拟器");
+  if (G.ws?.readyState !== 1) {  // 还没连上：自动连上再发，不用先去点“连接模拟器”
+    if (!G.ws) connect();
+    const ws = G.ws;
+    const go = () => { ws.removeEventListener("open", go); setTimeout(() => G.ws === ws && ws.readyState === 1 && send(msg), 300); };
+    ws.addEventListener("open", go);
+    return;
+  }
   G.ws.send(JSON.stringify(msg));
   log("in", msg.type + (msg.text ? " " + msg.text : "") + (msg.image ? " [" + t("画面") + "]" : msg.type === "imu.pose" ? ` yaw=${msg.yaw} pitch=${msg.pitch}` : ""));
 }
@@ -148,8 +154,8 @@ export async function glassesPanel(host) {
         <div class="ar-avatar" id="ar-avatar"></div>
         <div class="reticle"></div><div class="hud" id="lens-hud"></div>
       </div>
+      <input id="g-text" class="g-text" placeholder="${t("对着眼镜说一句话，回车发送")}">
       <div class="row">
-        <input id="g-text" placeholder="${t("对着眼镜说一句话（模拟麦克风输入）")}" style="flex:1">
         <button class="ghost" id="g-mic">${t("用麦克风说")}</button><button id="g-say">${t("发送")}</button>
       </div>
       <div class="row">
@@ -182,12 +188,16 @@ export async function glassesPanel(host) {
   placeAvatar();
   $("#g-connect").onclick = () => (G.ws ? disconnect() : connect());
   $("#g-cam").onclick = () => (G.stream ? stopCamera() : startCamera());
-  $("#g-say").onclick = () => { const said = $("#g-text").value.trim(); if (said) { send({ type: "mic.text", text: said }); $("#g-text").value = ""; } };
+  $("#g-say").onclick = () => {
+    const said = $("#g-text").value.trim();
+    if (!said) { $("#g-text").focus(); return toast("先在上面写一句话，或者点“用麦克风说”"); }
+    send({ type: "mic.text", text: said }); $("#g-text").value = "";
+  };
   $("#g-text").onkeydown = (e) => { if (e.key === "Enter" && !e.isComposing) $("#g-say").click(); };
   $("#g-frame").onclick = () => send({ type: "camera.frame", image: grabFrame(), question: $("#g-q").value.trim() });
   $("#g-test").onclick = () => api("/api/devices/test-ar", { body: {} }).then((r) => !r.sent && toast("先连接模拟器")).catch(fail);
   $("#g-mic").onclick = async () => {
-    if (!S.me?.settings?.privacy?.microphone) return toast("请先在“设置 → 隐私”里允许麦克风", 4000);
+    // 不另设开关：第一次用时浏览器会问你允不允许用麦克风（和聊天页的麦克风一样）
     if (G.listening) {
       const l = G.listening; G.listening = null; $("#g-mic").textContent = t("用麦克风说");
       try { const said = await l.stop(); if (said) send({ type: "mic.text", text: said }); } catch (e) { fail(e); }
