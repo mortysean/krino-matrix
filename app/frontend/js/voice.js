@@ -82,8 +82,14 @@ export function stopSpeaking() {
 }
 
 // 朗读前去掉括号里的动作、*动作*、颜文字和 emoji（服务端也会再清理一遍）
+// 颜文字连同括号外的装饰一起去掉：ヾ(≧▽≦*)o、m(_ _)m、٩(ˊᗜˋ)و、(￣▽￣)ゞ、(－ω－) zzZ；少了右括号的 (・_・ゞ 也算
+const KAO_CLOSED = /[ヾヽ٩mｍo＼\\～~φΦ]{0,2}[（(]([^（()）\n]{0,40})[）)][ゞゝو*oｍm／/～~ﾉノ]{0,2}(?:\s?z+Z+)?/g;
+const KAO_OPEN = /(?<![A-Za-z0-9_])[（(](?=[^\s（()）\u4e00-\u9fff]*[^A-Za-z0-9_\s（()）\u4e00-\u9fff])[^\s（()）\n\u4e00-\u9fffA-Za-z0-9]{1,12}/gu;
+const WORDISH = /[\u4e00-\u9fff]|[A-Za-z]{3,}/;
 export function speakable(text) {
   return (text || "")
+    .replace(KAO_CLOSED, (m, inner) => (WORDISH.test(inner) ? m : ""))
+    .replace(KAO_OPEN, "")
     .replace(/[（(][^（()）\n]{0,40}[）)]|\*[^*\n]{0,40}\*/g, "")
     .replace(/[\p{So}\p{Sm}\p{Sk}\p{Co}()（）・°ﾟ｡´｀`ω∀▽ᴗ˘◕‿╹ㅂ\uFE30-\uFE4F]/gu, "")
     .replace(/[ \t]{2,}/g, " ").trim();

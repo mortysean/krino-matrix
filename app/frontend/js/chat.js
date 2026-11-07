@@ -54,7 +54,9 @@ async function readAloud(text, btn) {
 
 // 执行后端给的行为
 function perform(actions, { speakIt = false } = {}) {
-  for (const a of actions || []) {
+  // Q 版小人用身体动作表达情绪：同一句里既有动作又有表情时，先做动作（表情片段在动作之后 0.4 秒内不会再抢）
+  const ordered = [...(actions || [])].sort((x, y) => (y.type === "animate") - (x.type === "animate"));
+  for (const a of ordered) {
     if (a.type === "emote") C.stage?.setExpression(a.expression);
     else if (a.type === "animate") C.stage?.play(a.name).catch(() => {});
     else if (a.type === "perceive_request") toast("她想看看：点输入框左边的图片按钮发一张图", 5000);

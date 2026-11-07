@@ -184,7 +184,7 @@ def plan_turn(db: Session, user: User, sess: ChatSession, *, event: str, text: s
 
 
 def _actions(p: Plan, char: Character, text: str, parsed_expr: str | None, found: list | None = None,
-             user_settings: dict | None = None) -> list[dict]:
+             user_settings: dict | None = None, parsed_anim: str | None = None) -> list[dict]:
     """把策略的选择变成前端 / 设备执行的结构化行为。模型只能建议表情；是否换表情、做什么动作由策略决定。
     例外：她在括号里写的动作（found，见 cues.py）照着演，但仍守住硬约束：用户关了预设动作就不动，不在角色动作列表里的不做。"""
     out: list[dict] = []
@@ -195,7 +195,7 @@ def _actions(p: Plan, char: Character, text: str, parsed_expr: str | None, found
     b = char.behavior or {}
     exprs, anims = b.get("expressions") or EXPRESSIONS, b.get("animations") or ANIMATIONS
     cue_expr = next((c.expression for c in found or [] if c.expression in exprs), None)
-    cue_anim = next((c.animation for c in found or [] if c.animation in anims), None)
+    cue_anim = next((c.animation for c in found or [] if c.animation in anims), None) or (parsed_anim if parsed_anim in anims else None)
     if not ((user_settings or {}).get("interaction") or {}).get("animations", True):
         cue_anim = None
     emoted = animated = False
@@ -221,7 +221,8 @@ def finalize(db: Session, p: Plan, raw: str) -> dict:
     user = db.get(User, p.user_id)
     parsed = parse_reply(raw, char) if raw else None
     text = parsed.text if parsed else (p.fixed_text or "")
-    acts = _actions(p, char, text, parsed.expression if parsed else None, parsed.cues if parsed else None, user.settings)
+    acts = _actions(p, char, text, parsed.expression if parsed else None, parsed.cues if parsed else None, user.settings,
+                    parsed.animation if parsed else None)
     reply = None
     if text:
         reply = Message(session_id=sess.id, role="assistant", content=text,

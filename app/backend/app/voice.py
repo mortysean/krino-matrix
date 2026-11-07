@@ -67,12 +67,23 @@ def transcribe(data: bytes, mime: str, filename: str = "audio.webm") -> str:
 # ---------- TTS ----------
 
 _ACTION = re.compile(r"[（(][^（()）\n]{0,40}[）)]|\*[^*\n]{0,40}\*")
+# 颜文字连同括号外面的装饰一起认出来：ヾ(≧▽≦*)o、m(_ _)m、٩(ˊᗜˋ)و、(￣▽￣)ゞ、(－ω－) zzZ
+_KAO_CLOSED = re.compile(r"[ヾヽ٩mｍo＼\\～~φΦ]{0,2}[（(]([^（()）\n]{0,40})[）)][ゞゝو*oｍm／/～~ﾉノ]{0,2}(?:\s?z+Z+)?")
+# 少了右括号的颜文字：(・_・ゞ —— 括号后面全是符号（没有字、字母、数字），一直到文字或空格为止
+_KAO_OPEN = re.compile(r"(?<![A-Za-z0-9_])[（(](?=[^\s（()）一-鿿]*[^A-Za-z0-9_\s（()）一-鿿])[^\s（()）\n一-鿿A-Za-z0-9]{1,12}")
+_WORDISH = re.compile(r"[一-鿿]|[A-Za-z]{3,}")
+
+
+def strip_kaomoji(text: str) -> str:
+    """去掉颜文字（包括括号外的装饰和没写完的括号）。括号里是动作描述（有汉字或英文单词）的不在这里处理。"""
+    text = _KAO_CLOSED.sub(lambda m: m.group(0) if _WORDISH.search(m.group(1)) else "", text)
+    return _KAO_OPEN.sub("", text)
 _KAOMOJI_CHARS = set("・°ﾟ｡´｀`ω∀▽ᴗ˘◕‿╹ㅂ")
 
 
 def speakable(text: str) -> str:
     """朗读前去掉不该念出来的东西：括号里的动作、*动作*、颜文字、emoji 和装饰符号。"""
-    text = _ACTION.sub("", text)
+    text = _ACTION.sub("", strip_kaomoji(text))
     text = "".join(ch for ch in text if ch not in _KAOMOJI_CHARS and unicodedata.category(ch) not in ("So", "Sm", "Sk", "Co", "Cs")
                    and ch not in "()（）" and not "\ufe30" <= ch <= "\ufe4f")
     return re.sub(r"[ \t]{2,}", " ", text).strip()

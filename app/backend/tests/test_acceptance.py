@@ -375,9 +375,11 @@ def test_no_adult_hardware_or_decision_navigation_routes(client):
 def test_portrait_validation(user):
     cid = user.official["id"]
     c = user.ok("get", f"/api/characters/{cid}")
-    assert c["behavior"]["portrait"] == {"kind": "image", "src": "/static/assets/whale-girl.png"}
+    assert c["behavior"]["portrait"] == {"kind": "chibi", "src": "/static/chibi/whale/chibi.json"}  # 默认是会动的 Q 版小人
     for bad in ({"kind": "image", "src": "https://evil.example/x.png"}, {"kind": "image", "src": "/static/../.env"},
-                {"kind": "live2d", "src": "/static/assets/whale-girl.png"}, {"kind": "video", "src": "/static/assets/whale-girl.png"}):
+                {"kind": "live2d", "src": "/static/assets/whale-girl.png"}, {"kind": "video", "src": "/static/assets/whale-girl.png"},
+                {"kind": "chibi", "src": "/static/assets/whale-girl.png"}, {"kind": "image", "src": "/static/chibi/whale/chibi.json"},
+                {"kind": "chibi", "src": "/static/chibi/../../.env/chibi.json"}):
         r = user.put(f"/api/characters/{cid}", json={"behavior": {**c["behavior"], "portrait": bad}})
         assert r.status_code == 400, bad
     r = user.ok("put", f"/api/characters/{cid}", json={"behavior": {**c["behavior"], "portrait": {"kind": "live2d", "src": "/models/live2d/hiyori/Hiyori.model3.json"}}})
@@ -394,7 +396,7 @@ def test_portrait_validation(user):
     assert r["behavior"]["portrait"]["src"].startswith("/media/c/")
     bad = {"kind": "image", "src": "data:image/png;base64,iVBORw0KGgo="}
     assert user.put(f"/api/characters/{cid}", json={"behavior": {**c["behavior"], "portrait": bad}}).status_code == 400
-    assert user.official["portrait"]["kind"] == "image"
+    assert r["behavior"]["portrait"]["kind"] == "image"  # 换成自己上传的立绘也可以
 
 
 

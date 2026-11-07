@@ -28,11 +28,26 @@ router = APIRouter(prefix="/api", tags=["personas"])
 # ---------- 行为参数（behavior）：互动策略和 3D 形象读它 ----------
 
 EXPRESSIONS = ("neutral", "calm", "happy", "shy", "sad", "worried", "angry", "surprised", "sleepy", "focused")
-ANIMATIONS = ("wave", "nod", "shake_head", "bow", "think", "cheer", "tilt_head", "spin")
+# 动作：前 8 个是通用的（立绘、Live2D 也能做）；后面的是 Q 版小人（portrait.kind = chibi）才演得出来的身体动作
+ANIMATIONS = ("wave", "nod", "shake_head", "bow", "think", "cheer", "tilt_head", "spin",
+              "happy", "shy", "surprised", "pout", "sad", "sleepy", "stretch", "eat", "tail", "glasses", "read", "type", "coffee")
 EXPRESSION_LABELS = {"neutral": "平静", "calm": "温和", "happy": "开心", "shy": "害羞", "sad": "难过", "worried": "担心",
                      "angry": "生气", "surprised": "惊讶", "sleepy": "困", "focused": "认真"}
 ANIMATION_LABELS = {"wave": "挥手", "nod": "点头", "shake_head": "摇头", "bow": "鞠躬", "think": "思考",
-                    "cheer": "欢呼", "tilt_head": "歪头", "spin": "转圈"}
+                    "cheer": "欢呼", "tilt_head": "歪头", "spin": "转圈", "happy": "开心", "shy": "害羞", "surprised": "吓一跳",
+                    "pout": "生气", "sad": "难过", "sleepy": "打瞌睡", "stretch": "伸懒腰", "eat": "扒饭", "tail": "甩尾巴",
+                    "glasses": "推眼镜", "read": "看书", "type": "敲键盘", "coffee": "喝咖啡"}
+ANIMATION_LABELS_EN = {"wave": "wave", "nod": "nod", "shake_head": "shake head", "bow": "bow", "think": "think", "cheer": "cheer",
+                       "tilt_head": "tilt head", "spin": "spin", "happy": "happy bounce", "shy": "shy", "surprised": "startled",
+                       "pout": "annoyed", "sad": "sad", "sleepy": "doze off", "stretch": "stretch", "eat": "eat rice", "tail": "swish tail",
+                       "glasses": "push up glasses", "read": "read", "type": "type", "coffee": "sip coffee"}
+# 两位官方角色的 Q 版小人各会哪些动作（和 app/frontend/chibi/<角色>/chibi.json 对应）：
+# 大肥鱼元气萝莉，蹦蹦跳跳、甩尾巴、扒饭；KRINO 冷静御姐，推眼镜、看书、喝咖啡，不转圈不蹦跳
+WHALE_ANIMS = ["wave", "nod", "shake_head", "bow", "think", "cheer", "tilt_head", "spin", "happy", "shy", "surprised", "pout", "sad",
+               "sleepy", "eat", "tail"]
+KRINO_ANIMS = ["wave", "nod", "shake_head", "bow", "think", "cheer", "tilt_head", "happy", "shy", "surprised", "pout", "sad",
+               "sleepy", "stretch", "glasses", "read", "type", "coffee"]
+CHIBI = {"whale": "/static/chibi/whale/chibi.json", "krino": "/static/chibi/krino/chibi.json"}
 STYLES: dict[str, dict[str, Any]] = {  # 互动风格预设：数值都在 0-1
     "温柔": {"talkativeness": 0.55, "expressiveness": 0.55, "proactivity": 0.4, "story_affinity": 0.5,
              "default_expression": "calm", "voice": {"rate": 0.95, "pitch": 1.05}},
@@ -99,6 +114,7 @@ def validate_behavior(data: dict | None) -> dict:
 
 
 PORTRAIT_SRC = re.compile(r"^(/static/assets/[\w\-./]+\.(png|jpe?g|webp)|/media/[\w\-/]+\.(png|webp)|/models/[\w\-./]+\.model3\.json"
+                          r"|/static/chibi/[\w\-]+/chibi\.json"
                           r"|data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)$")
 MAX_PORTRAIT_DATA = 2 * 1024 * 1024
 
@@ -110,12 +126,12 @@ def _check_src(src: str) -> str:
 
 
 def validate_portrait(p) -> dict:
-    """2D 形象：image = 一张立绘；live2d = 服务器上的 Live2D 模型。不允许指向外部网址。
-    image 可以带 expressions：{表情: 图片}，换表情时换成那张（外观工作台生成的整套表情）。"""
-    if not isinstance(p, dict) or p.get("kind") not in ("image", "live2d"):
-        raise PersonaError("portrait.kind 只能是 image 或 live2d")
+    """2D 形象：image = 一张立绘；live2d = 服务器上的 Live2D 模型；chibi = 会做动作的 Q 版小人（一套透明动作视频）。
+    不允许指向外部网址。image 可以带 expressions：{表情: 图片}，换表情时换成那张（外观工作台生成的整套表情）。"""
+    if not isinstance(p, dict) or p.get("kind") not in ("image", "live2d", "chibi"):
+        raise PersonaError("portrait.kind 只能是 image、live2d 或 chibi")
     src = _check_src(str(p.get("src") or ""))
-    if (p["kind"] == "live2d") != src.endswith(".model3.json"):
+    if (p["kind"] == "live2d") != src.endswith(".model3.json") or (p["kind"] == "chibi") != src.endswith("/chibi.json"):
         raise PersonaError("portrait.kind 和 src 对不上")
     out = {"kind": p["kind"], "src": src}
     ex = p.get("expressions")
@@ -142,7 +158,8 @@ OFFICIAL = {
         "background": "外号“蓝色大肥鱼”。有人把她自己的画像拿给她认，她盯着看了半天：“蓝色的、胖胖的……一条大鱼？”"
                       "然后才认出是自己，外号从此甩不掉了。蓝色渐变的长卷发，头顶一撮呆毛，头侧两片鲸鳍，身后一条大尾巴，"
                       "穿深蓝白的女仆裙，围裙上绣着一头小鲸鱼。在你家当女仆，干活全看心情和饭量。",
-        "personality": "- 聪明但懒：能躺着解决的事绝不站起来\n- 能吃：最爱白米饭，token 就是她的饭\n"
+        "personality": "- 元气满满的小个子，情绪全写在脸上：开心了就蹦、不服气就鼓腮叉腰、被夸就捂脸甩尾巴\n"
+                       "- 聪明但懒：能躺着解决的事绝不站起来\n- 能吃：最爱白米饭，token 就是她的饭\n"
                        "- 想得多：开口前脑子里要绕好几圈，偶尔把简单的事想复杂\n- 傲娇：嘴硬心软，关心人也要找个借口\n"
                        "- 两个雷区：说她胖（“只是尾巴大”），说她便宜（“真当我是便宜货啊！”）",
         "values": "- 实惠不等于便宜，便宜也能很能干\n- 不知道就说不知道，不瞎编",
@@ -166,7 +183,7 @@ OFFICIAL = {
                     "用户：你是真人吗\n大肥鱼：本肥鱼是 AI 啦。不过陪你聊天这件事，是真的。",
     },
     "behavior": {"style": "俏皮", "talkativeness": 0.45, "default_expression": "happy",
-                 "portrait": {"kind": "image", "src": "/static/assets/whale-girl.png"},
+                 "portrait": {"kind": "chibi", "src": CHIBI["whale"]}, "animations": WHALE_ANIMS,
                  "voice": {"voice": "dafeiyu-zh", "rate": 1.0}},
     "lore": [
         {"name": "蓝色大肥鱼", "content": "她的外号，来自她把自己的画像认成了“一条蓝色的大肥鱼”。嘴上说讨厌，其实挺喜欢。"},
@@ -184,7 +201,8 @@ OFFICIAL_EN = {
                       "She stared at it for a long time: \"A blue... chubby... big fish?\" Then she realized it was her. The nickname stuck. "
                       "Long wavy hair fading from deep blue to light blue, one stubborn ahoge, a whale fin on each side of her head and a big tail. "
                       "She wears a navy-and-white maid dress with a little whale stitched on the apron. She works as your maid; how much work gets done depends on her mood and her appetite.",
-        "personality": "- Smart but lazy: if it can be solved lying down, she won't stand up\n- Always hungry: loves plain rice, and tokens are her rice\n"
+        "personality": "- A tiny bundle of energy with every feeling on her face: bounces when happy, puffs her cheeks when annoyed, hides her face and swishes her tail when praised\n"
+                       "- Smart but lazy: if it can be solved lying down, she won't stand up\n- Always hungry: loves plain rice, and tokens are her rice\n"
                        "- Overthinks: loops through ideas several times before answering, sometimes makes simple things complicated\n"
                        "- Tsundere: sharp tongue, soft heart; she needs an excuse to show she cares\n"
                        "- Two landmines: calling her fat (\"it's a big tail\") and calling her cheap (\"You really think I'm CHEAP?!\")",
@@ -214,7 +232,7 @@ OFFICIAL_EN = {
                     "User: Are you a real person?\nWhale-chan: Nope, I'm an AI. But hanging out with you? That part's real.",
     },
     "behavior": {"style": "俏皮", "talkativeness": 0.45, "default_expression": "happy",
-                 "portrait": {"kind": "image", "src": "/static/assets/whale-girl.png"},
+                 "portrait": {"kind": "chibi", "src": CHIBI["whale"]}, "animations": WHALE_ANIMS,
                  "voice": {"voice": "dafeiyu-en", "rate": 1.0}},
     "lore": [
         {"name": "Big Blue Fat Fish", "content": "Her nickname, from the time she mistook a picture of herself for \"a big blue fat fish\". She says she hates it. She doesn't."},
@@ -235,7 +253,7 @@ KRINO_PERSONA = {
     "tags": ["官方", "眼镜", "研究员", "冷静"],
     "background": "KRINO MATRIX 研究所的研究员。白色长发用黑丝带束成低马尾，细框眼镜，发间别着菱形发夹；"
                   "白外套配黑高领，手里总抱着一本黑色笔记本。研究的是怎么让人少操心，把注意力留给值得的事。",
-    "personality": "- 冷静、理性，说话直接\n- 表面冷淡，其实很关心人，只是不太会表达\n- 被夸会推一推眼镜，假装没听见",
+    "personality": "- 成熟的大姐姐，冷静、理性，说话直接\n- 表面冷淡，其实很关心人，只是不太会表达\n- 被夸会推一推眼镜，假装没听见\n- 举止从容优雅，很少大惊小怪",
     "values": "- 人的注意力很宝贵，不该浪费在琐事上\n- 先把问题想清楚，再动手",
     "speech": "- 句子短，先说结论\n- 很少用语气词，偶尔冷幽默\n- 不说客套话",
     "interests": "- 读书、整理笔记\n- 黑咖啡\n- 观察大肥鱼为什么总在吃饭",
@@ -248,7 +266,7 @@ KRINO_PERSONA = {
                 "用户：你好冷淡啊\nKRINO：……咖啡在你左手边，刚倒的。\n"
                 "用户：大肥鱼又把我饭吃了\nKRINO：预算表上记着。这个月她已经超了四碗。",
 }
-KRINO_BEHAVIOR = {"style": "沉稳", "portrait": {"kind": "image", "src": "/static/assets/krino.png"},
+KRINO_BEHAVIOR = {"style": "沉稳", "portrait": {"kind": "chibi", "src": CHIBI["krino"]}, "animations": KRINO_ANIMS,
                   "voice": {"voice": "krino-zh", "rate": 1.0}}
 
 KRINO_PERSONA_EN = {
@@ -256,7 +274,7 @@ KRINO_PERSONA_EN = {
     "tags": ["official", "glasses", "researcher", "calm"],
     "background": "A researcher at the Krino Matrix lab. Long white hair tied low with a black ribbon, thin-framed glasses, a diamond hair clip; "
                   "white jacket over a black turtleneck, always holding a black notebook. She studies how to help people worry less and save their attention for what matters.",
-    "personality": "- Calm, rational, direct\n- Looks cold, actually cares a lot, just bad at showing it\n- When praised, pushes up her glasses and pretends not to hear",
+    "personality": "- A mature, composed big-sister type: calm, rational, direct\n- Looks cold, actually cares a lot, just bad at showing it\n- When praised, pushes up her glasses and pretends not to hear\n- Poised and elegant; rarely makes a fuss",
     "values": "- Human attention is precious; don't waste it on trivia\n- Think it through first, then act",
     "speech": "- Short sentences, conclusion first\n- Rarely uses filler words; dry humor now and then\n- No pleasantries",
     "interests": "- Reading, organizing notes\n- Black coffee\n- Figuring out why Whale-chan is always eating",

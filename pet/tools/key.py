@@ -16,6 +16,9 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 FF = imageio_ffmpeg.get_ffmpeg_exe()
+import os
+CRF = os.getenv("KEY_CRF", "34")  # 越大文件越小、画质越糊；网页上用 40 左右
+FPS = int(os.getenv("KEY_FPS", "30"))
 
 
 def read_frames(path: Path) -> tuple[np.ndarray, int, int]:
@@ -65,7 +68,7 @@ def crop_box(frames: np.ndarray, pad: float = 0.06) -> tuple[int, int, int, int]
 
 def encode(frames_rgba: list[Image.Image], out: Path, size: tuple[int, int], fps: int = 30) -> None:
     args = [FF, "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", f"{size[0]}x{size[1]}", "-r", str(fps), "-i", "-",
-            "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "0", "-crf", "34", "-row-mt", "1", "-deadline", "good",
+            "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "0", "-crf", CRF, "-row-mt", "1", "-deadline", "good",
             "-auto-alt-ref", "0", "-an", str(out)]
     p = subprocess.Popen(args, stdin=subprocess.PIPE)
     for im in frames_rgba:
@@ -86,7 +89,7 @@ def convert(src: Path, out: Path, box: tuple[int, int, int, int], height: int) -
         rgba = np.dstack([despill(fr), a])
         imgs.append(Image.fromarray(rgba, "RGBA").resize(size, Image.LANCZOS))
     out.parent.mkdir(parents=True, exist_ok=True)
-    encode(imgs, out, size)
+    encode(imgs[:: max(1, 30 // FPS)], out, size, FPS)
     imgs[0].save(out.with_suffix(".png"))  # 第一帧：视频还没加载出来时先显示这张，也当封面
 
 

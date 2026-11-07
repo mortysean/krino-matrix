@@ -36,10 +36,11 @@ def data_uri(path: Path) -> str:
 def main() -> None:
     base, out, action = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
     res = sys.argv[4] if len(sys.argv) > 4 else "720P"
+    style = sys.argv[5] if len(sys.argv) > 5 else STYLE  # 角色自己的动作风格（actions.py 里按角色给）
     img = data_uri(base)
     api = settings.dashscope_base_url.rstrip("/")
     h = {"Authorization": f"Bearer {settings.dashscope_api_key}"}
-    body = {"model": MODEL, "input": {"first_frame_url": img, "last_frame_url": img, "prompt": f"{STYLE}{action}",
+    body = {"model": MODEL, "input": {"first_frame_url": img, "last_frame_url": img, "prompt": f"{style}{action}",
                                       "negative_prompt": NEGATIVE},
             "parameters": {"resolution": res, "prompt_extend": False, "watermark": False}}
     with httpx.Client(timeout=httpx.Timeout(120, connect=15)) as c:

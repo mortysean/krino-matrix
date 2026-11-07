@@ -7,7 +7,7 @@ from app.prompt import StreamFilter
 def test_bracket_actions_become_kaomoji_and_cues():
     text, found = cues.convert("哼！（叉腰）才不是特意等你的 (｀・ω・´)（歪头）")
     assert text == "哼！(｀へ´)才不是特意等你的 (｀・ω・´)(・ω・?)"
-    assert [(c.animation, c.expression) for c in found] == [(None, "angry"), ("tilt_head", "surprised")]
+    assert [(c.animation, c.expression) for c in found] == [("pout", "angry"), ("tilt_head", "surprised")]
     assert cues.convert("答案是 3（三）个") == ("答案是 3（三）个", [])  # 补充说明不是动作，原样留着
     assert cues.convert("I'm here (waves)")[1][0].animation == "wave"
 
@@ -182,3 +182,13 @@ def test_dashscope_rate_limit_retries(monkeypatch):
         raise AssertionError("应该报错")
     except workbench.ImageError as e:
         assert "太忙" in str(e)
+
+
+def test_kaomoji_never_spoken():
+    """颜文字不能被念出来：括号外的装饰（ヾ o m ゞ ٩ و zzZ）和少了右括号的都要去掉；正常文字不受影响。"""
+    from app.voice import speakable
+    for *_, k in cues.RULES:
+        assert speakable(f"好{k}的") == "好的", k
+    assert speakable("(・_・ゞ我不知道。") == "我不知道。"
+    assert speakable("Hello (world) and m(_ _)m thanks") == "Hello and thanks"
+    assert speakable("email: a_b@x.com，价格 $5") == "email: a_b@x.com，价格 $5"

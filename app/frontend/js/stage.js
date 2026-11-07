@@ -1,10 +1,12 @@
-// 2D 角色形象。两种：
+// 2D 角色形象。三种：
+//   chibi  会做动作的 Q 版小人（一套透明动作视频，见 chibi.js）。动作、表情、说话都换成对应的动作片段。
 //   image  一张立绘（透明 PNG）。呼吸、轻微摇摆、说话时的上下弹动、预设动作用 CSS 变换表现，表情用一个小表情气泡提示；
 //          有整套表情图（portrait.expressions，外观工作台生成）时换表情就换图。
 //   live2d Live2D 模型（PixiJS + pixi-live2d-display + Cubism Core）。眨眼、视线、物理、口型都由模型自己完成。
 // 对外接口统一：load(portrait) / setExpression(name) / play(name) / speaking(bool) / attachAudio(audio) / setLook(x, y)。
 // 做什么动作由后端互动策略决定，这里只负责演出来。
 import { t } from "./i18n.js";
+import { createChibi } from "./chibi.js";
 
 const EMOJI = { happy: "♪", shy: "///", sad: "…", worried: "?", angry: "!!", surprised: "!", sleepy: "zzz", focused: "…!", calm: "", neutral: "" };
 // Live2D 示例模型没有表情文件，用参数近似：[眼睛笑, 嘴型(-1 撇嘴 ~ 1 笑), 脸红, 眉毛高低]
@@ -40,13 +42,15 @@ async function loadLive2DLibs() {
 export function createStage(host, { onStatus } = {}) {
   host.innerHTML = '<div class="portrait"><img alt=""><span class="emote"></span></div>';
   const box = host.querySelector(".portrait"), img = box.querySelector("img"), emote = box.querySelector(".emote");
-  const S = { kind: null, base: "", faces: {}, app: null, model: null, expr: "neutral", move: null, mouth: 0, speaking: false, audio: null, look: [0, 0] };
+  const S = { kind: null, base: "", faces: {}, app: null, model: null, chibi: null, expr: "neutral", move: null, mouth: 0, speaking: false, audio: null, look: [0, 0] };
 
   function status(state, message = "") { onStatus?.({ state, kind: S.kind, message }); }
 
   function clearLive2D() {
     if (S.app) { S.app.destroy(true, { children: true, texture: true }); S.app = null; S.model = null; }
     box.querySelector("canvas")?.remove();
+    if (S.chibi) { S.chibi.destroy(); S.chibi = null; }
+    box.classList.remove("is-chibi");
   }
 
   // 没有立绘的角色：用她自己的颜色和名字首字做一块铭牌，不借用别人的形象
@@ -67,6 +71,20 @@ export function createStage(host, { onStatus } = {}) {
     box.querySelector(".nameplate")?.remove(); delete box.dataset.plate;
     if (!portrait) return plate(name, color);
     const p = { ...portrait };
+    if (p.kind === "chibi") {
+      try {
+        S.kind = "chibi"; status("loading");
+        img.hidden = true; box.classList.add("is-chibi");
+        S.chibi = createChibi(box);
+        await S.chibi.load(p.src);
+        status("ready");
+        return;
+      } catch (e) {
+        clearLive2D();
+        status("fallback", e.message);
+        return plate(name, color);
+      }
+    }
     if (p.kind === "live2d") {
       try {
         S.kind = "live2d"; status("loading");
@@ -130,6 +148,7 @@ export function createStage(host, { onStatus } = {}) {
   function setExpression(name) {
     S.expr = name in L2D_EXPR ? name : "neutral";
     box.dataset.expr = S.expr;
+    if (S.kind === "chibi") { S.chibi?.expression(S.expr); return; }  // Q 版小人用身体动作表达情绪，不冒气泡
     if (S.kind === "image" && S.base && !box.dataset.plate) {
       const src = S.faces[S.expr] || S.base;
       if (img.getAttribute("src") !== src) img.src = src;
@@ -142,6 +161,7 @@ export function createStage(host, { onStatus } = {}) {
   }
 
   function play(name) {
+    if (S.kind === "chibi") return S.chibi?.play(name) ? Promise.resolve() : Promise.reject(new Error("没有这个动作：" + name));
     if (!(name in MOVE_MS)) return Promise.reject(new Error("没有这个动作：" + name));
     if (S.move) S.move.done();
     return new Promise((done) => {
@@ -154,7 +174,7 @@ export function createStage(host, { onStatus } = {}) {
     });
   }
 
-  function speaking(on) { S.speaking = !!on; box.classList.toggle("talking", !!on && S.kind === "image"); }
+  function speaking(on) { S.speaking = !!on; box.classList.toggle("talking", !!on && S.kind === "image"); if (S.kind === "chibi") S.chibi?.speaking(on); }
 
   function attachAudio(audio) {
     S.audio = audio; speaking(true);

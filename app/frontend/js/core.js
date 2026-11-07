@@ -116,10 +116,11 @@ export async function download(url, name) {
 export const curChar = () => S.chars.find((c) => c.id === S.charId);
 
 // 头像：角色有立绘就用立绘的头部，否则钴蓝方块加首字
-const HEADS = { "/static/assets/whale-girl.png": "/static/assets/whale-girl-head.png", "/static/assets/krino.png": "/static/assets/krino-head.png" };
+const HEADS = { "/static/assets/whale-girl.png": "/static/assets/whale-girl-head.png", "/static/assets/krino.png": "/static/assets/krino-head.png",
+  "/static/chibi/whale/chibi.json": "/static/assets/whale-girl-head.png", "/static/chibi/krino/chibi.json": "/static/assets/krino-head.png" };
 export function avaHTML(c, cls = "") {
   if (!c) return "";
-  const src = c.portrait?.kind === "image" ? HEADS[c.portrait.src] || c.portrait.src : null;
+  const src = c.portrait?.kind === "image" ? HEADS[c.portrait.src] || c.portrait.src : c.portrait?.kind === "chibi" ? HEADS[c.portrait.src] || null : null;
   const inner = src ? `<img src="${esc(src)}" alt="" class="${HEADS[c.portrait.src] ? "" : "top"}">` : esc([...(c.name || "?")][0]);
   return `<span class="ava ${cls}" style="--c:${esc(c.color)}">${inner}</span>`;
 }

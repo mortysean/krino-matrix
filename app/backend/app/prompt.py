@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from . import cues
 from .config import locale
 from .models import Character
-from .personas import ANIMATIONS, EXPRESSIONS, prompt_text
+from .personas import ANIMATION_LABELS, ANIMATION_LABELS_EN, ANIMATIONS, EXPRESSIONS, prompt_text
 from .text import compact
 
 MAX_MEMORIES = 6
@@ -53,9 +53,11 @@ TEXT = {
         "length": ("一两句", "两三句", "三四句，可以多聊一点"),
         "protocol": """## 输出格式
 直接回复（{length}，写说出口的话）。偶尔可以在括号里写一个很短的动作或神态，比如（歪头）（转了个圈）（脸红）（叉腰），它会让你的形象真的做出来；一条回复最多一个，不要每句都写。
-回复之后另起一行输出一个状态标签，供 2D 形象使用：
-<state>{{"expression": "<{exprs}>", "animation": "<{anims}|none>", "mood": "<一个词>"}}</state>
-animation 只在动作很自然时才给（打招呼挥手、同意点头、思考歪头……），大多数时候写 none。
+回复之后另起一行输出一个状态标签，驱动你的形象：
+<state>{{"expression": "<{exprs}>", "animation": "<动作名|none>", "mood": "<一个词>"}}</state>
+你的形象会做这些动作（动作名=含义）：{anim_list}。
+animation 选一个最贴合这句话内容和情绪的动作，让形象鲜活起来：打招呼挥手、同意点头、被夸害羞、被说中吓一跳、不服气就生气……
+符合你自己的性格；实在没有合适的才写 none。
 不要输出其他标签。记忆由系统在对话后单独整理，你不需要也不能在回复里写入记忆。""",
     },
     "en": {
@@ -91,9 +93,11 @@ animation 只在动作很自然时才给（打招呼挥手、同意点头、思�
         "length": ("one or two sentences", "two or three sentences", "three or four sentences, you can chat a bit more"),
         "protocol": """## Output format
 Reply directly ({length}; what you'd say out loud). Occasionally add one very short action in parentheses, like (tilts head) (spins around) (blushes) (pouts); your avatar will actually perform it. At most one per reply, not every line.
-Then, on a new line, output a state tag for your 2D avatar:
-<state>{{"expression": "<{exprs}>", "animation": "<{anims}|none>", "mood": "<one word>"}}</state>
-Only give an animation when it's natural (waving hello, nodding, tilting your head while thinking); most of the time write none.
+Then, on a new line, output a state tag that drives your avatar:
+<state>{{"expression": "<{exprs}>", "animation": "<action|none>", "mood": "<one word>"}}</state>
+Your avatar can do these actions (name=meaning): {anim_list}.
+Pick the animation that best fits what you're saying and how you feel, to keep your avatar alive: wave hello, nod to agree, get shy when praised, startle when caught out, get annoyed when teased...
+Stay in character; write none only if nothing fits.
 No other tags. Memories are handled separately after the chat; you don't and can't write memories in your reply.""",
     },
 }
@@ -110,7 +114,9 @@ def output_protocol(char: Character) -> str:
     talk = b.get("talkativeness", 0.5)
     lengths = T()["length"]
     length = lengths[0] if talk < 0.4 else (lengths[1] if talk < 0.7 else lengths[2])
-    return T()["protocol"].format(length=length, exprs="|".join(exprs), anims="|".join(anims))
+    labels = ANIMATION_LABELS_EN if locale() == "en" else ANIMATION_LABELS
+    anim_list = ", ".join(f"{a}={labels.get(a, a)}" for a in anims)
+    return T()["protocol"].format(length=length, exprs="|".join(exprs), anim_list=anim_list)
 
 
 @dataclass

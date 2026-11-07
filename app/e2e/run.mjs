@@ -61,9 +61,14 @@ await step("注册并进入，默认角色是大肥鱼", async () => {
   expect(await page.locator(".nav button").count() === 4, "导航应该只有 4 项");
 });
 
-await step("2D 立绘显示", async () => {
-  await page.waitForFunction(() => document.querySelector(".portrait img")?.complete && document.querySelector(".portrait img").naturalWidth > 0, null, { timeout: 15000 });
-  expect((await page.getAttribute(".portrait img", "src")).includes("whale-girl"), "不是大肥鱼立绘");
+await step("Q 版小人：默认是大肥鱼，在动，聊天能触发动作", async () => {
+  await page.waitForFunction(() => { const v = document.querySelector(".chibi video.front"); return v && v.readyState >= 2 && !v.paused; }, null, { timeout: 20000 })
+    .catch(() => { throw new Error("Q 版小人没有动起来"); });
+  expect(!!(await page.$eval(".chibi", (e) => e.dataset.clip)), "不是 Q 版小人");  // 片段下载完后地址是 blob:，看片段名
+  const t0 = await page.$eval(".chibi video.front", (v) => v.currentTime);
+  await page.waitForTimeout(600);
+  expect((await page.$eval(".chibi video.front", (v) => v.currentTime)) !== t0, "视频没在播放");
+  expect(!!(await page.$('.char-list img[src*="whale-girl-head"]')), "左边角色列表没有头像");
   await shot("02-home");
 });
 
@@ -82,6 +87,13 @@ await step("点喇叭朗读（服务端语音）", async () => {
   await page.click(".msg.assistant:last-of-type .speak-btn");
   const r = await resp;
   expect(r.status() === 200 && (r.headers()["content-type"] || "").includes("audio"), "朗读接口失败：" + r.status());
+});
+
+await step("Q 版小人：点“挥手”她就挥手", async () => {
+  await page.click('#gestures button >> nth=0');
+  await page.waitForFunction(() => document.querySelector(".chibi")?.dataset.clip === "wave", null, { timeout: 15000 })
+    .catch(async () => { throw new Error("点“挥手”后她没有挥手：" + await page.$eval(".chibi", (e) => e.dataset.clip)); });
+  await page.waitForTimeout(3000);  // 等她回应完，下一步的互动才不会被当成连点忽略
 });
 
 await step("预设互动（摸摸头）", async () => {
@@ -120,8 +132,8 @@ await step("角色页：改说话方式 → 表达变化；换 Live2D 形象", a
   await page.waitForFunction(() => /开饭开饭/.test(document.querySelector(".msg.assistant:last-of-type .bubble")?.textContent || ""), null, { timeout: 30000 });
   // 换回立绘
   await page.click('.nav [data-view="persona"]');
-  await page.waitForSelector('.portrait-opt[data-portrait*="whale-girl"]');
-  await page.click('.portrait-opt[data-portrait*="whale-girl"]');
+  await page.waitForSelector('.portrait-opt[data-portrait*="whale-girl.png"]');
+  await page.click('.portrait-opt[data-portrait*="whale-girl.png"]');
   await page.click("#p-save");
   await page.waitForTimeout(800);
 });
@@ -144,7 +156,7 @@ await step("工作台：一句话生成形象 → 整套表情 → 保存后聊�
   await page.fill("#wb-prompt", "蓝色长发、鲸鱼发饰、蓝白连帽卫衣");
   await page.click("#wb-new");
   await page.waitForFunction(() => document.querySelector(".wb-stage img")?.src.includes("/media/"), null, { timeout: 30000 })
-    .catch(() => { throw new Error("没有生成出新形象"); });
+    .catch(async () => { throw new Error("没有生成出新形象：" + (await page.$eval(".wb-stage", (e) => e.innerText + " | " + e.innerHTML.slice(0, 160)).catch(() => "?")) + " | toast " + await page.textContent("#toast").catch(() => "")); });
   expect(await page.locator(".pick-portrait .portrait-opt img[src*='/media/']").count() >= 4, "候选不到 4 张");
   expect(await page.$eval("#p-save", (b) => b.classList.contains("dirty")), "生成后“保存”没有提示未保存");
   await page.click("#wb-faces");
@@ -170,8 +182,8 @@ await step("工作台：一句话生成形象 → 整套表情 → 保存后聊�
   expect(await page.$eval(".portrait", (b) => b.classList.contains("has-faces")), "聊天页没有拿到整套表情");
   // 换回大肥鱼立绘，后面的步骤按默认形象走
   await page.click('.nav [data-view="persona"]');
-  await page.waitForSelector('.portrait-opt[data-portrait*="whale-girl"]');
-  await page.click('.portrait-opt[data-portrait*="whale-girl"]');
+  await page.waitForSelector('.portrait-opt[data-portrait*="whale-girl.png"]');
+  await page.click('.portrait-opt[data-portrait*="whale-girl.png"]');
   await page.click("#p-save");
   await page.waitForTimeout(800);
 });

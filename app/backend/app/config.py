@@ -124,13 +124,13 @@ class Settings:
     dashscope_api_key: str | None = field(default_factory=lambda: os.getenv("DASHSCOPE_API_KEY") or None)
     dashscope_base_url: str = field(default_factory=lambda: _env("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/api/v1"))
     # 默认用 Qwen-Audio 3.1（2026 年 11 月 Artificial Analysis 语音榜第 4，国内能直连）；改回 qwen3-tts-instruct-flash 走旧接口
-    dashscope_tts_model: str = field(default_factory=lambda: _env("DASHSCOPE_TTS_MODEL", "qwen-audio-3.1-tts-plus"))
+    dashscope_tts_model: str = field(default_factory=lambda: _env("DASHSCOPE_TTS_MODEL", "qwen-audio-3.1-tts-flash"))
     # Qwen-Audio 走 SpeechSynthesizer 接口，文档给的是带业务空间的域名；填了 DASHSCOPE_WORKSPACE 就用 https://{空间}.cn-beijing.maas.aliyuncs.com
     dashscope_workspace: str = field(default_factory=lambda: _env("DASHSCOPE_WORKSPACE", ""))
     dashscope_region: str = field(default_factory=lambda: _env("DASHSCOPE_REGION", "cn-beijing"))
     dashscope_voice_map: tuple[str, ...] = field(default_factory=lambda: _list(
-        "DASHSCOPE_VOICE_MAP", "dafeiyu-zh=longanhuan_v3.1,krino-zh=longanlingxin_v3.1,"
-                               "dafeiyu-en=longanhuan_v3.1,krino-en=longanlingxin_v3.1"))
+        "DASHSCOPE_VOICE_MAP", "dafeiyu-zh=qiaoxiaojiao_v3.1,krino-zh=xuyanchu_v3.1,"  # 大肥鱼：俏丽可爱；KRINO：沉稳磁性
+                               "dafeiyu-en=Cally_v3.1,krino-en=Emily_v3.1"))
     # ---------- 外观工作台：用一句话生成立绘和整套表情。dashscope = 百炼千问图像（共用 DASHSCOPE_API_KEY）| mock = 测试用色块 ----------
     image_provider: str = field(default_factory=lambda: _env("IMAGE_PROVIDER", "dashscope"))
     image_model: str = field(default_factory=lambda: _env("IMAGE_MODEL", "qwen-image-3.0"))

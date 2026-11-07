@@ -105,8 +105,8 @@ def test_dashscope_tts_uses_persona_voice(monkeypatch):
     audio, mime = voice.synthesize("本肥鱼饿了", "zf_017", 1.0)  # 以前存的 Kokoro 编号也能认出是大肥鱼
     assert audio == b"RIFFwav" and mime == "audio/wav"
     body = calls[0][2]
-    assert calls[0][1].endswith("/services/audio/tts/SpeechSynthesizer") and body["model"] == "qwen-audio-3.1-tts-plus"
-    assert body["input"]["voice"] == "longanhuan_v3.1" and "傲娇" in body["input"]["instruction"]
+    assert calls[0][1].endswith("/services/audio/tts/SpeechSynthesizer") and body["model"] == "qwen-audio-3.1-tts-flash"
+    assert body["input"]["voice"] == "qiaoxiaojiao_v3.1" and "萝莉" in body["input"]["instruction"]  # 大肥鱼：萝莉音
     assert calls[1] == ("GET", "https://oss.example/a.wav", None)
     assert voice._tts_config()["voices"] == ["dafeiyu-zh", "krino-zh"]
 
@@ -144,7 +144,7 @@ def test_dashscope_workspace_domain(monkeypatch):
     calls = _fake(monkeypatch, [_Resp(json={"output": {"audio": {"data": "UklGRg=="}}})])
     voice.synthesize("你好", "krino-zh", 1.0)
     assert calls[0][1] == "https://ws1.cn-beijing.maas.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer"
-    assert calls[0][2]["input"]["voice"] == "longanlingxin_v3.1"
+    assert calls[0][2]["input"]["voice"] == "xuyanchu_v3.1" and "御姐" in calls[0][2]["input"]["instruction"]  # KRINO：御姐音
 
 
 def test_elevenlabs_tts(monkeypatch):

@@ -1,0 +1,118 @@
+{
+ "name": "KRINO",
+ "style": "冷静御姐：推眼镜、看书、喝咖啡，动作克制优雅",
+ "clips": {
+  "bow": "bow.webm",
+  "coffee": "coffee.webm",
+  "cross_arms": "cross_arms.webm",
+  "done": "done.webm",
+  "doze": "doze.webm",
+  "glasses": "glasses.webm",
+  "idle": "idle.webm",
+  "nod": "nod.webm",
+  "read": "read.webm",
+  "shake_head": "shake_head.webm",
+  "shy": "shy.webm",
+  "sigh": "sigh.webm",
+  "smile": "smile.webm",
+  "stretch": "stretch.webm",
+  "surprised": "surprised.webm",
+  "talk": "talk.webm",
+  "think": "think.webm",
+  "type": "type.webm",
+  "wave": "wave.webm"
+ },
+ "rest": "idle",
+ "talk": "talk",
+ "idle": [
+  "glasses",
+  "read",
+  "coffee",
+  "stretch"
+ ],
+ "moves": {
+  "wave": [
+   "wave"
+  ],
+  "nod": [
+   "nod"
+  ],
+  "shake_head": [
+   "shake_head"
+  ],
+  "bow": [
+   "bow"
+  ],
+  "think": [
+   "think"
+  ],
+  "cheer": [
+   "done"
+  ],
+  "tilt_head": [
+   "think"
+  ],
+  "happy": [
+   "smile"
+  ],
+  "shy": [
+   "shy"
+  ],
+  "surprised": [
+   "surprised"
+  ],
+  "pout": [
+   "cross_arms"
+  ],
+  "sad": [
+   "sigh"
+  ],
+  "sleepy": [
+   "doze"
+  ],
+  "stretch": [
+   "stretch"
+  ],
+  "glasses": [
+   "glasses"
+  ],
+  "read": [
+   "read"
+  ],
+  "type": [
+   "type"
+  ],
+  "coffee": [
+   "coffee"
+  ]
+ },
+ "faces": {
+  "happy": [
+   "smile"
+  ],
+  "shy": [
+   "shy"
+  ],
+  "sad": [
+   "sigh"
+  ],
+  "angry": [
+   "cross_arms"
+  ],
+  "surprised": [
+   "surprised"
+  ],
+  "sleepy": [
+   "doze"
+  ],
+  "worried": [
+   "sigh"
+  ],
+  "focused": [
+   "glasses",
+   "think"
+  ]
+ },
+ "head": "/static/assets/krino-head.png",
+ "still": "still.webp"
+}

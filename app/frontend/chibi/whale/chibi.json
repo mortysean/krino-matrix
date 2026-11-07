@@ -1,0 +1,114 @@
+{
+ "name": "大肥鱼",
+ "style": "元气萝莉：蹦蹦跳跳、甩尾巴、扒饭",
+ "clips": {
+  "bow": "bow.webm",
+  "cheer": "cheer.webm",
+  "done": "done.webm",
+  "eat": "eat.webm",
+  "happy": "happy.webm",
+  "huff": "huff.webm",
+  "idle": "idle.webm",
+  "nap": "nap.webm",
+  "nod": "nod.webm",
+  "sad": "sad.webm",
+  "shake_head": "shake_head.webm",
+  "shy": "shy.webm",
+  "spin": "spin.webm",
+  "surprised": "surprised.webm",
+  "tail": "tail.webm",
+  "talk": "talk.webm",
+  "think": "think.webm",
+  "tilt_head": "tilt_head.webm",
+  "wave": "wave.webm"
+ },
+ "rest": "idle",
+ "talk": "talk",
+ "idle": [
+  "tail",
+  "tilt_head",
+  "happy",
+  "eat",
+  "nap"
+ ],
+ "moves": {
+  "wave": [
+   "wave"
+  ],
+  "nod": [
+   "nod"
+  ],
+  "shake_head": [
+   "shake_head"
+  ],
+  "bow": [
+   "bow"
+  ],
+  "think": [
+   "think"
+  ],
+  "cheer": [
+   "cheer",
+   "done"
+  ],
+  "tilt_head": [
+   "tilt_head"
+  ],
+  "spin": [
+   "spin"
+  ],
+  "happy": [
+   "happy",
+   "spin"
+  ],
+  "shy": [
+   "shy"
+  ],
+  "surprised": [
+   "surprised"
+  ],
+  "pout": [
+   "huff"
+  ],
+  "sad": [
+   "sad"
+  ],
+  "sleepy": [
+   "nap"
+  ],
+  "eat": [
+   "eat"
+  ],
+  "tail": [
+   "tail"
+  ]
+ },
+ "faces": {
+  "happy": [
+   "happy"
+  ],
+  "shy": [
+   "shy"
+  ],
+  "sad": [
+   "sad"
+  ],
+  "angry": [
+   "huff"
+  ],
+  "surprised": [
+   "surprised"
+  ],
+  "sleepy": [
+   "nap"
+  ],
+  "worried": [
+   "sad"
+  ],
+  "focused": [
+   "think"
+  ]
+ },
+ "head": "/static/assets/whale-girl-head.png",
+ "still": "still.webp"
+}

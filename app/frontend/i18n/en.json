@@ -675,5 +675,9 @@
   "1 元 = {k} 积分。对话、生成图片（一张约 {p} 积分）、云端语音都算，每天零点清零。": "1 CNY = {k} credits. Chat, images (about {p} each) and cloud voice all count. Resets at midnight.",
   "查了": "Looked up",
   "允许她上网查资料": "Let her search the web",
-  "问到天气、新闻这类需要最新信息的事，她才会去查": "She only searches when you ask about things like weather or news"
+  "问到天气、新闻这类需要最新信息的事，她才会去查": "She only searches when you ask about things like weather or news",
+  "大肥鱼 · Q 版": "Whale-chan · chibi",
+  "KRINO · Q 版": "KRINO · chibi",
+  "会动": "Animated",
+  "Q 版小人加载失败": "Couldn't load the chibi"
 }
