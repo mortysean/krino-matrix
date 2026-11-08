@@ -134,7 +134,8 @@ let actx = null;
 const AC = window.AudioContext || window.webkitAudioContext;
 function audioCtx() {
   if (!AC) return null;
-  actx ||= new AC();
+  // 朗读的声音都是 24kHz：播放器也开在 24kHz，每一小段不用各自重采样（各自重采样，段和段接缝处会有细小的“咔”，听着不连贯）
+  if (!actx) { try { actx = new AC({ sampleRate: 24000, latencyHint: "playback" }); } catch { actx = new AC(); } }
   if (actx.state === "suspended") actx.resume().catch(() => {});
   return actx;
 }
@@ -157,13 +158,19 @@ function playPcm(res, my) {
   blocked(ctx);
   const rate = +(res.headers.get("x-sample-rate") || 24000);
   const reader = res.body.getReader();
-  // 小缓冲：攒够 0.25 秒的声音再开始播；中途断了（网络慢于播放）就再攒 0.15 秒，不让每个字之间“咔”一下
-  const PREBUF = 0.25, REBUF = 0.15;
+  // 小缓冲：攒够 0.25 秒的声音再开始播；中途断了（网络慢于播放）就再攒 0.15 秒，不让每个字之间“咔”一下。
+  // 开播以后，手上排着的声音还多（超过 AHEAD 秒）就先攒着，攒够 MERGE 秒再拼成一整段排进去：段数少，接缝少
+  const PREBUF = 0.25, REBUF = 0.15, MERGE = 0.6, AHEAD = 0.5;
   let at = 0, left = null, stopped = false, last = null, finish, pending = [], pendingDur = 0, started = false;
   const done = new Promise((r) => (finish = r));
   const nodes = new Set();
   function flush() {
     if (stopped || my !== gen) { pending = []; pendingDur = 0; return; }
+    if (pending.length > 1) {  // 拼成一段
+      const n = pending.reduce((k, b) => k + b.length, 0), one = ctx.createBuffer(1, n, pending[0].sampleRate), out = one.getChannelData(0);
+      let o = 0; for (const b of pending) { out.set(b.getChannelData(0), o); o += b.length; }
+      pending = [one];
+    }
     for (const buf of pending) {
       const src = ctx.createBufferSource();
       src.buffer = buf; src.connect(ctx.destination);
@@ -194,6 +201,7 @@ function playPcm(res, my) {
         const underrun = started && at < ctx.currentTime + 0.02;  // 已经播完了手上的声音
         if (underrun) started = false;
         if (!started && pendingDur < (at ? REBUF : PREBUF)) continue;
+        if (started && pendingDur < MERGE && at - ctx.currentTime > AHEAD) continue;  // 前面还够播：再攒一点，拼大一点
         flush();
       }
       flush();  // 结束：剩下不足一个缓冲的也播掉

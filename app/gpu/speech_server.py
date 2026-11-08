@@ -177,7 +177,8 @@ def list_voices():
 
 def _omni_body(text: str, voice: str, speed: float, stream: bool) -> dict:
     body = {"input": text, "voice": voice, "task_type": "Base", "language": "Chinese" if re.search(r"[一-鿿]", text) else "English",
-            "speed": speed, "response_format": "pcm" if stream else "wav"}
+            "speed": speed, "response_format": "pcm" if stream else "wav",
+            "non_streaming_mode": True}  # 整句话一次交给模型（声音照样边合成边发）：看得到后面的字，断句和语调更连贯
     if stream:
         body.update(stream=True, stream_format="audio")
     return body
