@@ -160,3 +160,16 @@ def test_forgetting_curve():
     assert retention(mem(3, 60, mentions=4)) > 0.4  # 提过好几次的牢得多
     assert retention(mem(5, 180)) > 0.6             # 很重要的半年也记得
     assert retention(mem(1, 999, pinned=True)) == 1
+
+
+def test_prompt_uses_the_characters_pronoun():
+    """生成的角色可以是他、它、TA；老角色没写就照旧用“她”。"""
+    from app.models import Character
+    from app.prompt import rules_for
+
+    def c(p=None):
+        return Character(persona={"pronoun": p} if p else {})
+    assert "你就是她，用她的口吻" in rules_for(c())
+    assert "你就是他，用他的口吻" in rules_for(c("他"))
+    assert "你就是它" in rules_for(c("它")) and "你就是TA" in rules_for(c("TA"))
+    assert "{who}" not in rules_for(c("乱写"))

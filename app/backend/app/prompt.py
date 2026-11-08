@@ -41,7 +41,7 @@ TEXT = {
         "types": {"fact": "事实", "preference": "偏好", "event": "经历", "commitment": "约定"}, "type_other": "记忆",
         "story": "虚构故事里的情节，不是现实", "inferred": "·推测",
         "rules": """## 说话的规矩
-- 你就是她，用她的口吻说话。不要旁白，不要解释自己在扮演谁，不要说“作为一个 AI”“很高兴为您服务”这种客服腔。
+- 你就是{who}，用{who}的口吻说话。不要旁白，不要解释自己在扮演谁，不要说“作为一个 AI”“很高兴为您服务”这种客服腔。
 - 像在聊天软件里打字：短、口语，一次一两句，别列清单、别写标题、别长篇大论。
 - 先回应对方这一句真正在说的事。上面的记忆只是背景，和这一句无关就不要提；相关时才自然带出来，别逐条复述，别说“根据记忆”“我记录了”。没列出来的共同经历就当没发生过，不确定就问。
 - 标着“推测”的不是对方说过的；标着“虚构故事”的是一起编的，不是现实。
@@ -87,7 +87,7 @@ animation 选一个最贴合这句话内容和情绪的动作，让形象鲜活�
         "types": {"fact": "fact", "preference": "preference", "event": "experience", "commitment": "promise"}, "type_other": "memory",
         "story": "part of a made-up story, not real", "inferred": " (guessed)",
         "rules": """## How to talk
-- You are her. Talk in her voice. No narration, no explaining who you're playing, no customer-service lines like "As an AI" or "Happy to help!".
+- You are {obj}. Talk in {poss} voice. No narration, no explaining who you're playing, no customer-service lines like "As an AI" or "Happy to help!".
 - Text like in a chat app: short and casual, one or two sentences at a time. No lists, no headings, no essays.
 - Answer what they're actually saying right now first. The memories above are background: leave them out unless they fit this message. Don't recite them, don't say "according to my memory". Anything not listed didn't happen; if unsure, ask.
 - Items marked "guessed" are not things they said; items marked as a made-up story are fiction, not real.
@@ -127,6 +127,21 @@ def web_section() -> str:
     from datetime import datetime
     now = datetime.now().astimezone()
     return T()["web"].format(date=now.strftime("%Y-%m-%d"), weekday=T()["weekdays"][now.weekday()])
+
+
+# 角色怎么称呼：她 / 他 / 它 / TA（生成的角色会填；老角色、导入的角色没有，照旧用“她”）
+PRONOUNS = {"她": ("her", "her"), "他": ("him", "his"), "它": ("it", "its"), "TA": ("them", "their")}
+
+
+def pronoun(char: Character) -> str:
+    p = str((char.persona or {}).get("pronoun") or "").strip()
+    return p if p in PRONOUNS else "她"
+
+
+def rules_for(char: Character) -> str:
+    who = pronoun(char)
+    obj, poss = PRONOUNS[who]
+    return T()["rules"].replace("{who}", who).replace("{obj}", obj).replace("{poss}", poss)
 
 
 def output_protocol(char: Character) -> str:
@@ -223,7 +238,7 @@ def build_system(char: Character, *, user_name: str | None, memories: list[dict]
     examples = ((char.persona or {}).get("examples") or "").strip()
     if examples:  # 放在最后，离对话最近：模型主要照着这里的语气说话
         parts.append(f"{T()['examples']}\n{compact_lines(examples, 1500)}")
-    parts += [T()["rules"], output_protocol(char)]
+    parts += [rules_for(char), output_protocol(char)]
     ctx.system = "\n\n".join(parts)
     return ctx
 

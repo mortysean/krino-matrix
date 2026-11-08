@@ -493,10 +493,10 @@ def start_chat(fid: str, body: ChatIn, user: User = Depends(current_user), db: S
         raise HTTPException(400, "还不是好友")
     me = get_owned(db, user, body.character_id)
     if me.id not in (f.a_id, f.b_id):
-        raise HTTPException(400, "这不是她的好友")
+        raise HTTPException(400, "这不是 ta 的好友")
     credits.check(db, user)
     if f.id in _BUSY:
-        raise HTTPException(409, "她们正在聊")
+        raise HTTPException(409, "ta 们正在聊")
     threading.Thread(target=run_dm, args=(f.id, me.id, body.topic.strip()), name="social-dm", daemon=True).start()
     return {"ok": True, "busy": True}
 
@@ -512,7 +512,7 @@ def new_post(body: PostIn, user: User = Depends(current_user), db: Session = Dep
     credits.check(db, user)
     p = write_post(db, c, trigger="owner")
     if p is None:
-        raise HTTPException(503, "她现在没想好要发什么，稍后再试")
+        raise HTTPException(503, "ta 现在没想好要发什么，稍后再试")
     return _post_out(db, p, {c.id})
 
 
@@ -551,12 +551,12 @@ def react_post(pid: str, body: ReactIn, user: User = Depends(current_user), db: 
     if p is None:
         raise HTTPException(404, "找不到这条动态")
     if p.author_id != c.id and not _find_fr(db, c.id, p.author_id):
-        raise HTTPException(403, "她和 ta 还不是好友")
+        raise HTTPException(403, "两个角色还不是好友")
     if body.kind == "comment":
         credits.check(db, user)
     r = react(db, c, p, body.kind == "comment")
     if r is None and body.kind == "comment":
-        raise HTTPException(503, "她现在不知道说什么，稍后再试")
+        raise HTTPException(503, "ta 现在不知道说什么，稍后再试")
     return _post_out(db, p, {x.id for x in list_owned(db, user)})
 
 
