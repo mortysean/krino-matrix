@@ -3,7 +3,8 @@
 #   ./run.sh start|stop|status|logs [tts|speech|image]
 #   tts    = vllm-omni 跑 Qwen3-TTS（127.0.0.1:8650，只对本机）
 #   speech = 对外的语音接口（8640）：合成转给 tts，识别用 SenseVoice
-#   image  = 对外的生图接口（8641）
+#   image  = 对外的生图接口（8641）（现在生图走百炼，默认不启动）
+#   omni   = Qwen3-Omni 直接听（127.0.0.1:8660，只对本机；经隧道映射到网站服务器的 18660）
 #   tunnel = 把语音接口、生图接口反向映射到两台网站服务器的 127.0.0.1:18640、18641（算力服务器在内网，网站服务器连不进来）
 #            用受限密钥 ~/.ssh/krino_tunnel：在网站服务器上只能开这两个端口，不能登录执行命令。断线自动重连。
 set -u
@@ -24,7 +25,8 @@ tunnel_loop() {  # 一个网站服务器一个循环：ssh 断了 5 秒后重连
   local host=$1
   while true; do
     env -u LD_LIBRARY_PATH /usr/bin/ssh -N -i ~/.ssh/krino_tunnel -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
-      -o StrictHostKeyChecking=accept-new -R 127.0.0.1:18640:127.0.0.1:8640 -R 127.0.0.1:18641:127.0.0.1:8641 "$host"
+      -o StrictHostKeyChecking=accept-new -R 127.0.0.1:18640:127.0.0.1:8640 -R 127.0.0.1:18641:127.0.0.1:8641 \
+      -R 127.0.0.1:18660:127.0.0.1:8660 "$host"
     echo "$(date '+%F %T') $host 隧道断开，5 秒后重连"
     sleep 5
   done
@@ -54,6 +56,10 @@ start_one() {
       CUDA_VISIBLE_DEVICES=$GPU_AUX nohup python -m uvicorn speech_server:app --host 0.0.0.0 --port 8640 >"$LOGS/speech.log" 2>&1 & ;;
     image)
       CUDA_VISIBLE_DEVICES=$GPU_MAIN nohup python -m uvicorn image_server:app --host 0.0.0.0 --port 8641 >"$LOGS/image.log" 2>&1 & ;;
+    omni)  # “直接听”：Qwen3-Omni 只跑听和理解（thinker），OpenAI 兼容接口，8660
+      CUDA_VISIBLE_DEVICES=$GPU_MAIN nohup vllm-omni serve "$MODELS/Qwen3-Omni-30B-A3B-Instruct-AWQ" --omni --host 127.0.0.1 --port 8660 \
+        --served-model-name qwen3-omni --trust-remote-code --deploy-config omni_thinker_1gpu.yaml --dtype float16 \
+        --stage-init-timeout 1800 --init-timeout 2400 >"$LOGS/omni.log" 2>&1 & ;;  # 机器忙时读权重很慢：给足启动时间；权重本来就是 fp16
     tunnel)
       (for h in $TUNNEL_HOSTS; do tunnel_loop "$h" & done; wait) >"$LOGS/tunnel.log" 2>&1 &
       ;;
@@ -71,11 +77,11 @@ stop_one() {
 }
 
 which=${2:-all}
-names=(tts speech image tunnel); [ "$which" != all ] && names=("$which")
+names=(tts speech omni tunnel); [ "$which" != all ] && names=("$which")  # 生图已改走百炼，默认不启动 image
 case ${1:-status} in
   start) for n in "${names[@]}"; do start_one "$n"; done ;;
   stop) for n in "${names[@]}"; do stop_one "$n"; done ;;
-  status) curl -s --noproxy '*' localhost:8640/health; echo; curl -s --noproxy '*' localhost:8641/health; echo
+  status) curl -s --noproxy '*' localhost:8640/health; echo; curl -s --noproxy '*' localhost:8660/v1/models | head -c 200; echo
           nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv -i "$GPU_MAIN,$GPU_AUX" ;;
   logs) tail -n 50 -f "$LOGS/${2:-image}.log" ;;
 esac

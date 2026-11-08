@@ -122,3 +122,31 @@ def test_same_opening_kaomoji_is_not_repeated():
     assert cues.drop_lead("(・_・)ゞ先把选项说出来。", {"(・_・)ゞ"}) == "先把选项说出来。"
     assert cues.drop_lead("(・_・)ゞ先说。", set()) == "(・_・)ゞ先说。"
     assert cues.drop_lead("好的(・_・)ゞ", {"(・_・)ゞ"}) == "好的(・_・)ゞ"  # 中间的不动
+
+
+def test_self_hosted_hear_falls_back_to_bailian(monkeypatch):
+    """自建的 Qwen3-Omni 连不上（还没吐字）就改用百炼；吐了字之后出错就不换，免得说一半换人。"""
+    from app import llm
+
+    class Boom:
+        def stream(self, **kw):
+            raise llm.LLMError("连不上")
+            yield  # noqa
+
+    class Half:
+        def stream(self, **kw):
+            yield "你好"
+            raise llm.LLMError("断了")
+
+    class Ok:
+        def stream(self, **kw):
+            yield "百炼来答"
+
+    assert "".join(llm.FallbackHear(Boom(), Ok()).stream(system="", messages=[])) == "百炼来答"
+    out = []
+    try:
+        for x in llm.FallbackHear(Half(), Ok()).stream(system="", messages=[]):
+            out.append(x)
+    except llm.LLMError:
+        pass
+    assert out == ["你好"]

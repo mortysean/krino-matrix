@@ -171,9 +171,12 @@ class OmniLLM:
 
     name = "omni"
 
-    def __init__(self) -> None:
-        self._client = httpx.Client(base_url=settings.dashscope_base_url.replace("/api/v1", "/compatible-mode/v1").rstrip("/"),
-                                    timeout=httpx.Timeout(settings.llm_timeout_s, connect=10))
+    def __init__(self, self_hosted: bool = False) -> None:
+        self.self_hosted = self_hosted
+        base = settings.hear_base_url if self_hosted else settings.dashscope_base_url.replace("/api/v1", "/compatible-mode/v1")
+        self._client = httpx.Client(base_url=base.rstrip("/"), trust_env=not self_hosted,
+                                    timeout=httpx.Timeout(settings.llm_timeout_s, connect=3 if self_hosted else 10))
+        self.model = settings.hear_self_model if self_hosted else settings.hear_model
 
     def stream(self, *, system: str, messages: list[dict], max_tokens: int | None = None,
                context: dict | None = None) -> Iterator[str]:
@@ -185,8 +188,15 @@ class OmniLLM:
             fmt = ctx.get("audio_format", "wav")
             msgs[-1] = {"role": "user", "content": [{"type": "input_audio", "input_audio": {"data": "data:;base64," + audio, "format": fmt}},
                                                     {"type": "text", "text": note}]}
-        body = {"model": settings.hear_model, "messages": msgs, "stream": True, "stream_options": {"include_usage": True},
+        body = {"model": self.model, "messages": msgs, "stream": True, "stream_options": {"include_usage": True},
                 "modalities": ["text"], "max_tokens": max_tokens or settings.llm_max_tokens}
+        if self.self_hosted:  # 自建的 vLLM：OpenAI 标准写法，mp3 要标准的 MIME
+            body.pop("modalities", None)
+            for m in msgs:
+                if isinstance(m.get("content"), list):
+                    for part in m["content"]:
+                        if part.get("type") == "input_audio":
+                            part["input_audio"]["data"] = part["input_audio"]["data"].split(",", 1)[-1]
         usage = None
         try:
             with self._client.stream("POST", "/chat/completions", json=body,
@@ -214,7 +224,7 @@ class OmniLLM:
             raise LLMError("听的服务响应超时，请再说一次") from e
         except httpx.HTTPError as e:
             raise LLMError("无法连接听的服务") from e
-        if usage:
+        if usage and not self.self_hosted:  # 自建的不花钱
             details = usage.get("prompt_tokens_details") or {}
             audio_t = details.get("audio_tokens") or 0
             text_t = (usage.get("prompt_tokens") or 0) - audio_t
@@ -245,10 +255,32 @@ def transcribe_for_record(audio_b64: str, payer: str | None = None, fmt: str = "
 
 
 def hear_ready() -> bool:
-    return settings.hear_provider == "mock" or (settings.hear_provider == "dashscope" and bool(settings.dashscope_api_key))
+    return settings.hear_provider in ("mock", "self") or (settings.hear_provider == "dashscope" and bool(settings.dashscope_api_key))
 
 
-_hear: OmniLLM | None = None
+class FallbackHear:
+    """先用自建的 Qwen3-Omni；还没吐出第一个字就出错（服务没起、隧道断了）就改用百炼，用户感觉不到。"""
+
+    name = "omni-self"
+
+    def __init__(self, first: OmniLLM, backup: OmniLLM | None) -> None:
+        self.first, self.backup = first, backup
+
+    def stream(self, **kw) -> Iterator[str]:
+        started = False
+        try:
+            for chunk in self.first.stream(**kw):
+                started = True
+                yield chunk
+            return
+        except LLMError as e:
+            if started or self.backup is None:
+                raise
+            log.warning("自建 Qwen3-Omni 不可用，改用百炼：%s", e)
+        yield from self.backup.stream(**kw)
+
+
+_hear = None
 
 
 def get_hear_llm():
@@ -259,7 +291,11 @@ def get_hear_llm():
         return MockLLM()
     if not hear_ready():
         return None
-    _hear = _hear or OmniLLM()
+    if _hear is None:
+        if settings.hear_provider == "self":
+            _hear = FallbackHear(OmniLLM(self_hosted=True), OmniLLM() if settings.dashscope_api_key else None)
+        else:
+            _hear = OmniLLM()
     return _hear
 
 

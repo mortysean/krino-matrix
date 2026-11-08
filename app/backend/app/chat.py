@@ -323,10 +323,24 @@ def hear_turn(p: Plan, audio_b64: str) -> None:
     if p.mode != "respond":
         return
     p.audio = True
+    wav_b64 = audio_b64
     audio_b64, fmt = _compact_audio(audio_b64)
     p.llm_context.update({"audio": audio_b64, "audio_format": fmt, "lang": locale(), "web": False})
     p.system += "\n\n" + prompt_heard()
-    p.transcript = _ASR_POOL.submit(transcribe_for_record, audio_b64, p.user_id, fmt)  # 并行记下原话，不耽误她回答
+    p.transcript = _ASR_POOL.submit(record_said, wav_b64, audio_b64, fmt, p.user_id)  # 并行记下原话，不耽误她回答
+
+
+def record_said(wav_b64: str, compact_b64: str, fmt: str, payer: str | None) -> str:
+    """记下原话：先用自建的 SenseVoice（服务端语音识别，两台网站服务器上实测 0.3~0.8 秒，不花钱），不行再用百炼。"""
+    if settings.stt_provider == "openai" and settings.stt_base_url:
+        try:
+            from .voice import transcribe
+            text = transcribe(base64.b64decode(wav_b64), "audio/wav", "audio.wav")
+            if text:
+                return text[:2000]
+        except Exception as e:  # noqa: BLE001
+            log.warning("自建语音识别不可用，改用百炼记原话：%s", e)
+    return transcribe_for_record(compact_b64, payer, fmt)
 
 
 HEAR_PEEK_S = 1.2  # 语音时最多等识别结果这么久，看是不是要查网的问题

@@ -1,0 +1,22 @@
+# Qwen3-Omni（4 位量化）只加载“听和理解”的部分（thinker），输出文字，不加载说话模块（talker / code2wav）。
+# 给网站的“直接听”用：听你的录音，直接回文字；朗读还是交给 Qwen3-TTS。
+# 一张卡（run.sh 里 CUDA_VISIBLE_DEVICES=GPU_MAIN）。这张卡和别人共用：显存上限按整卡比例算，0.55 ≈ 27G，
+# 别人的程序再占 20G 也放得下；权重约 17G，剩下给 KV 缓存。
+pipeline: qwen3_omni_moe_thinker_only
+distributed_executor_backend: mp
+enable_prefix_caching: true
+
+stages:
+  - stage_id: 0
+    devices: "0"
+    max_num_seqs: 4
+    max_model_len: 16384
+    gpu_memory_utilization: 0.55
+    enforce_eager: false
+    async_scheduling: false
+    tensor_parallel_size: 1
+    default_sampling_params:
+      temperature: 0.7
+      top_p: 0.9
+      max_tokens: 1024
+      repetition_penalty: 1.05

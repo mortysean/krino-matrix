@@ -90,7 +90,10 @@ class Settings:
     llm_character_models: tuple[str, ...] = field(default_factory=lambda: _list("LLM_CHARACTER_MODELS", DEFAULT_LLM))
     # 直接听：按麦克风说话时，录音直接交给全模态模型（百炼 Qwen-Omni），她听得见语气和情绪，不先转成文字。
     # dashscope = 开（共用 DASHSCOPE_API_KEY）| off = 关（退回“先识别成文字”）。打字聊天不受影响，照旧用 LLM_MODEL
-    hear_provider: str = field(default_factory=lambda: _env("HEAR_PROVIDER", "dashscope"))
+    hear_provider: str = field(default_factory=lambda: _env("HEAR_PROVIDER", "dashscope"))  # dashscope | self | off
+    # self = 自建的 Qwen3-Omni（算力服务器，经隧道在 127.0.0.1:18660）。连不上、出错就自动退回百炼
+    hear_base_url: str = field(default_factory=lambda: _env("HEAR_BASE_URL", "http://127.0.0.1:18660/v1"))
+    hear_self_model: str = field(default_factory=lambda: _env("HEAR_SELF_MODEL", "qwen3-omni"))
     hear_model: str = field(default_factory=lambda: _env("HEAR_MODEL", "qwen3-omni-flash"))
     hear_max_seconds: int = field(default_factory=lambda: _int("HEAR_MAX_SECONDS", 60))
     # 她直接听着回答；同时（并行，不增加等待）用识别模型记下你说的原话，存进对话记录和记忆
