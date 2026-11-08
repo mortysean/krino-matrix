@@ -5,7 +5,7 @@
 // 否则先在服务端识别成文字再发；两样都没有时退回浏览器自带识别（这种情况不能打断，只能点光球）。
 import { esc, fail, t, toast } from "./core.js";
 import { ICON } from "./icons.js";
-import { canHear, framesToWav, listen, openMic, sttMode, stopSpeaking, transcribeWav } from "./voice.js";
+import { canHear, framesToWav, listen, openMic, speakable, sttMode, stopSpeaking, transcribeWav } from "./voice.js";
 
 const SILENCE_MS = 900;    // 停这么久算说完
 const MIN_SPEECH_MS = 350; // 比这短的声音（咳嗽、碰桌子）不算
@@ -145,7 +145,7 @@ export function createVoiceMode({ host, submit, onExit }) {
     const r = await submit(payload);
     if (ended) return;
     if (!r?.ok) return set("listening");
-    caption(r.reply || "", "her");
+    caption(speakable(r.reply || ""), "her");  // 字幕跟她念的一样：不带动作描写和颜文字
     if (!r.speaking) return set("listening");
     set("speaking"); echo = 0; loud = 0;
     const mine = (speaking = r.speaking);
