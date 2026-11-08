@@ -2,7 +2,7 @@
 
 STT  browser：浏览器 Web Speech API（不经过本服务）  openai：转发到 OpenAI 兼容 /audio/transcriptions  mock：测试
 TTS  qwen：自建 Qwen3-TTS  dashscope：阿里云百炼 Qwen-Audio 3.1  elevenlabs：Eleven v4  openai：OpenAI  local：Kokoro  browser：浏览器朗读  mock：提示音
-     云端和自建的都按角色的声音描述（app/tts/voices.py）说话，出错退回 Kokoro。
+     云端和自建的都按角色的声音描述（app/tts/voices.py）说话。自建（qwen）出错就报错，不退回别的服务；其他配置出错退回 Kokoro。
 VLM  mock：只读颜色和亮度（明确标注为模拟）           openai：OpenAI 兼容 /chat/completions + image_url
 上传的音频和图片只在内存里处理，不落库。
 """
@@ -409,16 +409,16 @@ def synthesize(text: str, voice: str | None, speed: float, style: str | None = N
         raise ServiceError("没有需要朗读的文字")
     if p == "mock":
         return _beep_wav(), "audio/wav"
-    try:  # 首选的服务不在或出错就退回本地 Kokoro，不让她哑掉
-        if p == "qwen":
-            return _qwen(text, voice, speed), "audio/wav"
+    if p == "qwen":  # 自建语音：只走自己的算力服务器，出错就报错，不退回 Kokoro 或别的服务
+        return _qwen(text, voice, speed), "audio/wav"
+    try:  # 其他配置（本地开发用）：首选的服务不在或出错就退回本地 Kokoro
         if p == "dashscope":
             return _dashscope(text, voice, speed, style)
         if p in CLOUD:
             return CLOUD[p](text, voice, speed)
     except ServiceError as e:
         log.warning("%s 语音不可用，改用 Kokoro：%s", p, e)
-    if p not in ("local", "qwen", *CLOUD):
+    if p not in ("local", *CLOUD):
         raise ServiceError("服务端没有配置语音合成，请使用浏览器朗读")
     from . import tts_local
 

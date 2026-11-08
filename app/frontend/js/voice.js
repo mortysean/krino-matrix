@@ -112,10 +112,9 @@ export async function speak(text, voiceParams = {}) {
     let res;
     try {
       res = await api("/api/voice/tts", { body: { text: text.slice(0, 600), rate, voice: voiceParams.voice || null, style: voiceParams.style || null, stream: canStream() }, raw: true });
-    } catch (e) {  // 服务端语音出问题时退回浏览器朗读，不让她“哑掉”
-      console.warn("服务端语音失败，改用浏览器朗读：", e.message);
+    } catch (e) {  // 只走自己的语音服务：出问题就如实报错，不偷偷换成浏览器朗读
       if (my !== gen) return { done: Promise.resolve() };
-      return browserSpeak(text, rate, pitch);
+      throw e;
     }
     if ((res.headers.get("content-type") || "").startsWith("audio/pcm")) return playPcm(res, my);  // 边下边播
     const blob = await res.blob();
