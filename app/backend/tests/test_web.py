@@ -124,32 +124,38 @@ def test_same_opening_kaomoji_is_not_repeated():
     assert cues.drop_lead("好的(・_・)ゞ", {"(・_・)ゞ"}) == "好的(・_・)ゞ"  # 中间的不动
 
 
-def test_self_hosted_hear_falls_back_to_bailian(monkeypatch):
-    """自建的 Qwen3-Omni 连不上（还没吐字）就改用百炼；吐了字之后出错就不换，免得说一半换人。"""
+def test_self_hosted_hear_has_no_fallback(monkeypatch):
+    """用户要求不留备用路径：自建的 Qwen3-Omni 出错就报错，不换成百炼。"""
     from app import llm
+    from app.config import settings
 
-    class Boom:
-        def stream(self, **kw):
-            raise llm.LLMError("连不上")
-            yield  # noqa
+    monkeypatch.setattr(settings, "hear_provider", "self")
+    monkeypatch.setattr(settings, "llm_provider", "openrouter")
+    monkeypatch.setattr(llm, "_hear", None)
+    h = llm.get_hear_llm()
+    assert isinstance(h, llm.OmniLLM) and h.self_hosted
+    assert not hasattr(llm, "FallbackHear")
+    monkeypatch.setattr(llm, "_hear", None)
 
-    class Half:
-        def stream(self, **kw):
-            yield "你好"
-            raise llm.LLMError("断了")
 
-    class Ok:
-        def stream(self, **kw):
-            yield "百炼来答"
+def test_record_said_uses_only_sensevoice(monkeypatch):
+    """记原话只用自建的 SenseVoice；失败返回空，不去调百炼。"""
+    from app import chat, voice
+    from app.config import settings
 
-    assert "".join(llm.FallbackHear(Boom(), Ok()).stream(system="", messages=[])) == "百炼来答"
-    out = []
-    try:
-        for x in llm.FallbackHear(Half(), Ok()).stream(system="", messages=[]):
-            out.append(x)
-    except llm.LLMError:
-        pass
-    assert out == ["你好"]
+    monkeypatch.setattr(settings, "hear_provider", "self")
+    monkeypatch.setattr(settings, "llm_provider", "openrouter")
+    monkeypatch.setattr(settings, "stt_provider", "openai")
+    monkeypatch.setattr(settings, "stt_base_url", "http://127.0.0.1:18640/v1")
+    called = []
+    monkeypatch.setattr(chat, "transcribe_for_record", lambda *a, **kw: called.append(1) or "百炼")
+
+    def boom(*a, **kw):
+        raise voice.ServiceError("连不上")
+    monkeypatch.setattr(voice, "transcribe", boom)
+    assert chat.record_said("", "", "wav", None) == "" and not called
+    monkeypatch.setattr(voice, "transcribe", lambda *a, **kw: "你好")
+    assert chat.record_said("", "", "wav", None) == "你好" and not called
 
 
 def test_registration_can_be_closed(client, monkeypatch):

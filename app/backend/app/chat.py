@@ -331,16 +331,20 @@ def hear_turn(p: Plan, audio_b64: str) -> None:
 
 
 def record_said(wav_b64: str, compact_b64: str, fmt: str, payer: str | None) -> str:
-    """记下原话：先用自建的 SenseVoice（服务端语音识别，两台网站服务器上实测 0.3~0.8 秒，不花钱），不行再用百炼。"""
-    if settings.stt_provider == "openai" and settings.stt_base_url:
-        try:
-            from .voice import transcribe
-            text = transcribe(base64.b64decode(wav_b64), "audio/wav", "audio.wav", payer=payer)
-            if text:
-                return text[:2000]
-        except Exception as e:  # noqa: BLE001
-            log.warning("自建语音识别不可用，改用百炼记原话：%s", e)
-    return transcribe_for_record(compact_b64, payer, fmt)
+    """记下原话：只用自建的 SenseVoice（服务端语音识别，两台网站服务器上实测 0.3~0.8 秒）。
+    不退回百炼（用户要求不留备用路径）：识别失败就返回空，对话记录里只存“（语音）”，她的回答照常（她是直接听的）。"""
+    if settings.hear_provider == "mock" or settings.llm_provider == "mock":
+        return transcribe_for_record(compact_b64, payer, fmt)  # 离线模拟
+    if not (settings.stt_provider == "openai" and settings.stt_base_url):
+        log.error("没有配置自建语音识别（STT_PROVIDER=openai / STT_BASE_URL），原话记不下来")
+        return ""
+    try:
+        from .voice import transcribe
+        return transcribe(base64.b64decode(wav_b64), "audio/wav", "audio.wav", payer=payer)[:2000]
+    except Exception as e:  # noqa: BLE001
+        log.error("自建语音识别失败，这句原话没记下：%s", e)
+        events.error("stt", f"{type(e).__name__}: {e}")
+        return ""
 
 
 HEAR_PEEK_S = 1.2  # 语音时最多等识别结果这么久，看是不是要查网的问题

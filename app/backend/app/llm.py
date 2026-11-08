@@ -214,8 +214,8 @@ class OmniLLM:
                             part["input_audio"]["data"] = part["input_audio"]["data"].split(",", 1)[-1]
         usage = None
         try:
-            with self._client.stream("POST", "/chat/completions", json=body,
-                                            headers={"Authorization": f"Bearer {settings.dashscope_api_key}"}) as resp:
+            headers = {} if self.self_hosted else {"Authorization": f"Bearer {settings.dashscope_api_key}"}  # 百炼的密钥不发给自建服务
+            with self._client.stream("POST", "/chat/completions", json=body, headers=headers) as resp:
                 if resp.status_code != 200:
                     resp.read()
                     log.error("Qwen-Omni %s: %s", resp.status_code, resp.text[:300])
@@ -274,28 +274,6 @@ def hear_ready() -> bool:
     return settings.hear_provider in ("mock", "self") or (settings.hear_provider == "dashscope" and bool(settings.dashscope_api_key))
 
 
-class FallbackHear:
-    """先用自建的 Qwen3-Omni；还没吐出第一个字就出错（服务没起、隧道断了）就改用百炼，用户感觉不到。"""
-
-    name = "omni-self"
-
-    def __init__(self, first: OmniLLM, backup: OmniLLM | None) -> None:
-        self.first, self.backup = first, backup
-
-    def stream(self, **kw) -> Iterator[str]:
-        started = False
-        try:
-            for chunk in self.first.stream(**kw):
-                started = True
-                yield chunk
-            return
-        except LLMError as e:
-            if started or self.backup is None:
-                raise
-            log.warning("自建 Qwen3-Omni 不可用，改用百炼：%s", e)
-        yield from self.backup.stream(**kw)
-
-
 _hear = None
 
 
@@ -308,8 +286,8 @@ def get_hear_llm():
     if not hear_ready():
         return None
     if _hear is None:
-        if settings.hear_provider == "self":
-            _hear = FallbackHear(OmniLLM(self_hosted=True), OmniLLM() if settings.dashscope_api_key else None)
+        if settings.hear_provider == "self":  # 只用自建的 Qwen3-Omni：出错就报错，不退回百炼（用户要求不留备用路径）
+            _hear = OmniLLM(self_hosted=True)
         else:
             _hear = OmniLLM()
     return _hear
