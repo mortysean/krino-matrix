@@ -691,3 +691,42 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 
 /* 录音时麦克风按钮跟着音量亮起来 */
 #mic-btn.listening { box-shadow: 0 0 0 calc(2px + var(--lv, 0) * 10px) color-mix(in srgb, var(--char, #1414a8) 45%, transparent); transition: box-shadow .08s linear; }
+
+/* 工作台右栏：灵魂的神经网络视图（只看不改） */
+.name-title { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: .02em; }
+.soul-graph svg { width: 100%; height: auto; display: block; }
+.sg-edge { fill: none; stroke: color-mix(in srgb, var(--silver) 30%, transparent); stroke-width: 1.1; transition: stroke .3s, stroke-width .3s; }
+.sg-edge.thin { stroke-width: .7; }
+.sg-edge.faint { stroke: color-mix(in srgb, var(--silver) 12%, transparent); stroke-dasharray: 2 4; }
+.sg-edge.on { stroke: var(--c); stroke-width: 1.8; }
+.sg-edge.thin.on { stroke-width: 1.1; }
+.sg-pulse { fill: var(--silver-hi); opacity: .55; }
+.sg-pulse.on { fill: var(--c); opacity: 1; filter: drop-shadow(0 0 4px var(--c)); }
+.sg-halo { animation: sg-breathe 4s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes sg-breathe { 50% { opacity: .55; transform: scale(1.08); } }
+.sg-core { fill: var(--ink); stroke: var(--c); stroke-width: 2; }
+.sg-name { fill: var(--text); font: 600 13px var(--sans); }
+.sg-dim { cursor: pointer; outline: none; }
+.sg-node { fill: var(--ink-3); stroke: var(--silver); stroke-width: 1.5; transition: fill .25s, stroke .25s, r .25s; }
+.sg-dim:hover .sg-node, .sg-dim:focus-visible .sg-node { stroke: var(--silver-hi); fill: var(--ink-2); }
+.sg-dim.on .sg-node { fill: var(--c); stroke: var(--silver-hi); r: 11; }
+.sg-hit { fill: transparent; }
+.sg-leaf { fill: color-mix(in srgb, var(--silver) 55%, transparent); transition: fill .25s; }
+.sg-dim.on .sg-leaf { fill: var(--silver-hi); }
+.sg-label { fill: var(--silver); font: 500 12px var(--sans); }
+.sg-dim.on .sg-label { fill: var(--silver-hi); font-weight: 600; }
+.sg-leaf-labels { opacity: 0; transition: opacity .3s; pointer-events: none; }
+.sg-dim.on .sg-leaf-labels { opacity: 1; }
+.sg-leaf-label { fill: var(--muted); font: 10.5px var(--sans); }
+.sg-detail { border-left: 2px solid var(--c); padding: 6px 12px; margin: 6px 0 12px; min-height: 40px; }
+.sg-detail b { font-size: 13px; }
+.sg-detail ul { margin: 6px 0 0; padding-left: 18px; line-height: 1.7; font-size: 13.5px; }
+.sg-greet { margin: 0 0 10px; padding: 10px 14px; background: var(--ink-2); border: 1px solid var(--line); font-size: 14px; line-height: 1.6; }
+.sg-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-bottom: 10px; }
+.sg-tag { border: 1px solid var(--line-2); padding: 0 8px; border-radius: 999px; }
+.sg-examples summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.sg-examples pre { white-space: pre-wrap; font: 13px/1.7 var(--sans); color: var(--text); background: var(--ink-2); border: 1px solid var(--line); padding: 10px 12px; margin: 8px 0 0; }
+.sg-lock { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; }
+.draft-form { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+@media (prefers-reduced-motion: reduce) { .sg-halo { animation: none; } }

@@ -1,15 +1,14 @@
 // 02 工作台：灵魂和肉体在一页。上面是我的角色（点卡片 = 去聊天，点“编辑” = 在下面编辑）；
-// 下面左栏是肉体（形象：一句话生成 / 修改 / 整套表情，见 workbench.js；声音），右栏是灵魂（名字、简介、开场白、性格……）。
-// 一键原则：改完点一次“保存”全部生效；“导出”得到一个文件（灵魂 + 肉体，图片内嵌），可以直接上传工坊；“发布到工坊”一步到位。
-// 不常用的（其余字段、互动参数、Markdown / JSON、历史版本）收进“更多”。
+// 下面左栏是肉体（形象：修改 / 整套表情，见 workbench.js；声音），可以改，点一次“保存”生效；
+// 右栏是灵魂的神经网络视图（soulgraph.js），只看不改：改灵魂就不是她了（OOC）。灵魂只在“新角色”里设计。
+// “导出”得到一个文件（灵魂 + 肉体，图片内嵌），可以直接上传工坊；不常用的（历史版本、还原、告别）收进“更多”。
 import { $, $$, S, api, avaHTML, bus, confirmBox, curChar, download, esc, fail, fmtTime, modal, t, toast, tr } from "./core.js";
 import { speak, voiceConfig } from "./voice.js";
 import { bodyDirty, bodyPanel, bodyPortrait, bodyPrompt } from "./workbench.js";
+import { soulGraph } from "./soulgraph.js";
 
 const P = { schema: null, dirty: false, advanced: false };
 // 对话示例最影响她怎么说话（开源角色卡的通行写法），所以和开场白一起放在最显眼的位置
-const MAIN_FIELDS = [["tagline", "简介", 1], ["greeting", "开场白", 2], ["examples", "对话示例（一行一句：“用户：……”“她的名字：……”）", 6],
-  ["personality", "性格", 3], ["speech", "说话方式", 3]];
 const MORE_FIELDS = ["background", "values", "interests", "preferences", "worldview", "relationships", "boundaries"];
 const schema = async () => (P.schema ||= await api("/api/persona-schema"));
 async function reloadChars(selectId) { S.chars = await api("/api/characters"); bus.emit("chars", selectId); }
@@ -22,7 +21,7 @@ export async function personaPage() {
   S.chars = await api("/api/characters");
   P.dirty = false;
   P.c = c;
-  const p = c.persona, b = c.behavior, labels = Object.fromEntries(sc.fields.map((x) => [x.key, x.label]));
+  const p = c.persona, b = c.behavior;
   root.innerHTML = `
     <div class="cast-row">${S.chars.map((x) => `<div class="cast-card ${x.id === c.id ? "active" : ""}" data-use="${x.id}" style="--c:${esc(x.color)}">
         ${avaHTML(x, "lg")}<div><b>${esc(x.name)}</b>${x.official ? ` <span class="badge cobalt">${t("官方")}</span>` : ""}<div class="muted small">${esc(x.tagline)}</div></div>
@@ -31,7 +30,7 @@ export async function personaPage() {
 
     <div class="editor">
       <div class="editor-head">
-        <input data-p="name" class="name-input" value="${esc(p.name)}" maxlength="40" aria-label="${t("名字")}">
+        <h2 class="name-title">${esc(p.name)}</h2>
         <span class="muted small mono">v${c.version}</span>
         <span class="grow"></span>
         <button id="p-more" class="ghost small">${t("更多")} ▾</button>
@@ -54,16 +53,7 @@ export async function personaPage() {
         </div>
         <div class="studio-soul">
           <div class="section-title mono">${t("SOUL · 灵魂")}</div>
-          ${MAIN_FIELDS.map(([k, l, rows]) => rows === 1
-            ? `<label>${t(l)}<input data-p="${k}" value="${esc(p[k] || "")}" maxlength="80"></label>`
-            : `<label>${t(l)}<textarea data-p="${k}" rows="${rows}">${esc(p[k] || "")}</textarea></label>`).join("")}
-          <details id="more-fields" ${P.advanced ? "open" : ""}><summary>${t("更多设定（背景、价值倾向、兴趣、世界观、关系……）")}</summary>
-            ${MORE_FIELDS.map((k) => `<label>${esc(tr(labels[k]))}<textarea data-p="${k}" rows="3">${esc(p[k] || "")}</textarea></label>`).join("")}
-            <label>${t("标签（逗号分隔）")}<input data-p="tags" value="${esc((p.tags || []).join("，"))}"></label>
-            <div class="section-title mono">BEHAVIOR · ${t("互动风格")}</div>
-            <label>${t("风格")}<select data-b="style">${Object.keys(sc.styles).map((s) => `<option value="${esc(s)}" ${s === b.style ? "selected" : ""}>${esc(tr(s))}</option>`).join("")}</select></label>
-            ${Object.entries(sc.numeric).map(([k, l]) => `<div class="slider-row"><span>${esc(tr(l))}</span><input type="range" min="0" max="1" step="0.05" data-b="${k}" value="${b[k]}"><span>${b[k]}</span></div>`).join("")}
-          </details>
+          <div id="soul-host"></div>
         </div>
       </div>
     </div>`;
@@ -72,10 +62,10 @@ export async function personaPage() {
   $$("[data-edit]", root).forEach((el) => (el.onclick = () => bus.emit("select", { id: el.dataset.edit, view: "persona" })));
   $("#c-add").onclick = addCharacter;
   $$("input[type=range]", root).forEach((el) => (el.oninput = () => { el.nextElementSibling.textContent = el.value; markDirty(true); }));
-  $("#more-fields").ontoggle = (e) => (P.advanced = e.target.open);
+  soulGraph($("#soul-host", root), c, { onNew: addCharacter });
   root.oninput = (e) => { if (!e.target.closest("#body-host")) markDirty(true); };  // 每次重画都覆盖，不会越绑越多
   bodyPanel($("#body-host", root), c, { onChange: markDirty }).then(() => markDirty()).catch(fail);
-  $("#voice-try").onclick = () => speak($("[data-p=greeting]", root).value || t("你好，我在这里。"), collect(root, c).behavior.voice).catch(fail);
+  $("#voice-try").onclick = () => speak(p.greeting || t("你好，我在这里。"), collect(root, c).behavior.voice).catch(fail);
   $("#p-save").onclick = () => save(root, c);
   $("#p-more").onclick = () => moreMenu(c);
   $("#p-export").onclick = async () => {  // 先存再导出：导出的就是现在看到的样子
@@ -88,15 +78,11 @@ export async function personaPage() {
   };
 }
 
-function collect(root, c) {
-  const persona = {};
-  $$("[data-p]", root).forEach((el) => (persona[el.dataset.p] = el.value));
-  persona.tags = persona.tags.split(/[,，\s]+/).filter(Boolean).slice(0, 8);
-  const behavior = { ...c.behavior, style: $("[data-b=style]", root).value };
-  $$("[data-b][type=range]", root).forEach((el) => (behavior[el.dataset.b] = +el.value));
+function collect(root, c) {  // 只有肉体：形象和声音。灵魂不在这里改
+  const behavior = { ...c.behavior };
   behavior.voice = { ...c.behavior.voice, voice: $("[data-v=voice]", root).value, rate: +$("[data-v=rate]", root).value };
   behavior.portrait = bodyPortrait(c);
-  return { persona, behavior };
+  return { behavior };
 }
 
 function markDirty(soul = false) {
@@ -114,29 +100,68 @@ async function save(root, c, { quiet = false } = {}) {
   } catch (e) { fail(e); return false; }
 }
 
-// ---------- 新角色：一个弹窗，三种方式 ----------
-async function addCharacter() {
+// ---------- 新角色：唯一能设计灵魂的地方 ----------
+// 一句话 → 写出一份灵魂草稿（性格、说话方式、开场白、对话样例、外貌、声音）→ 在这里随便改 → “创建她”（顺便画一张形象）。
+// 也可以从空白开始自己写，或者导入文件、去工坊挑。建好之后灵魂就固定了，工作台里只看不改。
+const D = { draft: null, prompt: "" };
+const DRAFT_FIELDS = [["name", "名字", 1], ["tagline", "简介", 1], ["greeting", "开场白", 2], ["personality", "性格", 3], ["speech", "说话方式（口头禅写在这里）", 3],
+  ["examples", "对话示例（一行一句：“用户：……”“她的名字：……”）", 5]];
+
+export async function addCharacter() {
   if (S.chars.length >= (S.me?.companion_limit || 8)) return toast(t("最多 {n} 位角色，先和一位告别吧", { n: S.me.companion_limit }));
+  D.draft = null; D.prompt = "";
   await modal("新角色", `
-    <label>${t("用一句话描述她")}<textarea id="gen-prompt" rows="3" maxlength="800" placeholder="${t("例如：在海边书店打工的抹香鲸娘，话少，喜欢在打烊后给我念书")}"></textarea></label>
-    <div class="row"><button id="gen-go">${t("生成")}</button><span class="muted small">${t("或者")}</span>
+    <label>${t("用一句话描述她（人、动物、机器人都行）")}<textarea id="gen-prompt" rows="2" maxlength="500" placeholder="${t("例如：在海边书店打工的抹香鲸娘，话少，喜欢在打烊后给我念书")}"></textarea></label>
+    <div class="row"><button id="gen-go">${t("写出她的灵魂")}</button><button class="ghost small" id="gen-blank">${t("从空白开始自己写")}</button>
+      <span class="grow"></span>
       <label class="ghost-btn">${t("导入文件")}<input type="file" id="imp-file" accept=".json,.md,.png,.charx,.zip" hidden></label>
       <button class="link small" id="go-ws">${t("去工坊挑一个 →")}</button></div>
-    <p class="muted small">${t("导入支持 KRINO 人设包、Markdown、SillyTavern 角色卡（.json / .png）、RisuAI .charx。文件内容只当资料，不会被执行。")}</p>
-    <div id="gen-out"></div>`, null, { okText: "关闭", cancel: false });
+    <div id="gen-out"></div>`, null, { okText: "关闭", cancel: false, wide: true });
 }
+
+async function draftForm(d) {
+  const sc = await schema();
+  const labels = Object.fromEntries(sc.fields.map((x) => [x.key, x.label]));
+  D.draft = d;
+  const p = d.persona || {};
+  $("#gen-out").innerHTML = `
+    <div class="draft-form">
+      <p class="muted small">${t("这是她的灵魂。建好之后就固定了（改了就不是她了），所以现在想清楚、随便改。")}</p>
+      ${DRAFT_FIELDS.map(([k, l, rows]) => rows === 1
+        ? `<label>${t(l)}<input data-d="${k}" value="${esc(p[k] || "")}" maxlength="${k === "name" ? 40 : 80}"></label>`
+        : `<label>${t(l)}<textarea data-d="${k}" rows="${rows}">${esc(p[k] || "")}</textarea></label>`).join("")}
+      <label>${t("她的样子（用来画形象）")}<textarea data-d="appearance" rows="2">${esc(d.appearance || "")}</textarea></label>
+      <details><summary>${t("更多设定（背景、价值观、兴趣、世界观、关系……）")}</summary>
+        ${MORE_FIELDS.map((k) => `<label>${esc(tr(labels[k]))}<textarea data-d="${k}" rows="2">${esc(p[k] || "")}</textarea></label>`).join("")}
+        <label>${t("风格")}<select data-d-style>${Object.keys(sc.styles).map((x) => `<option value="${esc(x)}" ${x === (d.behavior?.style || "温柔") ? "selected" : ""}>${esc(tr(x))}</option>`).join("")}</select></label>
+      </details>
+      <div class="row"><button id="draft-go">${t("创建她")}</button><span class="muted small">${t("会顺便按“她的样子”画一张形象，大约半分钟")}</span></div>
+    </div>`;
+}
+
 document.addEventListener("click", async (e) => {  // 弹窗里的按钮（弹窗内容每次重画，用事件委托）
   if (e.target.id === "gen-go") {
     const prompt = $("#gen-prompt").value.trim();
     if (!prompt) return $("#gen-prompt").focus();
-    e.target.disabled = true; $("#gen-out").innerHTML = `<p class="muted small">${t("正在写她的性格和声音，再画她的样子，大约一分钟…")}</p>`;
-    try {  // 一句话：灵魂 + 形象 + 声音一起生成
-      const { character: c } = await api("/api/workbench/character", { body: { prompt } });
-      bodyPrompt(c.id, prompt);
-      $("#modal").classList.add("hidden"); toast(t("欢迎 {name}！性格、样子和声音都好了，在这里可以接着改", { name: c.name }), 5000);
-      await reloadChars(c.id); bus.emit("select", { id: c.id, view: "persona" });
-    } catch (err) { $("#gen-out").innerHTML = `<p class="error">${esc(err.message)}</p>`; }
+    e.target.disabled = true; $("#gen-out").innerHTML = `<p class="muted small">${t("正在写她的灵魂，十几秒…")}</p>`;
+    try { await draftForm(await api("/api/characters/generate", { body: { prompt } })); D.prompt = prompt; }
+    catch (err) { $("#gen-out").innerHTML = `<p class="error">${esc(err.message)}</p>`; }
     finally { e.target.disabled = false; }
+  }
+  if (e.target.id === "gen-blank") { D.prompt = ""; await draftForm({ persona: {}, behavior: {}, lore: [], appearance: "" }); $("[data-d=name]")?.focus(); }
+  if (e.target.id === "draft-go") {
+    const d = D.draft || { persona: {}, behavior: {}, lore: [] };
+    const persona = { ...(d.persona || {}) };
+    $$("[data-d]").forEach((el) => { if (el.dataset.d !== "appearance") persona[el.dataset.d] = el.value.trim(); });
+    if (!persona.name) { toast("给她起个名字吧"); return $("[data-d=name]")?.focus(); }
+    const behavior = { ...(d.behavior || {}), style: $("[data-d-style]")?.value || d.behavior?.style || "温柔" };
+    const body = { draft: { persona, behavior, lore: d.lore || [], appearance: $("[data-d=appearance]").value.trim() }, prompt: D.prompt || "" };
+    e.target.disabled = true; e.target.textContent = t("正在画她，大约半分钟…");
+    try {
+      const { character: c } = await api("/api/workbench/character", { body });
+      $("#modal").classList.add("hidden"); toast(t("欢迎 {name}！", { name: c.name }), 4000);
+      await reloadChars(c.id); bus.emit("select", { id: c.id, view: "persona" });
+    } catch (err) { fail(err); e.target.disabled = false; e.target.textContent = t("创建她"); }
   }
   if (e.target.id === "go-ws") { $("#modal").classList.add("hidden"); bus.emit("goto", "workshop"); }
 });
@@ -155,8 +180,6 @@ async function moreMenu(c) {
   const v = await api(`/api/characters/${c.id}/versions`).catch(() => ({ versions: [] }));
   const p = modal("更多", `
     <div class="menu-list">
-      <button data-m="md">${t("用 Markdown 编辑")}</button>
-      <button data-m="json">${t("用 JSON 编辑")}</button>
       <button data-m="exp-json">${t("导出人设（JSON）")}</button>
       <button data-m="exp-md">${t("导出人设（Markdown）")}</button>
       <button data-m="publish">${t("发布到工坊")}</button>
@@ -169,7 +192,6 @@ async function moreMenu(c) {
     const m = b.dataset.m;
     $("#modal").classList.add("hidden");
     try {
-      if (m === "md" || m === "json") return sourceEditor(c, m);
       if (m === "exp-json") return download(`/api/characters/${c.id}/export?format=json`, `${c.slug}.krino.json`);
       if (m === "exp-md") return download(`/api/characters/${c.id}/export?format=md`, `${c.slug}.md`);
       if (m === "publish") return bus.emit("publish", c.id);
@@ -184,15 +206,6 @@ async function moreMenu(c) {
     } catch (e) { fail(e); }
   }));
   return p;
-}
-
-async function sourceEditor(c, fmt) {
-  const src = await api(`/api/characters/${c.id}/source?format=${fmt}`);
-  await modal(fmt === "md" ? "用 Markdown 编辑" : "用 JSON 编辑", `<textarea id="src" class="source-editor" spellcheck="false">${esc(src.text)}</textarea>
-    <p class="muted small">${t("保存前会检查格式，不对不会覆盖。")}</p>`, async (body) => {
-    await api(`/api/characters/${c.id}/source`, { method: "PUT", body: { format: fmt, text: $("#src", body).value } });
-    toast("保存好了"); await reloadChars(); bus.emit("character:changed"); personaPage();
-  }, { okText: "保存", wide: true });
 }
 
 async function versions(c, v) {

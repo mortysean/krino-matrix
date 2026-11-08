@@ -346,46 +346,52 @@ def media_root():
 # ---------- 一句话生成整个角色：灵魂 + 肉体 + 声音 ----------
 
 class CharacterIn(BaseModel):
-    prompt: str = Field(min_length=1, max_length=500)
-    character_id: str | None = Field(default=None, max_length=32)  # 在哪个角色的工作台上点的；不给 = 新建一个角色
+    prompt: str = Field(default="", max_length=500)       # 一句话描述（没有 draft 时用它写灵魂）
+    draft: dict | None = None                              # 新角色窗口里写好 / 改好的灵魂：{persona, behavior, lore, appearance}
+    character_id: str | None = Field(default=None, max_length=32)  # 在哪个角色的工作台上点的（只用来记来源，不会改她）
 
 
 @router.post("/character")
 def character(body: CharacterIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
-    """先写灵魂（人设、开场白、对话示例，顺便挑好音色、写好外貌），再按外貌画一张形象。
-    在官方角色（KRINO、大肥鱼）的工作台上点：新建一个角色，官方角色保持不变；
-    在自己的角色上点：直接换成新的（旧的留在版本历史里，可以恢复）。"""
-    from . import personas
+    """设计一个新角色：灵魂（人设、开场白、对话示例、音色）+ 按外貌画一张形象，总是新建。
+    已有角色的灵魂不在这里改（改了就不是她了）；灵魂只在新建时设计。"""
+    from . import persona_io, personas
 
-    c = personas.get_owned(db, user, body.character_id) if body.character_id else None
+    if body.character_id:
+        personas.get_owned(db, user, body.character_id)  # 只校验是自己的角色
+    if not body.draft and not body.prompt.strip():
+        raise HTTPException(400, "先描述一下你想要的角色")
     try:
-        check_content(body.prompt)
+        if body.prompt.strip():
+            check_content(body.prompt)
+        personas.check_slot(db, user)
     except PersonaError as e:
         raise HTTPException(400, str(e)) from e
-    official = c is None or personas.template_of(c) is not None  # 新建（官方角色不覆盖）
-    if official:
-        try:
-            personas.check_slot(db, user)
-        except PersonaError as e:
-            raise HTTPException(400, str(e)) from e
     _check_quota(db, user, 1)
     try:
-        d = personas.generate_draft(body.prompt, None, payer=user.id)
+        if body.draft:
+            raw = body.draft
+            d0 = persona_io.from_package({"format": persona_io.FORMAT, "persona": raw.get("persona") or {}, "lore": raw.get("lore") or []})
+            if not str(d0.persona.get("name") or "").strip():
+                raise PersonaError("给她起个名字吧")
+            beh = raw.get("behavior") if isinstance(raw.get("behavior"), dict) else {}
+            d = {"persona": d0.persona, "lore": d0.lore, "appearance": str(raw.get("appearance") or "")[:500],
+                 "behavior": personas.validate_behavior({k: v for k, v in beh.items() if k != "portrait"} or None)
+                 if beh else personas.default_behavior()}
+        else:
+            d = personas.generate_draft(body.prompt, None, payer=user.id)
     except PersonaError as e:
         raise HTTPException(400, str(e)) from e
     lang = "en" if locale() == "en" else "zh"
-    look = f"{body.prompt}。{d.get('appearance') or ''}" if lang == "zh" else f"{body.prompt}. {d.get('appearance') or ''}"
+    p = d["persona"]
+    who = body.prompt.strip() or f"{p.get('name', '')}，{p.get('tagline', '')}"
+    look = f"{who}。{d.get('appearance') or ''}" if lang == "zh" else f"{who}. {d.get('appearance') or ''}"
     image = _run(user, "design", [{"text": PROMPTS[lang]["design"].format(prompt=look[:800])}], 1, f"{MAX_W}*{MAX_H}")[0]
     behavior = {**d["behavior"], "portrait": {"kind": "image", "src": image}}
     try:
-        if official:
-            new = personas.create(db, user, persona=d["persona"], behavior=behavior, lore=d["lore"],
-                                  origin={"source": "created", "prompt": body.prompt[:200]})
-        else:
-            keep = {k: v for k, v in (c.behavior or {}).items() if k not in ("portrait", "voice", "animations")}
-            new = personas.save(db, c, persona=d["persona"], behavior={**keep, "portrait": behavior["portrait"], "voice": behavior["voice"]},
-                                lore=d["lore"], note="一句话重新生成")
+        new = personas.create(db, user, persona=p, behavior=behavior, lore=d["lore"],
+                              origin={"source": "created", "prompt": who[:200]})
     except PersonaError as e:
         raise HTTPException(400, str(e)) from e
     db.commit()
-    return {"character": personas.full(new), "created": official, "used": _used_today(db, user.id)}
+    return {"character": personas.full(new), "created": True, "used": _used_today(db, user.id)}

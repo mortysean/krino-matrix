@@ -207,6 +207,15 @@ def test_one_sentence_makes_soul_body_and_voice(user, monkeypatch):
     assert "glasses" not in c["behavior"]["animations"]  # 普通形象只会通用动作
     assert user.ok("get", f"/api/characters/{k['id']}")["persona"] == before["persona"]  # KRINO 原样
     assert len(r["character"]["behavior"]["portrait"]) and r["used"] == 1  # 只生成一张
-    # 在自己的角色上再生成：原地换掉，版本 +1
+    # 在自己的角色上再点：也是新建，她自己的灵魂不变（灵魂只在新建时设计）
     r2 = user.ok("post", "/api/workbench/character", json={"prompt": "一个总在打瞌睡的机器人管家", "character_id": c["id"]})
-    assert not r2["created"] and r2["character"]["id"] == c["id"] and r2["character"]["version"] == c["version"] + 1
+    assert r2["created"] and r2["character"]["id"] != c["id"]
+    assert user.ok("get", f"/api/characters/{c['id']}")["persona"] == c["persona"]
+    # 新角色窗口里自己改过的灵魂：照着建，不再让模型重写
+    draft = user.ok("post", "/api/characters/generate", json={"prompt": "爱下棋的老猫"})
+    draft["persona"]["name"] = "棋棋"
+    draft["persona"]["speech"] = "- 口头禅「将军喵」"
+    r3 = user.ok("post", "/api/workbench/character", json={"draft": draft})
+    assert r3["character"]["persona"]["name"] == "棋棋" and "将军喵" in r3["character"]["persona"]["speech"]
+    assert r3["character"]["behavior"]["portrait"]["src"].startswith("/media/")
+    assert user.post("/api/workbench/character", json={"draft": {"persona": {"name": ""}}}).status_code == 400

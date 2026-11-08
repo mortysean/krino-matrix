@@ -136,11 +136,13 @@ await step("她记得的：说过的称呼被记下", async () => {
   await page.click("#drawer-close");
 });
 
-await step("角色页：改说话方式 → 表达变化；换 Live2D 形象", async () => {
+await step("工作台：灵魂只看不改（神经网络视图）；换 Live2D 形象", async () => {
   await page.click('.nav [data-view="persona"]');
-  await page.waitForSelector("[data-p=speech]");
+  await page.waitForSelector(".soul-graph svg");
+  expect(await page.locator("#persona-page [data-p]").count() === 0, "工作台里不该能编辑灵魂");
+  await page.click('.sg-dim[data-k="speech"] .sg-hit');
+  expect((await page.textContent(".sg-detail")).length > 4, "点维度后下面没有显示内容");
   await shot("06-persona");
-  await page.fill("[data-p=speech]", "- 口头禅「收到，开饭开饭」");
   await page.click('.portrait-opt[data-portrait*="live2d"]');
   await page.click("#p-save");
   await page.waitForFunction(() => !document.querySelector("#toast").classList.contains("hidden"), null, { timeout: 10000 });
@@ -148,9 +150,6 @@ await step("角色页：改说话方式 → 表达变化；换 Live2D 形象", a
   await page.waitForSelector(".portrait canvas", { timeout: 30000 });
   await page.waitForTimeout(2500);
   await shot("07-live2d");
-  await page.fill("#chat-input", "在做什么呢");
-  await page.press("#chat-input", "Enter");
-  await page.waitForFunction(() => /开饭开饭/.test(document.querySelector(".msg.assistant:last-of-type .bubble")?.textContent || ""), null, { timeout: 30000 });
   // 换回立绘
   await page.click('.nav [data-view="persona"]');
   await page.waitForSelector('.portrait-opt[data-portrait*="whale-girl.png"]');
@@ -171,18 +170,21 @@ await step("联网：问天气 → 她查了一下，来源在气泡下面，正
   await shot("07-web");
 });
 
-await step("工作台：一句话生成角色（性格 + 一张形象 + 声音）→ 整套表情 → 聊天里换上", async () => {
+await step("新角色：一句话写出灵魂 → 在窗口里改（加口头禅）→ 创建（一张形象 + 声音）→ 整套表情 → 聊天里换上", async () => {
   await page.click('.nav [data-view="persona"]');
-  await page.waitForSelector("#wb-prompt");
-  const greetBefore = await page.inputValue("[data-p=greeting]");
-  await page.fill("#wb-prompt", "一只戴围巾、爱读诗的小水獭");
-  await page.click("#wb-new");
-  // 在官方角色（大肥鱼）上点：新建一个角色，打开她的工作台
+  await page.waitForSelector("[data-sg-new]");
+  await page.click("[data-sg-new]");
+  await page.fill("#gen-prompt", "一只戴围巾、爱读诗的小水獭");
+  await page.click("#gen-go");
+  await page.waitForSelector("[data-d=name]", { timeout: 30000 });
+  expect((await page.inputValue("[data-d=name]")).length > 0, "没有写出名字");
+  await page.fill("[data-d=speech]", "- 口头禅「收到，开饭开饭」");
+  await page.click("#draft-go");
   await page.waitForFunction(() => { const a = document.querySelector(".cast-card.active b")?.textContent; return a && a !== "大肥鱼" && a !== "KRINO"
     && document.querySelector(".wb-stage img")?.src.includes("/media/"); }, null, { timeout: 60000 })
     .catch(async () => { throw new Error("没有新建出角色：" + await page.textContent("#toast").catch(() => "")); });
   const name = await page.textContent(".cast-card.active b");
-  expect((await page.inputValue("[data-p=greeting]")) !== greetBefore, "灵魂还是原来的");
+  expect((await page.textContent(".soul-graph")).length > 0, "新角色没有灵魂视图");
   expect(await page.locator(".pick-portrait .portrait-opt img[src*='/media/']").count() === 1, "应该只生成一张形象");
   expect((await page.inputValue("[data-v=voice]")) === "longanlingxin_v3.1", "声音没换：" + await page.inputValue("[data-v=voice]"));
   expect(!(await page.$eval("#p-save", (b) => b.classList.contains("dirty"))), "生成的角色应该已经存好");
@@ -202,6 +204,10 @@ await step("工作台：一句话生成角色（性格 + 一张形象 + 声音�
   await page.waitForFunction(() => document.querySelector(".portrait > img:not([hidden])")?.getAttribute("src")?.includes("/media/"), null, { timeout: 15000 })
     .catch(() => { throw new Error("聊天页没有换上新形象"); });
   expect(await page.$eval(".portrait", (b) => b.classList.contains("has-faces")), "聊天页没有拿到整套表情");
+  await page.fill("#chat-input", "在做什么呢");
+  await page.press("#chat-input", "Enter");
+  await page.waitForFunction(() => /开饭开饭/.test(document.querySelector(".msg.assistant:last-of-type .bubble")?.textContent || ""), null, { timeout: 30000 })
+    .catch(() => { throw new Error("新角色窗口里写的口头禅没有生效"); });
   // 大肥鱼没被改动；后面的步骤回到她
   await page.click(".char-list .char-item:has(.name:text-is(\"大肥鱼\"))");
   await page.waitForFunction(() => document.querySelector("#chat-name")?.textContent === "大肥鱼", null, { timeout: 10000 });
