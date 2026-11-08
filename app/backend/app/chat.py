@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import credits, events, memory, policy
+from . import credits, cues, events, memory, policy
 from .auth import current_user, user_settings
 from .config import chat_model_for, locale, settings
 from .db import SessionLocal, get_db
@@ -34,7 +34,7 @@ from .i18n import tr
 from .llm import LLMError, get_hear_llm, get_llm, transcribe_for_record
 from .models import Character, ChatSession, MemoryJob, Message, User, now
 from .personas import ANIMATIONS, EXPRESSIONS, get_owned, lore_hits
-from .prompt import StreamFilter, build_system, parse_reply, prompt_heard
+from .prompt import StreamFilter, build_system, parse_reply, prompt_heard, web_section
 from .text import compact
 
 log = logging.getLogger("krino.chat")
@@ -71,7 +71,9 @@ class Plan:
     fixed_text: str | None = None    # 不调模型时的固定台词（请求画面）
     event_type: str = "message"
     audio: bool = False              # 这一轮是语音：录音在 llm_context["audio"]，交给能直接听的模型
+    audio_text: str = ""             # 语音转成文字交给联网模型时的原话
     transcript: object = None        # 同时在记的原话（Future）：存进对话记录
+    recent_leads: set = field(default_factory=set)  # 最近几句回复开头用过的颜文字：这次不再重复
 
 
 # 需要最新信息的说法：天气、新闻、价格、比分、日期、“查一下”……（宁可多带几次，也别漏掉明显该查的）
@@ -208,6 +210,9 @@ def plan_turn(db: Session, user: User, sess: ChatSession, *, event: str, text: s
                        perception=p.perception, gesture=policy.gesture_text(gesture) if gesture else None, web=web)
     p.system, p.recall, p.skipped = ctx.system, ctx.used, ctx.skipped
     p.history = _history(db, sess.id) or [{"role": "user", "content": event_text("quiet")}]
+    recent = db.scalars(select(Message.content).where(Message.session_id == sess.id, Message.role == "assistant")
+                        .order_by(Message.id.desc()).limit(3)).all()
+    p.recent_leads = {k for k in (cues.lead(x) for x in recent) if k}  # 她最近几句开头用过的颜文字
     if p.history[-1]["role"] != "user":
         p.history.append({"role": "user", "content": event_text("quiet")})
     first = db.scalar(select(Message.id).where(Message.session_id == sess.id, Message.role == "assistant").limit(1)) is None
@@ -256,6 +261,8 @@ def finalize(db: Session, p: Plan, raw: str) -> dict:
     user = db.get(User, p.user_id)
     parsed = parse_reply(raw, char) if raw else None
     text = parsed.text if parsed else (p.fixed_text or "")
+    if text and p.recent_leads:
+        text = cues.drop_lead(text, p.recent_leads)
     if p.audio and p.user_message_id:  # 语音：把她听到的原话存成你这句话（对话记录、记忆整理、标题都用它）
         um = db.get(Message, p.user_message_id)
         heard = ""
@@ -322,6 +329,29 @@ def hear_turn(p: Plan, audio_b64: str) -> None:
     p.transcript = _ASR_POOL.submit(transcribe_for_record, audio_b64, p.user_id, fmt)  # 并行记下原话，不耽误她回答
 
 
+HEAR_PEEK_S = 1.2  # 语音时最多等识别结果这么久，看是不是要查网的问题
+
+
+def route_heard(p: Plan) -> None:
+    """语音这一轮：直接听的模型不能上网。识别结果很快（国内约 0.3 秒），先看一眼：
+    问的是天气、新闻、价格这类要查的事，就用识别出的文字交给能联网的对话模型；否则照常让她直接听。"""
+    if not p.audio or p.transcript is None or settings.web_search == "off":
+        return
+    try:
+        heard = p.transcript.result(timeout=HEAR_PEEK_S)
+    except Exception:  # noqa: BLE001  来不及或失败：照常直接听（提示词里让她别编）
+        return
+    if not heard or not needs_web(heard):
+        return
+    p.audio_text = heard
+    p.llm_context.pop("audio", None)
+    p.llm_context["web"] = True
+    p.llm_context.setdefault("sources", [])
+    if p.history and p.history[-1]["role"] == "user":
+        p.history[-1] = {"role": "user", "content": heard}
+    p.system = p.system.replace("\n\n" + prompt_heard(), "") + "\n\n" + web_section()
+
+
 def _compact_audio(wav_b64: str) -> tuple[str, str]:
     """WAV → 32kbps MP3（小 10 倍左右）：海外服务器连百炼北京上传很慢，录音越小越快。转不了就原样发 WAV。"""
     try:
@@ -344,7 +374,8 @@ _ASR_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="asr")
 
 def run_turn(db: Session, p: Plan) -> dict:
     raw = ""
-    if p.mode and p.audio:  # 听的模型只有流式接口：收齐再收尾
+    route_heard(p)
+    if p.mode and p.audio and "audio" in p.llm_context:  # 听的模型只有流式接口：收齐再收尾
         t0 = time.perf_counter()
         raw = "".join((get_hear_llm() or get_llm()).stream(system=p.system, messages=p.history, context=p.llm_context))
         events.record("llm", "hear", user_id=p.user_id, character_id=p.character_id, latency_ms=(time.perf_counter() - t0) * 1000)
@@ -366,9 +397,10 @@ def stream_turn(p: Plan) -> Iterator[str]:
     raw = ""
     t0 = time.perf_counter()
     try:
+        route_heard(p)
         if p.mode:
-            f = StreamFilter()
-            llm = (get_hear_llm() or get_llm()) if p.audio else get_llm()
+            f = StreamFilter(p.recent_leads)
+            llm = (get_hear_llm() or get_llm()) if "audio" in p.llm_context else get_llm()
             for chunk in llm.stream(system=p.system, messages=p.history, context=p.llm_context):
                 raw += chunk
                 if out := f.feed(chunk):

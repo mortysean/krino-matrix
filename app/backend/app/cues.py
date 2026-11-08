@@ -98,3 +98,22 @@ def open_bracket_at(text: str) -> int:
     if i < 0 or "）" in text[i:] or ")" in text[i:] or "\n" in text[i:] or len(text) - i > 42:
         return -1
     return i
+
+
+def all_kaomoji() -> set[str]:
+    return {k for *_, k in RULES} | {DEFAULT_KAOMOJI}
+
+
+def lead(text: str) -> str | None:
+    """回复开头的颜文字（括号动作转出来的那些）；没有返回 None。"""
+    t = (text or "").lstrip()
+    return next((k for k in sorted(all_kaomoji(), key=len, reverse=True) if t.startswith(k)), None)
+
+
+def drop_lead(text: str, recent: set) -> str:
+    """开头的颜文字最近几句刚用过：去掉（动作照做，只是字面上不再重复）。"""
+    k = lead(text)
+    if k and k in recent:
+        t = text.lstrip()[len(k):]
+        return t.lstrip(" 　")
+    return text

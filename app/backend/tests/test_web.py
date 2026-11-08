@@ -94,3 +94,31 @@ def test_web_tool_only_when_needed():
         assert needs_web(q), q
     for q in ("你好呀", "今天有点累", "晚安", "给我讲个冷笑话", "I had a long day today", "What's new with you?"):
         assert not needs_web(q), q
+
+
+def test_voice_weather_question_goes_to_web(user, monkeypatch):
+    """语音问天气：直接听的模型不能上网，识别出“天气”就改用能联网的模型回答，不让她编。"""
+    from concurrent.futures import Future
+
+    from app import chat
+    k = user.krino["id"]
+    sid = user.session(k)
+    real = chat.transcribe_for_record
+    monkeypatch.setattr(chat, "transcribe_for_record", lambda *a, **kw: "帮我查一下今天杭州天气")
+    r = user.post(f"/api/sessions/{sid}/stream", json={"audio": _wav(), "character_id": k})
+    done = json.loads(r.text.split("event: done\ndata: ")[1].split("\n")[0])
+    assert "模拟联网" in done["reply"]["content"] and done["reply"]["meta"]["sources"]  # 走了联网（离线模拟会查）
+    assert done["user"]["content"] == "帮我查一下今天杭州天气"
+    # 不是要查的事：照常直接听
+    monkeypatch.setattr(chat, "transcribe_for_record", lambda *a, **kw: "今天有点累")
+    r = user.post(f"/api/sessions/{sid}/stream", json={"audio": _wav(), "character_id": k})
+    done = json.loads(r.text.split("event: done\ndata: ")[1].split("\n")[0])
+    assert "我听见了" in done["reply"]["content"]
+    monkeypatch.setattr(chat, "transcribe_for_record", real)
+
+
+def test_same_opening_kaomoji_is_not_repeated():
+    from app import cues
+    assert cues.drop_lead("(・_・)ゞ先把选项说出来。", {"(・_・)ゞ"}) == "先把选项说出来。"
+    assert cues.drop_lead("(・_・)ゞ先说。", set()) == "(・_・)ゞ先说。"
+    assert cues.drop_lead("好的(・_・)ゞ", {"(・_・)ゞ"}) == "好的(・_・)ゞ"  # 中间的不动
