@@ -733,6 +733,11 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 .sb-list li em { font: 10px var(--mono); font-style: normal; color: #5c7096; padding-top: 3px; }
 .sb-list li small { display: block; color: #7f93b5; font-size: 11px; margin-top: 2px; }
 .sb-list li.hot { background: linear-gradient(90deg, rgba(95, 212, 255, .1), transparent); }
+.sb-list li:has(.sb-wrong) { grid-template-columns: 22px 1fr auto; }
+.sb-wrong { align-self: start; font: 11px var(--mono); color: #7f93b5; background: none; border: 1px solid #22344f; border-radius: 4px; padding: 2px 7px; cursor: pointer; opacity: .55; transition: opacity .15s, color .15s, border-color .15s; }
+.sb-list li:hover .sb-wrong, .sb-wrong:focus-visible { opacity: 1; }
+.sb-wrong:hover { color: #ff8fb0; border-color: #ff8fb0; }
+.sb-wrong:disabled { opacity: .3; cursor: default; }
 .sb-list .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; background: var(--c); box-shadow: 0 0 6px var(--c); vertical-align: middle; }
 .sb-sec { font: 10px var(--mono); letter-spacing: .2em; margin: 10px 0 2px; color: #ffcf7a; }
 .sb-empty { color: #7f93b5; font-size: 12.5px; padding: 8px 0; }

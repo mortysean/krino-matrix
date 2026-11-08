@@ -2,8 +2,9 @@
 //   左半脑（金色）是灵魂：性格、说话方式、价值观……每个维度一个亮节点，它的每条设定是旁边的小光点。
 //   右半脑（紫色）是记忆：你们之间每记下一条，就多一颗星；越重要越大，一天内新记下的会闪，最新的一条有扩散的光波。
 //   下面是全息底座和光柱，神经连线会闪、有信号流过。可以拖动旋转，点节点在下面面板看全文。
+//   记忆会按遗忘曲线淡忘：越久没提起、越不重要，星就越暗；淡到一定程度就从星图上消失（你再提起会回来）。
 // 灵魂是她自己的，改了就不是她了（OOC）；想要不一样的她，就新建一个角色。
-import { api, esc, tr } from "./core.js";
+import { api, esc, fail, toast, tr } from "./core.js";
 import { getLocale } from "./i18n.js";
 
 const DIMS = [  // [字段, 中文, 英文]
@@ -146,6 +147,7 @@ export function soulGraph(host, c, { onNew } = {}) {
       const ty = MEM_TYPES[m.type] || MEM_TYPES.fact;
       mems.push({ kind: "mem", id: m.id, x: x * 0.92, y: y * 0.92, z: z * 0.92, col: ty[2],
         size: 1.6 + (m.importance || 3) * 0.55 + (m.pinned ? 1 : 0), text: m.content, label: ty[en ? 1 : 0],
+        fade: 0.3 + 0.7 * (m.strength ?? 1),  // 记忆强度：快淡忘的星暗一些
         hot: Date.now() - Date.parse(m.created_at) < 24 * 3600e3, newest: Date.parse(m.created_at) === newest,
         born: t0 + Math.min(1800, i * 60) });
     });
@@ -176,13 +178,34 @@ export function soulGraph(host, c, { onNew } = {}) {
       body.innerHTML = memList.length ? `<ul class="sb-list">${memList.map((m, i) => {
         const ty = MEM_TYPES[m.type] || MEM_TYPES.fact;
         return `<li class="${highlight === m.id ? "hot" : ""}"><em>${String(i + 1).padStart(2, "0")}</em><span><span class="dot" style="--c:${rgba(ty[2], 1)}"></span>${esc(m.content)}
-          <small>${esc(ty[en ? 1 : 0])} · ${esc(new Date(m.created_at).toLocaleDateString(en ? "en-US" : "zh-CN"))}</small></span></li>`;
+          <small>${esc(ty[en ? 1 : 0])} · ${esc(new Date(m.created_at).toLocaleDateString(en ? "en-US" : "zh-CN"))}${m.strength != null && m.strength < 0.5 && !m.pinned ? ` · ${L("在慢慢淡忘", "fading")}` : ""}</small></span>
+          <button class="sb-wrong" data-sb-forget="${esc(m.id)}" title="${L("这条记错了（比如录到了别人的声音），她不会再记得；可以在聊天页“她记得的”里恢复",
+            "This is wrong (e.g. someone else's voice got picked up). She'll stop remembering it; you can restore it from \"What she remembers\" in chat.")}">${L("记错了", "Wrong")}</button></li>`;
       }).join("")}</ul>` : `<p class="sb-empty">${L("还没有共同的记忆。多聊几句，她记下的每件事都会在右半脑亮起一颗星。",
         "No memories yet. Chat a little — everything she remembers lights up as a star on the right.")}</p>`;
     }
     if (highlight) body.querySelector("li.hot")?.scrollIntoView({ block: "nearest" });
   }
   host.querySelectorAll("[data-sb-tab]").forEach((x) => (x.onclick = () => { focus = null; showTab(x.dataset.sbTab); kick(); }));
+  // 记错了（录进了别人的声音、听错了字）：一键让她不再记得。灵魂不能改，记忆是关于你的，你说了算
+  body.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-sb-forget]");
+    if (!b) return;
+    b.disabled = true;
+    try {
+      await api(`/api/memories/${b.dataset.sbForget}/forget`, { method: "POST" });
+    } catch (err) { b.disabled = false; return fail(err); }
+    const id = b.dataset.sbForget;
+    memList = memList.filter((m) => m.id !== id);
+    const i = mems.findIndex((m) => m.id === id);
+    if (i >= 0) mems.splice(i, 1);
+    buildLinks();
+    host.querySelector("[data-sb-memn]").textContent = memList.length;
+    if (focus === id) focus = null;
+    showTab("mem");
+    kick();
+    toast(L("好，她不会再记得这件事了", "Got it — she won't remember that"));
+  });
   showTab("soul");
 
   // ---------- 渲染 ----------
@@ -271,7 +294,7 @@ export function soulGraph(host, c, { onNew } = {}) {
     const pts = [...nodes, ...mems].map((n) => ({ n, q: project(n) })).sort((a, b) => b.q[3] - a.q[3]);
     for (const { n, q: [x, y, s] } of pts) {
       let a = 1;
-      if (n.kind === "mem") { const age = now - n.born; if (age < 0) continue; a = Math.min(1, age / 700); }
+      if (n.kind === "mem") { const age = now - n.born; if (age < 0) continue; a = Math.min(1, age / 700) * n.fade; }
       const pulse = n.hot ? 1 + 0.5 * Math.abs(Math.sin(T * 3 + n.x * 9)) : 1 + 0.12 * Math.sin(T * 2 + n.y * 7);
       const on = focus && (n.key === focus || n.parent === focus || n.id === focus);
       const rad = n.size * s * pulse * (on ? 1.5 : 1) * (n.kind === "mem" && a < 1 ? 1 + (1 - a) * 2 : 1);

@@ -129,3 +129,34 @@ def test_refresh_official_keeps_user_edits(client, user):
         personas.OFFICIAL.clear(); personas.OFFICIAL.update(old)
         db = SessionLocal(); personas.refresh_official(db); db.close()
     _ = Row
+
+
+def test_trying_out_the_app_is_not_a_memory():
+    """测试语音、问角色能不能听见：说的是产品，不是用户本人的事，不记。"""
+    from app.memory import validate
+
+    raw = {"memories": [
+        {"type": "preference", "content": "用户希望对方能边听边回", "evidence": "我的意思是让你边听边回", "about": "user"},
+        {"type": "preference", "content": "用户喜欢吃辣", "evidence": "我喜欢吃辣", "about": "user"}]}
+    ok, dropped, _ = validate(raw, user_text="我的意思是让你边听边回。对了我喜欢吃辣", story=False)
+    assert [c["content"] for c in ok] == ["用户喜欢吃辣"]
+    assert dropped[0]["reason"] == "是在试功能，不是你自己的事"
+
+
+def test_forgetting_curve():
+    """不重要、很久没提的会淡；重要的、多次提起的牢；固定的不忘。"""
+    from datetime import timedelta
+
+    from app.memory import FADE_AT, retention
+    from app.models import Memory
+    from app.models import now
+
+    t = now()
+    def mem(imp, days, mentions=1, pinned=False):
+        return Memory(importance=imp, created_at=t - timedelta(days=days), pinned=pinned,
+                      source_messages=[f"msg_{i}" for i in range(mentions)])
+    assert retention(mem(2, 30)) < FADE_AT          # 不重要的小偏好，一个月没提就淡了
+    assert retention(mem(3, 7)) > 0.7               # 普通的，一周还清楚
+    assert retention(mem(3, 60, mentions=4)) > 0.4  # 提过好几次的牢得多
+    assert retention(mem(5, 180)) > 0.6             # 很重要的半年也记得
+    assert retention(mem(1, 999, pinned=True)) == 1
