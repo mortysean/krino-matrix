@@ -7,8 +7,9 @@ import { initPersona, personaDirty, personaPage } from "./persona.js";
 import { initWorkshop, workshopPage } from "./workshop.js";
 import { initGlasses, leaveGlasses } from "./glasses.js";
 import { settingsPage } from "./settings.js";
+import { socialPage } from "./social.js";
 
-const PAGES = { chat: null, persona: personaPage, workshop: workshopPage, settings: settingsPage };
+const PAGES = { chat: null, persona: personaPage, social: socialPage, workshop: workshopPage, settings: settingsPage };
 
 // ---------- 开场 ----------
 const bootAt = Date.now();

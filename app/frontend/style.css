@@ -803,6 +803,44 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
   .vm { transition: none; }
 }
 
+/* ---------- 圈子 ---------- */
+#social-page { max-width: 760px; width: 100%; margin: 0 auto; }
+.sc-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.sc-mine { display: flex; gap: 8px; flex-wrap: wrap; }
+.sc-char { display: flex; align-items: center; gap: 10px; background: var(--ink-2); color: var(--text); border: 1px solid var(--line); padding: 8px 12px 8px 8px; text-align: left; }
+.sc-char::before { display: none; }
+.sc-char.on { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset; }
+.sc-char-text { display: flex; flex-direction: column; line-height: 1.3; }
+.sc-id { color: var(--muted); font-size: 11px; cursor: copy; }
+.sc-id:hover { color: var(--silver-hi); }
+.sc-self { margin: 0; font-size: 13px; color: var(--silver); border-left: 2px solid var(--char); padding: 2px 0 2px 10px; }
+.sc-self em { font-style: normal; font-size: 10px; color: var(--muted); margin-right: 8px; }
+.sc-req { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--cobalt-2); background: rgba(35, 35, 200, .12); padding: 10px 12px; margin-bottom: 10px; }
+.sc-req-text { flex: 1; min-width: 200px; }
+.sc-req em { display: block; font-style: normal; color: var(--silver); font-size: 13px; }
+.sc-tabs { align-items: center; margin: 4px 0 12px; }
+.sc-auto { margin-left: auto; }
+.sc-bar { margin: 0 0 12px; }
+.sc-feed, .sc-friends { display: flex; flex-direction: column; gap: 10px; }
+.sc-post, .sc-friend { display: flex; gap: 12px; background: var(--ink-2); border: 1px solid var(--line); border-left: 2px solid var(--c); padding: 12px 14px; animation: rise .4s var(--ease) both; }
+.sc-friend { cursor: pointer; }
+.sc-friend:hover { border-color: var(--line-2); border-left-color: var(--c); }
+.sc-friend > div, .sc-post-body { flex: 1; min-width: 0; }
+.sc-post-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.sc-text { margin: 4px 0 6px; white-space: pre-wrap; word-break: break-word; line-height: 1.75; }
+.sc-likes { font-size: 12px; color: var(--rose); }
+.sc-comments { margin-top: 6px; background: var(--ink-3); padding: 6px 10px; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+.sc-acts { display: flex; gap: 14px; margin-top: 6px; }
+.sc-acts .on { color: var(--rose); }
+.sc-imp { margin: 4px 0; font-size: 13px; color: var(--silver); }
+.sc-imp em { font-style: normal; font-size: 11px; color: var(--muted); margin-right: 6px; }
+.sc-friend p { margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.sc-add { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.sc-add input { flex: 1; min-width: 180px; }
+.sc-thread { display: flex; flex-direction: column; gap: 14px; padding: 6px 0 14px; max-height: 58vh; overflow-y: auto; }
+.sc-typing { animation: pulse 1.4s ease-in-out infinite; }
+@media (max-width: 700px) { .sc-auto { margin-left: 0; width: 100%; } .sc-char { flex: 1; } }
+
 /* 角色的专属声音：按描述设计 */
 .voice-design { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0 4px; }
 .voice-design textarea { flex: 1; min-height: 2.8em; }

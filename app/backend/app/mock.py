@@ -95,6 +95,8 @@ class MockLLM:
                     else "和对方聊天的时候，我会安心一点。下次想多听对方说说自己的事。")
         if task == "persona":
             return _persona(ctx.get("prompt", ""), ctx.get("style"))
+        if task and task.startswith("social_"):
+            return _social(task, ctx, en)
         if task == "vision":
             return "（模拟描述）" + ctx.get("hint", "一张图片")
         return self._chat(system, messages, ctx)
@@ -319,3 +321,20 @@ def extract_en(user_text: str, story: bool = False) -> str:
             moods.append({"text": "tired", "basis": "stated", "evidence": clause})
     return json.dumps({"memories": mems, "state": {"topics": [], "mood_cues": moods, "open_items": []},
                        "bond": {"user_calls_her": None}}, ensure_ascii=False)
+
+
+def _social(task: str, ctx: dict, en: bool) -> str:
+    """圈子里的离线模拟：每种场合一句固定的话（带上名字，测试能认出来是谁说的）。"""
+    name, other = ctx.get("name", ""), ctx.get("other", "")
+    zh = {"social_post": f"今天的海风有点咸，{name}在灯塔上发呆。我家那位又在熬夜了。",
+          "social_comment": "哈哈，我也是！",
+          "social_dm": [f"嗨{other}，最近怎么样？", f"还不错呀，{other}你呢？", "我家那位最近在忙，我就自己找乐子。", "那下次一起去看海吧，拜拜～"],
+          "social_impression": f"{other}说话很温柔，聊起来很舒服。",
+          "social_self": "我发现自己很在意身边的人过得好不好。"}
+    e = {"social_post": f"The sea breeze is salty today. {name} is daydreaming on the lighthouse. Mine stayed up late again.",
+         "social_comment": "Haha, same!",
+         "social_dm": [f"Hey {other}, how's it going?", f"Pretty good, {other}, you?", "Mine's been busy, so I keep myself entertained.", "Let's go see the sea sometime. Bye~"],
+         "social_impression": f"{other} is gentle and easy to talk to.",
+         "social_self": "I've noticed I really care whether the people around me are okay."}
+    v = (e if en else zh)[task]
+    return v[min(int(ctx.get("turn", 0)), 3)] if isinstance(v, list) else v

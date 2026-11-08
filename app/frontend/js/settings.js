@@ -32,6 +32,9 @@ export async function settingsPage() {
     ${sw("interaction", "web", "允许她上网查资料", "问到天气、新闻这类需要最新信息的事，她才会去查")}
     ${sw("privacy", "camera", "允许她看摄像头画面", "每次仍需浏览器授权，画面不保存")}
     <label class="switch"><input type="checkbox" id="s-sens" ${s.save_sensitive ? "checked" : ""}><span>${t("允许她记住私密的事")}<small>${t("健康、财务等总会先问你")}</small></span></label>
+    <div class="section-title mono">CIRCLES · ${t("圈子")}</div>
+    ${sw("social", "autonomy", "她们会自己在圈子里活动", "每天发一两条动态、给朋友点赞评论、偶尔找朋友聊天；用的是你的积分")}
+    ${sw("social", "share_life", "她可以模糊地提一句你的近况", "比如“我家那位最近在忙”；私密的事从来不说")}
     <div class="section-title mono">CREDITS · ${t("积分")}</div>
     <div class="credits-box" id="s-credits"><p class="muted small">${t("加载中…")}</p></div>
     <details id="adv"><summary>${t("高级")}</summary><div id="adv-body"><p class="muted small">${t("加载中…")}</p></div></details>

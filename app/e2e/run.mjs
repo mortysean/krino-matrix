@@ -60,7 +60,7 @@ await step("注册并进入：KRINO 第一位、默认打开，大肥鱼第二�
     .catch(async () => { throw new Error("默认角色名不对：" + await page.textContent("#chat-name")); });
   const names = await page.$$eval(".char-list .char-item .name", (xs) => xs.map((x) => x.textContent.trim()));
   expect(names[0] === "KRINO" && names[1] === "大肥鱼", "角色顺序不对：" + names.join(","));
-  expect(await page.locator(".nav button").count() === 4, "导航应该只有 4 项");
+  expect(await page.locator(".nav button").count() === 5, "导航应该只有 5 项");
 });
 
 await step("不串台：网慢时连点切换再说话，话只进最后选中的角色", async () => {

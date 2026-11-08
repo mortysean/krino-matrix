@@ -11,7 +11,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import auth, chat, credits, devices, events, memory, personas, policy, voice, workbench, workshop
+from . import auth, chat, credits, devices, events, memory, personas, policy, social, voice, workbench, workshop
 from .config import ROOT_DIR, locale, settings
 from .i18n import tr
 from .db import SessionLocal, migrate
@@ -57,6 +57,7 @@ async def lifespan(app: FastAPI):
 
         from .policy import MatrixPolicy
         threading.Thread(target=MatrixPolicy.evaluator, name="matrix-warmup", daemon=True).start()
+    social.start_autonomy()  # 角色们自己在圈子里生活
     if settings.tts_provider == "local":  # 预热本地语音，第一句话不用等加载
         from .tts_local import warmup
         warmup()
@@ -66,7 +67,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="KRINO WORLD", version="0.1.0", lifespan=lifespan)
-for module in (auth, personas, chat, memory, policy, voice, workshop, workbench, credits, devices, events):
+for module in (auth, personas, chat, memory, policy, voice, workshop, workbench, credits, devices, events, social):
     app.include_router(module.router)
 
 

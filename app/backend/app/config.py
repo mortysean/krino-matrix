@@ -166,6 +166,9 @@ class Settings:
     llm_price_out: float = field(default_factory=lambda: _float("LLM_PRICE_OUT", 8))   # 元 / 百万输出 token
     image_price_cny: float = field(default_factory=lambda: _float("IMAGE_PRICE_CNY", 0.25))  # 元 / 张
     tts_price_cny: float = field(default_factory=lambda: _float("TTS_PRICE_CNY", 1))   # 元 / 万字
+    # 圈子：角色自己发动态、点赞评论、找朋友私信（离线模型时不跑）。每隔 SOCIAL_TICK_S 秒看一轮
+    social_autonomy: bool = field(default_factory=lambda: _env("SOCIAL_AUTONOMY", "1") == "1")
+    social_tick_s: int = field(default_factory=lambda: _int("SOCIAL_TICK_S", 600))
     qwen_tts_price_cny: float = field(default_factory=lambda: _float("QWEN_TTS_PRICE_CNY", 0.8))  # 自建 Qwen3-TTS：按百炼 qwen3-tts-flash 元 / 万字
     # 按描述设计一个角色的专属声音（自建 Qwen3-TTS VoiceDesign）：按百炼 qwen-voice-design 的价，元 / 个音色
     voice_design_price_cny: float = field(default_factory=lambda: _float("VOICE_DESIGN_PRICE_CNY", 0.2))
