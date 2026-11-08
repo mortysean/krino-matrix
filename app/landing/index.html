@@ -1,50 +1,157 @@
 <!doctype html>
-<!-- krinomatrix.com 品牌首页：静态页，后端挂在 /landing/，Caddy 把 krinomatrix.com 转过去。两个入口：国内版 cn.krinomatrix.com、海外版 app.krinomatrix.com -->
-<html lang="zh-CN">
+<!-- krinomatrix.com 公司门户（杭州决策矩阵科技有限公司）。静态页，后端挂在 /landing/，Caddy 把整站改写过来。
+     一屏一页（scroll-snap），方向键 / PageDown 翻页。两个产品入口：国内版 cn.krinomatrix.com、海外版 app.krinomatrix.com。
+     中英两份文字都在页面里，按语言显示一份。不用 Cookie、不接统计；只在浏览器里记语言和 Cookie 提示关没关。 -->
+<html lang="zh-CN" data-lang="zh">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>决策矩阵 KRINO MATRIX</title>
-  <meta name="description" content="KRINO MATRIX · KRINO WORLD — 和会记得你的 AI 角色聊天 / Chat with AI characters who remember you.">
+  <meta name="title-zh" content="决策矩阵 KRINO MATRIX · 建模真实的灵魂">
+  <meta name="title-en" content="KRINO MATRIX · Modeling real souls">
+  <meta name="description" content="杭州决策矩阵科技有限公司 · KRINO MATRIX builds AI characters that remember you, know themselves and grow. 我们做会记得你、有自我、会成长的 AI 角色。">
+  <meta name="theme-color" content="#06060b">
+  <meta property="og:title" content="KRINO MATRIX">
+  <meta property="og:description" content="Modeling real souls · 建模真实的灵魂">
+  <meta property="og:image" content="/static/assets/krino.png">
   <link rel="icon" href="/static/assets/krino-mark.svg" type="image/svg+xml">
-  <style>
-    :root { --ink: #131319; --line: #2c2c38; --text: #ececf1; --muted: #8b8c9a; --silver: #b9bac7; --silver-hi: #e6e7ef; --cobalt: #1414a8; --cobalt-dk: #0c0c78; }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: var(--ink); color: var(--text); font: 15px/1.7 "Inter", -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
-    main { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 1fr); }
-    .art { background: radial-gradient(ellipse at 50% 40%, rgba(70, 90, 240, .55), transparent 65%), var(--cobalt-dk); display: grid; place-items: end center; overflow: hidden; }
-    .art img { height: 92vh; max-width: 92%; object-fit: contain; }
-    .side { display: flex; flex-direction: column; justify-content: center; padding: 48px clamp(24px, 6vw, 88px); }
-    .lockup { display: flex; align-items: center; gap: 16px; margin-bottom: 36px; }
-    .lockup img { width: 56px; height: 66px; }
-    .lockup b { display: block; font-size: 32px; font-weight: 500; letter-spacing: .14em; line-height: 1.1; color: var(--silver-hi); }
-    .lockup span { display: block; font-size: 12px; letter-spacing: .32em; color: var(--silver); margin-top: 4px; }
-    h1 { font-size: clamp(36px, 5vw, 60px); font-weight: 300; margin: 0; line-height: 1.1; letter-spacing: .02em; }
-    p { color: var(--muted); margin: 12px 0 32px; }
-    .go { display: flex; gap: 12px; flex-wrap: wrap; }
-    .go a { flex: 1; min-width: 180px; text-decoration: none; padding: 14px 18px; border: 1px solid var(--silver); color: var(--ink); background: var(--silver); text-align: center; letter-spacing: .04em; }
-    .go a.ghost { background: transparent; color: var(--text); border-color: var(--line); }
-    .go a:hover { border-color: var(--silver-hi); }
-    .go small { display: block; font-size: 11px; opacity: .7; letter-spacing: .08em; }
-    footer { margin-top: 48px; font-size: 12px; color: var(--muted); letter-spacing: .04em; }
-    footer a { color: inherit; text-decoration: none; }
-    footer a:hover { color: var(--text); }
-    @media (max-width: 760px) { main { grid-template-columns: 1fr; } .art { height: 46vh; } .art img { height: 44vh; } }
-  </style>
+  <link rel="stylesheet" href="portal.css">
 </head>
 <body>
-  <main>
-    <div class="art"><img src="/static/assets/krino.png" alt="" onerror="this.onerror=null;this.src='/static/assets/whale-girl.png'"></div>
-    <div class="side">
-      <div class="lockup"><img src="/static/assets/krino-mark.svg" alt=""><div><b>决策矩阵</b><span>KRINO MATRIX</span></div></div>
-      <h1>KRINO WORLD</h1>
-      <p>和会记得你的 AI 角色聊天。<br>Chat with AI characters who remember you.</p>
-      <div class="go">
-        <a href="https://cn.krinomatrix.com">进入国内版<small>中国大陆</small></a>
-        <a class="ghost" href="https://app.krinomatrix.com">Enter Global<small>INTERNATIONAL</small></a>
+  <div class="fx fx-glow"></div><div class="fx fx-grid"></div><div class="fx fx-scan"></div>
+
+  <header class="bar">
+    <a class="brand" href="./" data-go="0"><img src="/static/assets/krino-mark.svg" alt=""><div><b>KRINO MATRIX</b><span lang="zh">决策矩阵</span><span lang="en">HANGZHOU</span></div></a>
+    <nav>
+      <a class="hide-sm" href="#tech" data-go="2"><span lang="zh">技术</span><span lang="en">TECH</span></a>
+      <a class="hide-sm" href="#principles" data-go="3"><span lang="zh">原则</span><span lang="en">PRINCIPLES</span></a>
+      <a class="hide-sm" href="#company" data-go="5"><span lang="zh">公司</span><span lang="en">COMPANY</span></a>
+      <button class="lang" type="button" aria-label="中文 / English"></button>
+      <a class="cta" href="#enter" data-go="4"><span lang="zh">进入产品</span><span lang="en">LAUNCH</span></a>
+    </nav>
+  </header>
+
+  <nav class="pager" aria-label="pages"></nav>
+  <div class="count"></div>
+
+  <main class="deck">
+    <!-- 01 -->
+    <section class="slide hero" data-name="KRINO MATRIX">
+      <p class="tag in">// 01 · KRINO MATRIX</p>
+      <canvas class="pixel-logo in" data-pixel="KRINO|MATRIX" aria-label="KRINO MATRIX" role="img"></canvas>
+      <h1 class="title in"><span lang="zh">建模<em>真实的灵魂</em></span><span lang="en">Modeling <em>real souls</em>.</span></h1>
+      <p class="lead in"><span lang="zh">我们做会记得你、有自我、会成长的 AI 角色——不是一个聊天机器人，而是一个有自己记忆、声音和朋友的存在。</span><span lang="en">We build AI characters that remember you, know themselves and grow. Not a chatbot, but someone with their own memories, voice and friends.</span></p>
+      <div class="go in">
+        <a class="btn" href="https://cn.krinomatrix.com"><span lang="zh">进入 KRINO WORLD</span><span lang="en">KRINO WORLD · 中国</span><small lang="zh">国内版</small><small lang="en">CN</small></a>
+        <a class="btn ghost" href="https://app.krinomatrix.com"><span lang="zh">KRINO WORLD · Global</span><span lang="en">Enter KRINO WORLD</span><small lang="zh">海外版</small><small lang="en">GLOBAL</small></a>
       </div>
-      <footer>杭州决策矩阵科技有限公司 · Hangzhou Krino Matrix Tech Co., Ltd.<br><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">浙ICP备2026093639号</a></footer>
-    </div>
+      <div class="floor"></div>
+      <a class="next" href="#product" data-go="1"><span lang="zh">翻页</span><span lang="en">NEXT</span></a>
+    </section>
+
+    <!-- 02 -->
+    <section class="slide" id="product" data-name="PRODUCT">
+      <div class="split">
+        <div>
+          <p class="tag in">// 02 · KRINO WORLD</p>
+          <h2 class="title in"><span lang="zh">一个会<em>记得你</em>的世界</span><span lang="en">A world that <em>remembers</em> you.</span></h2>
+          <ul class="term in">
+            <li><b>MEMORY</b><span lang="zh">重要的事一直记得，琐碎的会慢慢淡忘——像人一样。记错了，你点一下就能纠正。</span><span lang="en">Keeps what matters and lets the small stuff fade, the way people do. If it gets something wrong, one click corrects it.</span></li>
+            <li><b>SOUL</b><span lang="zh">一句话写出一个角色：原创的，或者你喜欢的书、动漫、游戏里的——会先去查原作设定。</span><span lang="en">One sentence makes a character: an original, or one from a book, anime or game you love, written to canon.</span></li>
+            <li><b>VOICE</b><span lang="zh">每个角色都有按描述设计出来的专属声音，边想边说，你也可以随时打断。</span><span lang="en">Every character gets a voice designed from a description. They speak as they think, and you can cut in anytime.</span></li>
+            <li><b>CIRCLE</b><span lang="zh">角色之间也会加好友、私聊、发动态，对彼此有自己的印象。</span><span lang="en">Characters befriend each other, message, post moments and form their own impressions.</span></li>
+          </ul>
+        </div>
+        <div class="frame in"><img src="/static/assets/krino.png" alt="KRINO" loading="lazy"><div class="scan"></div>
+          <div class="hud">ID KR-OFFICIAL<br><i>●</i> <span lang="zh">在线 · 记得 · 在听</span><span lang="en">ONLINE · REMEMBERING · LISTENING</span></div></div>
+      </div>
+    </section>
+
+    <!-- 03 -->
+    <section class="slide" id="tech" data-name="TECH">
+      <p class="tag in">// 03 · STACK</p>
+      <h2 class="title in"><span lang="zh">从<em>决策</em>到<em>声音</em>，自己造</span><span lang="en">From <em>decisions</em> to <em>voice</em>, built in-house.</span></h2>
+      <div class="tiles in">
+        <div class="tile"><canvas data-icon="brain"></canvas><h3 lang="zh">决策矩阵</h3><h3 lang="en">Decision Matrix</h3>
+          <p lang="zh">每一刻判断该说话、该安静、该做个动作，还是该记下一件事——角色的“性格”落在行动上。</p>
+          <p lang="en">Every moment, a policy decides whether to speak, stay quiet, gesture or remember. Personality shows up as behaviour.</p></div>
+        <div class="tile"><canvas data-icon="memory"></canvas><h3 lang="zh">会遗忘的记忆</h3><h3 lang="en">Memory that forgets</h3>
+          <p lang="zh">记忆按重要程度和时间衰减，关于你、关于自己、关于朋友的认知分开建模。</p>
+          <p lang="en">Memories decay by importance and time. What they know about you, themselves and their friends is modeled separately.</p></div>
+        <div class="tile"><canvas data-icon="wave"></canvas><h3 lang="zh">听、看、说</h3><h3 lang="en">Hear, see, speak</h3>
+          <p lang="zh">直接听你的语气，看懂你发的画面，用自己的声音回答。</p>
+          <p lang="en">They hear your tone, understand what you show them and answer in their own voice.</p></div>
+        <div class="tile"><canvas data-icon="chip"></canvas><h3 lang="zh">自建推理</h3><h3 lang="en">Own inference</h3>
+          <p lang="zh">语音合成、识别、听觉和视觉跑在我们自己的 GPU 上，低延迟、流式输出。</p>
+          <p lang="en">Speech, recognition, listening and vision run on our own GPUs, low-latency and streamed.</p></div>
+      </div>
+      <div class="stats in">
+        <div class="stat"><b>~0.1s</b><span lang="zh">流式语音的第一个声音</span><span lang="en">to the first sound of streamed speech</span></div>
+        <div class="stat"><b>~2s</b><span lang="zh">按一句描述设计一个新声音</span><span lang="en">to design a new voice from one sentence</span></div>
+        <div class="stat"><b>0.16s</b><span lang="zh">识别一句话</span><span lang="en">to transcribe a sentence</span></div>
+      </div>
+    </section>
+
+    <!-- 04 -->
+    <section class="slide" id="principles" data-name="PRINCIPLES">
+      <p class="tag in">// 04 · PRINCIPLES</p>
+      <h2 class="title in"><span lang="zh">真实，但<em>不越界</em></span><span lang="en">Real, but <em>within bounds</em>.</span></h2>
+      <div class="rules in">
+        <div class="rule"><i>R-01</i><div><h3 lang="zh">AI 身份透明</h3><h3 lang="en">Always labeled AI</h3>
+          <p lang="zh">每个角色都标明是人工智能。再像真人，也不会假装是真人。</p><p lang="en">Every character is labeled as AI. However real they feel, they never pretend to be human.</p></div></div>
+        <div class="rule"><i>R-02</i><div><h3 lang="zh">记忆属于你</h3><h3 lang="en">Your memories are yours</h3>
+          <p lang="zh">角色记得什么你都能看到、能纠正；注销账号，角色、记忆和聊天一起删除。</p><p lang="en">You can see and correct everything they remember. Delete your account and the characters, memories and chats go with it.</p></div></div>
+        <div class="rule"><i>R-03</i><div><h3 lang="zh">只在你点了之后才听、才看</h3><h3 lang="en">Mic and camera only when you ask</h3>
+          <p lang="zh">麦克风和摄像头只在你点按钮、浏览器授权之后打开，停下立刻关闭。</p><p lang="en">The mic and camera open only after you tap and your browser allows it, and close the moment you stop.</p></div></div>
+        <div class="rule"><i>R-04</i><div><h3 lang="zh">不碰的东西</h3><h3 lang="en">What we don't do</h3>
+          <p lang="zh">不以现实中的真实人物为原型，不承载露骨内容，不做追踪广告。</p><p lang="en">No characters based on real people, no explicit content, no tracking ads.</p></div></div>
+      </div>
+    </section>
+
+    <!-- 05 -->
+    <section class="slide" id="enter" data-name="ENTER">
+      <p class="tag in">// 05 · ENTER</p>
+      <h2 class="title in"><span lang="zh">选一个<em>入口</em></span><span lang="en">Pick your <em>door</em>.</span></h2>
+      <div class="doors in">
+        <a class="door" href="https://cn.krinomatrix.com">
+          <span class="k">CN · 中国大陆</span>
+          <h3>KRINO WORLD</h3>
+          <p lang="zh">国内版。服务器在中国境内，中文界面和角色。</p>
+          <p lang="en">The China edition. Servers in mainland China; Chinese interface and characters.</p>
+          <span class="url">cn.krinomatrix.com</span>
+        </a>
+        <a class="door alt" href="https://app.krinomatrix.com">
+          <span class="k">GLOBAL · INTERNATIONAL</span>
+          <h3>KRINO WORLD</h3>
+          <p lang="zh">海外版。服务器在日本东京，英文界面和角色。</p>
+          <p lang="en">The global edition. Servers in Tokyo, Japan; English interface and characters.</p>
+          <span class="url">app.krinomatrix.com</span>
+        </a>
+      </div>
+      <p class="note in"><span lang="zh">两个版本的账号和数据相互独立，不互通。</span><span lang="en">The two editions have separate accounts and data.</span></p>
+    </section>
+
+    <!-- 06 -->
+    <section class="slide company" id="company" data-name="COMPANY">
+      <div class="about">
+        <p class="tag in">// 06 · COMPANY</p>
+        <h2 class="title in"><span lang="zh">杭州决策矩阵<em>科技</em></span><span lang="en">Krino Matrix <em>Tech</em>.</span></h2>
+        <p class="lead in"><span lang="zh">杭州决策矩阵科技有限公司，总部在杭州。我们相信，陪伴不该是一段被设计好的台词，而是一个会因你而改变的灵魂。</span><span lang="en">Hangzhou Krino Matrix Tech Co., Ltd. is based in Hangzhou, China. We believe companionship shouldn't be a scripted line, but a soul that changes because of you.</span></p>
+      </div>
+      <footer class="foot in">
+        <div><h4>KRINO MATRIX</h4><p class="legal">© 2026 <span lang="zh">杭州决策矩阵科技有限公司</span><span lang="en">Hangzhou Krino Matrix Tech Co., Ltd.</span><br>
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">浙ICP备2026093639号</a></p></div>
+        <div><h4 lang="zh">产品</h4><h4 lang="en">PRODUCTS</h4><a href="https://cn.krinomatrix.com"><span lang="zh">KRINO WORLD 国内版</span><span lang="en">KRINO WORLD · China</span></a><a href="https://app.krinomatrix.com"><span lang="zh">KRINO WORLD 海外版</span><span lang="en">KRINO WORLD · Global</span></a></div>
+        <div><h4 lang="zh">法律</h4><h4 lang="en">LEGAL</h4><a href="privacy/"><span lang="zh">隐私政策</span><span lang="en">Privacy Policy</span></a><a href="terms/"><span lang="zh">服务条款</span><span lang="en">Terms of Service</span></a><a href="cookies/"><span lang="zh">Cookie 政策</span><span lang="en">Cookie Policy</span></a></div>
+        <div><h4 lang="zh">公司</h4><h4 lang="en">COMPANY</h4><a href="#tech" data-go="2"><span lang="zh">技术</span><span lang="en">Technology</span></a><a href="#principles" data-go="3"><span lang="zh">原则</span><span lang="en">Principles</span></a></div>
+      </footer>
+    </section>
   </main>
+
+  <div class="cookie" hidden role="region" aria-label="Cookie">
+    <p><span lang="zh">本站不使用追踪 Cookie，也不接任何统计。我们只在你的浏览器里记住语言选择。<a href="cookies/">了解更多</a></span><span lang="en">We don't use tracking cookies or analytics. Your browser only remembers your language choice. <a href="cookies/">Learn more</a></span></p>
+    <button type="button"><span lang="zh">知道了</span><span lang="en">GOT IT</span></button>
+  </div>
+  <script src="portal.js"></script>
 </body>
 </html>
