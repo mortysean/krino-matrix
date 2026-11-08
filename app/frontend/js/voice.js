@@ -201,8 +201,8 @@ function playPcm(res, my) {
     if (stopped || my !== gen) return finish();
     if (!last) return finish();
     // 播完再算“读完了”：按排好的结束时间等，不靠最后一段的 onended（那一段可能已经播完，再挂上去就永远等不到，按钮一直亮着）
-    const left = Math.max(0, at - ctx.currentTime);
-    setTimeout(() => { if (!stopped) finish(); }, left * 1000 + 80);
+    const remain = Math.max(0, at - ctx.currentTime);  // 别叫 left：外面的 left 存着半个采样，同名会让整段报错、一个字都不播
+    setTimeout(() => { if (!stopped) finish(); }, remain * 1000 + 80);
   })();
   return { done };
 }
