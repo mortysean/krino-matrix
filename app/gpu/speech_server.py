@@ -3,6 +3,8 @@
     POST /v1/audio/speech          {"input": "...", "voice": "dafeiyu-zh", "speed": 1.0}  → audio/wav
                                    加 "stream": true → 边合成边返回 16-bit PCM（24kHz 单声道），首包几百毫秒
     GET  /v1/voices                已经设计好的音色
+    POST /v1/voices/design         {"description": "声音描述", "text": "试听用的一句话", "language": "zh"}
+                                   → audio/wav（这个声音念的试听句），响应头 X-Voice-Id = 新音色的编号（之后合成直接用它）
     POST /v1/audio/transcriptions  multipart: file=音频  → {"text": "..."}
     GET  /health
 
@@ -35,6 +37,7 @@ MODELS = Path(os.getenv("MODELS_DIR", HERE.parent / "models"))
 VOICE_DIR = Path(os.getenv("VOICE_DIR", MODELS / "voices"))
 ASR_MODEL = MODELS / os.getenv("ASR_MODEL", "SenseVoiceSmall")
 OMNI = os.getenv("OMNI_URL", "http://127.0.0.1:8650")
+DESIGN = os.getenv("DESIGN_URL", "http://127.0.0.1:8651")  # VoiceDesign：按描述造一个新声音
 SAMPLE_RATE = 24000
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s speech: %(message)s")
@@ -91,6 +94,57 @@ def register_voices() -> None:
             if r.status_code != 200:
                 raise RuntimeError(f"注册音色 {name} 失败：{r.status_code} {r.text[:200]}")
         _registered.add(name)
+
+
+# 设计声音时让它念的参考句：够长（八九秒）、语调有起伏，克隆出来才稳。接在试听句后面一起念
+REF_TEXT = {
+    "zh": "今天的风有点大，我在路上想了很多事情。如果你愿意的话，我们可以慢慢聊，从最近发生的小事说起。",
+    "en": "The wind was strong today, and I thought about a lot of things on the way here. "
+          "If you'd like, we can take our time and start with the little things that happened lately.",
+}
+_design_lock = threading.Lock()
+
+
+class DesignIn(BaseModel):
+    description: str = Field(min_length=2, max_length=600)
+    text: str = Field(default="", max_length=200)
+    language: str = Field(default="zh", pattern="^(zh|en)$")
+
+
+@app.post("/v1/voices/design")
+def design_voice(body: DesignIn):
+    """按描述设计一个新声音：VoiceDesign 念一段参考句 → 存成音色文件 → 注册给合成引擎克隆。"""
+    import hashlib
+    import uuid
+
+    lead = clean(body.text)
+    text = (lead + (" " if body.language == "en" else "") + REF_TEXT[body.language]) if lead else REF_TEXT[body.language]
+    req = {"input": text, "task_type": "VoiceDesign", "instructions": body.description.strip(),
+           "language": "Chinese" if body.language == "zh" else "English", "response_format": "wav"}
+    t = time.time()
+    with _design_lock:
+        try:
+            r = _http.post(f"{DESIGN}/v1/audio/speech", json=req, timeout=180)
+        except httpx.HTTPError as e:
+            raise HTTPException(503, "声音设计引擎没有启动") from e
+    if r.status_code != 200:
+        log.error("设计声音出错 %s：%s", r.status_code, r.text[:300])
+        raise HTTPException(502, f"设计声音出错（{r.status_code}）")
+    # 编号：v + 10 位随机，后缀是语言（网站按后缀挑当前语言的音色）
+    vid = f"v{uuid.uuid4().hex[:10]}-{body.language}"
+    (VOICE_DIR / f"{vid}.wav").write_bytes(r.content)
+    meta = {"text": text, "language": "Chinese" if body.language == "zh" else "English", "description": body.description.strip(),
+            "designed": True, "sha1": hashlib.sha1(r.content).hexdigest()[:12], "created": int(time.time())}
+    (VOICE_DIR / f"{vid}.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+    try:
+        register_voices()
+    except (httpx.HTTPError, RuntimeError) as e:
+        log.exception("注册新音色失败")
+        raise HTTPException(503, "新声音注册失败，请再试一次") from e
+    with wave.open(io.BytesIO(r.content)) as w:
+        dur = w.getnframes() / w.getframerate()
+    log.info("设计声音 %s（%.1fs 音频，用时 %.1fs）：%s", vid, dur, time.time() - t, body.description[:60])
+    return Response(r.content, media_type="audio/wav", headers={"X-Voice-Id": vid})
 
 
 def clean(text: str) -> str:

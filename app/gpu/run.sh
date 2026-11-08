@@ -4,6 +4,8 @@
 #   tts    = vllm-omni 跑 Qwen3-TTS（127.0.0.1:8650，只对本机）
 #   speech = 对外的语音接口（8640）：合成转给 tts，识别用 SenseVoice
 #   image  = 对外的生图接口（8641）（现在生图走百炼，默认不启动）
+#   design = vllm-omni 跑 Qwen3-TTS VoiceDesign（127.0.0.1:8651，只对本机）：按一句描述设计角色的专属声音，
+#            设计出的参考音频再交给 tts 克隆，之后每句话都是这个声音
 #   omni   = Qwen3-Omni 直接听（127.0.0.1:8660，只对本机；经隧道映射到网站服务器的 18660）
 #   tunnel = 把语音接口、生图接口反向映射到两台网站服务器的 127.0.0.1:18640、18641（算力服务器在内网，网站服务器连不进来）
 #            用受限密钥 ~/.ssh/krino_tunnel：在网站服务器上只能开这两个端口，不能登录执行命令。断线自动重连。
@@ -44,6 +46,18 @@ stages:
 EOF
 }
 
+design_deploy() {  # 设计声音很少用：显存给少一点，一次只设计一个
+  cat >"$LOGS/design_deploy.yaml" <<EOF
+base_config: $CONDA_PREFIX/lib/python3.11/site-packages/vllm_omni/deploy/qwen3_tts.yaml
+stages:
+  - stage_id: 0
+    gpu_memory_utilization: ${DESIGN_MEM:-0.13}
+    max_num_seqs: 2
+  - stage_id: 1
+    max_num_seqs: 2
+EOF
+}
+
 start_one() {
   local name=$1
   if [ -f "$LOGS/$name.pid" ] && kill -0 "$(cat "$LOGS/$name.pid")" 2>/dev/null; then echo "$name 已在运行"; return; fi
@@ -52,6 +66,10 @@ start_one() {
       tts_deploy
       CUDA_VISIBLE_DEVICES=$GPU_AUX nohup vllm-omni serve "$MODELS/Qwen3-TTS-12Hz-1.7B-Base" --omni --host 127.0.0.1 --port 8650 \
         --served-model-name qwen3-tts --trust-remote-code --deploy-config "$LOGS/tts_deploy.yaml" >"$LOGS/tts.log" 2>&1 & ;;
+    design)
+      design_deploy
+      CUDA_VISIBLE_DEVICES=$GPU_AUX nohup vllm-omni serve "$MODELS/Qwen3-TTS-12Hz-1.7B-VoiceDesign" --omni --host 127.0.0.1 --port 8651 \
+        --served-model-name qwen3-tts-design --trust-remote-code --deploy-config "$LOGS/design_deploy.yaml" >"$LOGS/design.log" 2>&1 & ;;
     speech)
       CUDA_VISIBLE_DEVICES=$GPU_AUX nohup python -m uvicorn speech_server:app --host 0.0.0.0 --port 8640 >"$LOGS/speech.log" 2>&1 & ;;
     image)
@@ -77,7 +95,7 @@ stop_one() {
 }
 
 which=${2:-all}
-names=(tts speech omni tunnel); [ "$which" != all ] && names=("$which")  # 生图已改走百炼，默认不启动 image
+names=(tts design speech omni tunnel); [ "$which" != all ] && names=("$which")  # 生图已改走百炼，默认不启动 image
 case ${1:-status} in
   start) for n in "${names[@]}"; do start_one "$n"; done ;;
   stop) for n in "${names[@]}"; do stop_one "$n"; done ;;
