@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
+import time
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Protocol
@@ -68,9 +70,21 @@ class OpenRouterLLM:
     name = "openrouter"
 
     def __init__(self) -> None:
+        # 连接留着用：国内服务器到 OpenRouter（美国）每建一次连接要 0.7 秒左右。httpx 默认空闲 5 秒就断，
+        # 真实聊天两句之间往往不止 5 秒，几乎每句都要重新建连。这里留 10 分钟，后台每 40 秒轻轻碰一下保持热着。
         self._client = httpx.Client(base_url=settings.llm_base_url.rstrip("/"),
                                     timeout=httpx.Timeout(settings.llm_timeout_s, connect=10),
+                                    limits=httpx.Limits(max_keepalive_connections=8, keepalive_expiry=600),
                                     headers={"X-Title": "KRINO WORLD"})
+        threading.Thread(target=self._keep_warm, name="openrouter-warm", daemon=True).start()
+
+    def _keep_warm(self) -> None:
+        while True:
+            try:
+                self._client.get("/key", headers=self._headers(), timeout=10)  # 很小的请求，不花钱
+            except Exception:  # noqa: BLE001
+                pass
+            time.sleep(40)
 
     def _body(self, system: str, messages: list[dict], max_tokens: int | None, context: dict | None) -> dict:
         if not settings.llm_api_key:
