@@ -513,13 +513,15 @@ table.res th { font: 10px var(--mono); color: var(--muted); letter-spacing: .12e
 /* ======================================================================
    2D 角色舞台（立绘 / Live2D）与简化后的页面
    ====================================================================== */
-.stage2d { flex: 1.1; min-width: 0; position: relative; overflow: hidden; border-right: 1px solid var(--line);
-  background: radial-gradient(ellipse at 50% 38%, rgba(70, 90, 240, .55), transparent 64%), var(--cobalt-dk); }
-.stage2d::after { content: ""; position: absolute; inset: 0; background: var(--noise); opacity: .14; mix-blend-mode: overlay; pointer-events: none; }
+.stage2d { flex: 1.1; min-width: 0; position: relative; overflow: hidden; border-right: 1px solid var(--line); background: #07070d; }
+/* 像素夜景（pixelbg.js 画，颜色跟着角色）+ 一层很淡的扫描线 */
+.pixel-bg { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none; }
+.stage2d::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .18) 0 1px, transparent 1px 3px);
+  pointer-events: none; z-index: 1; }
 .stage-host { position: absolute; inset: 0; }
 .portrait { position: absolute; inset: 4% 0 0; display: grid; place-items: end center; }
 .portrait > img { height: 100%; max-width: 96%; object-fit: contain; object-position: bottom; transform-origin: 50% 100%;
-  animation: breathe 5.5s ease-in-out infinite; filter: drop-shadow(0 10px 30px rgba(0, 0, 40, .45)); user-select: none; -webkit-user-drag: none; }
+  animation: breathe 5.5s ease-in-out infinite; filter: drop-shadow(0 0 1px rgba(255, 255, 255, .25)) drop-shadow(0 12px 18px rgba(0, 0, 0, .55)); user-select: none; -webkit-user-drag: none; }
 .portrait canvas { position: absolute; inset: 0; }
 .portrait.talking > img { animation: breathe 5.5s ease-in-out infinite, talk .32s ease-in-out infinite alternate; }
 .portrait .emote { position: absolute; top: 12%; right: 22%; font: 700 22px var(--mono); color: var(--silver-hi); background: rgba(19, 19, 25, .7);
@@ -759,47 +761,35 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 
 .chat-col { position: relative; }
 .vm { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 28px 22px 22px;
-  background: radial-gradient(ellipse at 50% 42%, rgba(35, 35, 200, .38), transparent 62%), var(--ink);
-  opacity: 0; transform: translateY(8px); transition: opacity .25s var(--ease), transform .25s var(--ease); }
-.vm::after { content: ""; position: absolute; inset: 0; background: var(--noise); opacity: .1; mix-blend-mode: overlay; pointer-events: none; }
+  background: linear-gradient(rgba(61, 245, 255, .05) 1px, transparent 1px) 0 0 / 16px 16px, linear-gradient(90deg, rgba(61, 245, 255, .05) 1px, transparent 1px) 0 0 / 16px 16px, #07070d;
+  opacity: 0; transform: translateY(8px); transition: opacity .25s steps(4), transform .25s steps(4); }
+.vm::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .2) 0 1px, transparent 1px 3px); pointer-events: none; }
 .vm.in { opacity: 1; transform: none; }
-.vm-stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; width: 100%; min-height: 0; }
+.vm-stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; width: 100%; min-height: 0; position: relative; z-index: 1; }
 
-/* 光球：三层。中间是球，外面两圈随状态变化（在听：跟着你的音量放大；在想：转圈；她说话：向外扩散） */
-.vm-orb { --size: clamp(120px, 26vmin, 180px); width: var(--size); height: var(--size); padding: 0; border: 0; border-radius: 50%; background: none; position: relative; overflow: visible; isolation: auto; cursor: pointer; }
+/* 像素光球（pixelbg.js 的 pixelOrb 画）：在听 = 青色，跟着你的音量；在想 = 黄色转圈；说话 = 品红往外扩散；静音 = 灰 */
+.vm-orb { --size: clamp(150px, 30vmin, 220px); width: var(--size); height: var(--size); padding: 0; border: 0; background: none; position: relative; overflow: visible; isolation: auto; cursor: pointer; }
 .vm-orb::before { display: none; }
-.vm-orb i { position: absolute; inset: 0; border-radius: 50%; pointer-events: none; }
-.vm-orb i:nth-child(1) { background: radial-gradient(circle at 36% 30%, #fff 0%, #c9cbff 14%, #5b5bf0 46%, var(--cobalt) 72%, var(--cobalt-dk) 100%);
-  box-shadow: 0 0 calc(30px + var(--lv, 0) * 50px) rgba(91, 91, 240, .55), inset 0 -10px 30px rgba(12, 12, 120, .6);
-  transform: scale(calc(1 + var(--lv, 0) * .22)); transition: transform .09s linear, box-shadow .09s linear, filter .3s; animation: vm-breathe 3.2s ease-in-out infinite; }
-.vm-orb i:nth-child(2), .vm-orb i:nth-child(3) { border: 1px solid rgba(185, 186, 199, .35); opacity: 0; }
-.vm[data-state="hearing"] .vm-orb i:nth-child(2) { opacity: 1; transform: scale(calc(1.12 + var(--lv, 0) * .3)); transition: transform .09s linear; border-color: rgba(230, 231, 239, .6); }
-.vm[data-state="thinking"] .vm-orb i:nth-child(1) { transform: scale(.82); animation: none; filter: saturate(.7); }
-.vm[data-state="thinking"] .vm-orb i:nth-child(2) { opacity: 1; inset: -10px; border: 2px solid transparent; border-top-color: var(--silver-hi); border-right-color: rgba(230, 231, 239, .35); animation: vm-spin 1s linear infinite; }
-.vm[data-state="speaking"] .vm-orb i:nth-child(1) { animation: vm-talk .55s ease-in-out infinite alternate;
-  background: radial-gradient(circle at 36% 30%, #fff 0%, #ffd0e2 12%, var(--rose) 44%, #5b3bd0 74%, var(--cobalt-dk) 100%); box-shadow: 0 0 46px rgba(199, 91, 132, .5); }
-.vm[data-state="speaking"] .vm-orb i:nth-child(2), .vm[data-state="speaking"] .vm-orb i:nth-child(3) { border-color: rgba(199, 91, 132, .6); animation: vm-ring 1.8s ease-out infinite; }
-.vm[data-state="speaking"] .vm-orb i:nth-child(3) { animation-delay: .9s; }
-.vm[data-state="muted"] .vm-orb i:nth-child(1) { filter: grayscale(.85) brightness(.6); animation: none; transform: scale(.9); }
-
-.vm-status { font: 12px var(--mono); letter-spacing: .14em; color: var(--silver-hi); text-transform: uppercase; min-height: 1.5em; text-align: center; }
+.vm-orb canvas { width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.vm-orb:focus-visible { outline: 2px dashed #3df5ff; outline-offset: 6px; }
+.vm-status { font: 12px var(--mono); letter-spacing: .14em; color: #3df5ff; text-transform: uppercase; min-height: 1.5em; text-align: center; }
 .vm[data-state="muted"] .vm-status { color: var(--muted); }
+.vm[data-state="speaking"] .vm-status { color: #ff3d9a; }
+.vm[data-state="thinking"] .vm-status { color: #f2ff3d; }
 .vm-caption { max-width: min(520px, 100%); min-height: 3.3em; text-align: center; color: var(--muted); font-size: 15px; line-height: 1.65; overflow-wrap: anywhere; }
 .vm-caption.you { color: var(--text); }
 .vm-caption.her { color: var(--silver-hi); }
 .vm-bar { position: relative; z-index: 1; display: flex; gap: 12px; }
+.vm-btn:hover { box-shadow: 3px 3px 0 #3df5ff; }
 .vm-btn { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: var(--text); border-color: var(--line-2); padding: 9px 20px; }
 .vm-btn::before { background: var(--ink-3); }
 .vm-btn svg { display: block; }
 .vm-mute.on { color: var(--danger); border-color: rgba(226, 85, 107, .5); }
 .vm-end:hover { border-color: var(--silver); }
 
-@keyframes vm-breathe { 50% { filter: brightness(1.12); } }
-@keyframes vm-talk { from { transform: scale(.96); } to { transform: scale(1.06); } }
-@keyframes vm-ring { from { transform: scale(1); opacity: .8; } to { transform: scale(1.7); opacity: 0; } }
 @keyframes vm-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .vm-orb i, .mic-spin { animation: none !important; }
+  .mic-spin { animation: none !important; }
   .vm { transition: none; }
 }
 

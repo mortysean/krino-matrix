@@ -9,6 +9,7 @@ import { createStage } from "./stage.js";
 import { ICON } from "./icons.js";
 import { listen, speak, stopSpeaking, sttAvailable, sttMode } from "./voice.js";
 import { createVoiceMode } from "./voicemode.js";
+import { pixelBackdrop } from "./pixelbg.js";
 import { renderDrawer, refreshAsks } from "./memory.js";
 
 const GESTURES = [["wave", "挥手"], ["pat_head", "摸摸头"], ["high_five", "击掌"], ["poke", "戳一下"], ["cheer_up", "加油"]];
@@ -23,6 +24,8 @@ async function ensureStage() {
   const c = curChar();
   if (!c) return;
   C.stage ||= createStage($("#stage-host"), { onStatus: (s) => { if (s.state === "fallback") toast(s.message, 5000); } });
+  C.bg ||= pixelBackdrop($("#stage"));
+  C.bg.set(c.color, c.id);  // 像素夜景：颜色跟着角色，城市轮廓每个角色固定一片
   const key = c.id + JSON.stringify(c.portrait || {});
   if (C.portraitFor === key) return;
   C.portraitFor = key;

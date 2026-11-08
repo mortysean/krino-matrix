@@ -5,24 +5,26 @@
 // 否则先在服务端识别成文字再发；两样都没有时退回浏览器自带识别（这种情况不能打断，只能点光球）。
 import { esc, fail, t, toast } from "./core.js";
 import { ICON } from "./icons.js";
+import { pixelOrb } from "./pixelbg.js";
 import { canHear, framesToWav, listen, openMic, speakable, sttMode, stopSpeaking, transcribeWav } from "./voice.js";
 
 const SILENCE_MS = 900;    // 停这么久算说完
 const MIN_SPEECH_MS = 350; // 比这短的声音（咳嗽、碰桌子）不算
 const MAX_TURN_S = 30;     // 一口气最多说这么久
-const PREROLL = 8;         // 开口前多留几帧（约 0.35 秒），不吃掉第一个字
+const PREROLL = 8;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;         // 开口前多留几帧（约 0.35 秒），不吃掉第一个字
 
 export function createVoiceMode({ host, submit, onExit }) {
   let el = null, mic = null, state = "off", muted = false, how = "hear", ended = false;
   let frames = [], pre = [], loud = 0, quiet = 0, voiced = 0, floor = 0, echo = 0, level = 0;
-  let speaking = null, sr = null, srTimer = 0, raf = 0;
+  let speaking = null, sr = null, srTimer = 0, raf = 0, orb = null, smooth = 0;
 
   // ---------- 界面 ----------
   const STATUS = {
     listening: () => t("在听……"),
     hearing: () => t("在听……"),
-    thinking: () => t("她在想……"),
-    speaking: () => (how === "browser" ? t("她在说话，点一下光球可以打断") : t("她在说话，直接开口就能打断")),
+    thinking: () => t("在想……"),
+    speaking: () => (how === "browser" ? t("在说话，点一下光球可以打断") : t("在说话，直接开口就能打断")),
     muted: () => t("麦克风已静音"),
   };
   function build() {
@@ -30,7 +32,7 @@ export function createVoiceMode({ host, submit, onExit }) {
     el.className = "vm";
     el.innerHTML = `
       <div class="vm-stage">
-        <button class="vm-orb" type="button" title="${esc(t("点一下：打断她，或者表示你说完了"))}"><i></i><i></i><i></i></button>
+        <button class="vm-orb" type="button" title="${esc(t("点一下：打断，或者表示你说完了"))}"><canvas></canvas></button>
         <div class="vm-status" aria-live="polite"></div>
         <div class="vm-caption"></div>
       </div>
@@ -40,6 +42,7 @@ export function createVoiceMode({ host, submit, onExit }) {
       </div>`;
     host.appendChild(el);
     el.querySelector(".vm-orb").onclick = tapOrb;
+    orb = pixelOrb(el.querySelector(".vm-orb canvas"));
     el.querySelector(".vm-mute").onclick = () => setMuted(!muted);
     el.querySelector(".vm-end").onclick = () => stop();
     requestAnimationFrame(() => el.classList.add("in"));
@@ -59,11 +62,12 @@ export function createVoiceMode({ host, submit, onExit }) {
     c.className = "vm-caption " + (who || "");
     c.textContent = text ? (text.length > 120 ? text.slice(0, 118) + "…" : text) : "";
   }
-  function animate() {  // 光球跟着音量放大：你说话时看你的声音，她说话时看她的（拿不到她的音量，就做呼吸）
+  function animate(now = performance.now()) {  // 像素光球：在听时跟着你的音量，在想时转圈，说话时往外扩散
     raf = requestAnimationFrame(animate);
-    if (!el) return;
+    if (!el || !orb) return;
     const lv = state === "hearing" || state === "listening" ? Math.min(1, level * 9) : 0;
-    el.style.setProperty("--lv", lv.toFixed(3));
+    smooth += (lv - smooth) * 0.35;
+    orb(el.dataset.state || state, smooth, reduceMotion ? 0 : now / 1000);
   }
 
   // ---------- 状态 ----------

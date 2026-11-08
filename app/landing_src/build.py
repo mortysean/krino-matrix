@@ -29,7 +29,7 @@ SHELL = """<!doctype html>
 <body>
   <div class="fx fx-glow"></div><div class="fx fx-grid"></div><div class="fx fx-scan"></div>
   <header class="bar">
-    <a class="brand" href="../"><img src="/static/assets/krino-mark.svg" alt=""><div><b>KRINO MATRIX</b><span lang="zh">决策矩阵</span><span lang="en">HANGZHOU</span></div></a>
+    <a class="brand" href="../"><img src="/static/assets/krino-mark.svg" alt=""><div><b>KRINO MATRIX</b><span lang="zh">决策矩阵</span></div></a>
     <nav>
       <a class="hide-sm" href="../privacy/"><span lang="zh">隐私</span><span lang="en">PRIVACY</span></a>
       <a class="hide-sm" href="../terms/"><span lang="zh">条款</span><span lang="en">TERMS</span></a>
@@ -43,7 +43,7 @@ SHELL = """<!doctype html>
 {body}
   </main>
   <footer class="doc-foot">
-    <span>© 2026 <span lang="zh">杭州决策矩阵科技有限公司</span><span lang="en">Hangzhou Krino Matrix Tech Co., Ltd.</span></span>
+    <span>© 2026 <span lang="zh">杭州决策矩阵科技有限公司</span><span lang="en">Krino Matrix</span></span>
     <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">浙ICP备2026093639号</a>
     <a href="../privacy/"><span lang="zh">隐私政策</span><span lang="en">Privacy</span></a>
     <a href="../terms/"><span lang="zh">服务条款</span><span lang="en">Terms</span></a>
