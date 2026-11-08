@@ -846,3 +846,11 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 .voice-design textarea { flex: 1; min-height: 2.8em; }
 .voice-design button { flex: none; }
 @media (max-width: 760px) { .voice-design { flex-direction: column; align-items: stretch; } }
+
+/* ---------- 酒馆（圈子里的一个标签） ---------- */
+.tv-room { display: flex; flex-direction: column; gap: 8px; }
+.tv-log { display: flex; flex-direction: column; gap: 14px; min-height: 240px; max-height: 58vh; overflow-y: auto; padding: 12px 14px;
+  background: var(--ink-2); border: 1px solid var(--line); }
+.tv-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tv-bar input { flex: 1; min-width: 180px; }
+.tv-typing { animation: pulse 1.4s ease-in-out infinite; margin: 0; }

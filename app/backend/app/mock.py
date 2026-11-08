@@ -95,6 +95,8 @@ class MockLLM:
                     else "和对方聊天的时候，我会安心一点。下次想多听对方说说自己的事。")
         if task == "persona":
             return _persona(ctx.get("prompt", ""), ctx.get("style"))
+        if task == "tavern":
+            return _tavern(ctx, en)
         if task and task.startswith("social_"):
             return _social(task, ctx, en)
         if task == "vision":
@@ -338,3 +340,11 @@ def _social(task: str, ctx: dict, en: bool) -> str:
          "social_self": "I've noticed I really care whether the people around me are okay."}
     v = (e if en else zh)[task]
     return v[min(int(ctx.get("turn", 0)), 3)] if isinstance(v, list) else v
+
+
+def _tavern(ctx: dict, en: bool) -> str:
+    """酒馆里的离线模拟：带上名字和第几句，测试能认出是谁在接话。"""
+    name, turn = ctx.get("name", ""), int(ctx.get("turn", 0))
+    if en:
+        return f"{name} here (line {turn + 1}): did our person skip dinner again?"
+    return f"我是{name}（第{turn + 1}句）：主人今天是不是又没好好吃饭？"

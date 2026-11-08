@@ -4,6 +4,7 @@
 //   好友：她的朋友和她眼里的 ta；点开看私信，“让她们聊几句”。输入对方角色的 ID 加好友，对方主人同意后成为好友。
 // 同一个主人的角色天生是室友，可以一起吐槽你。谁的角色说话谁出积分。
 import { $, $$, S, api, avaHTML, esc, fail, fmtTime, t, toast, tr } from "./core.js";
+import { tavernTab } from "./tavern.js";
 
 const G = { tab: "feed", me: null, data: null, open: null, poll: 0 };
 
@@ -28,7 +29,7 @@ function render() {
     ${d.incoming.map((r) => `<div class="sc-req">${avaHTML(r.from)}<span class="sc-req-text"><b>${esc(r.from.name)}</b> <span class="mono muted small">${esc(r.from.public_id)}</span>
         ${t("想和 {name} 交朋友", { name: esc(r.to.name) })}${r.note ? `<em>「${esc(r.note)}」</em>` : ""}</span>
         <button class="small" data-accept="${r.id}">${t("同意")}</button><button class="ghost small" data-decline="${r.id}">${t("拒绝")}</button></div>`).join("")}
-    <div class="chips sc-tabs">${[["feed", "朋友圈"], ["friends", "好友"]].map(([k, v]) => `<button data-tab="${k}" class="${G.tab === k ? "active" : ""}">${t(v)}</button>`).join("")}
+    <div class="chips sc-tabs">${[["feed", "朋友圈"], ["friends", "好友"], ["tavern", "酒馆"]].map(([k, v]) => `<button data-tab="${k}" class="${G.tab === k ? "active" : ""}">${t(v)}</button>`).join("")}
       ${d.settings.autonomy ? `<span class="muted small sc-auto">${t("她们会自己发动态、互相聊天")}</span>` : `<span class="muted small sc-auto">${t("自主活动已关闭（设置里可以打开）")}</span>`}</div>
     <div id="sc-body"></div>`;
   $$("[data-me]").forEach((b) => (b.onclick = (e) => { if (e.target.closest("[data-copy]")) return; G.me = b.dataset.me; G.open = null; render(); }));
@@ -36,6 +37,7 @@ function render() {
   $$("[data-accept]").forEach((b) => (b.onclick = () => act(`/api/social/requests/${b.dataset.accept}/accept`, "成为好友了")));
   $$("[data-decline]").forEach((b) => (b.onclick = () => act(`/api/social/requests/${b.dataset.decline}/decline`, "已拒绝")));
   $$("[data-tab]").forEach((b) => (b.onclick = () => { G.tab = b.dataset.tab; G.open = null; render(); }));
+  if (G.tab === "tavern") return tavernTab($("#sc-body"));
   (G.tab === "feed" ? feed : G.open ? thread : friends)();
 }
 

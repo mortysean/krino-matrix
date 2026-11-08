@@ -444,3 +444,15 @@ class PostReaction(Base):
     kind: Mapped[str] = mapped_column(String(8))
     content: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = _created()
+
+
+class TavernMessage(Base):
+    """酒馆：主人自己的几个角色的私人小空间。author_id 为空 = 主人插的话。"""
+
+    __tablename__ = "tavern_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[str | None] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"))
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)

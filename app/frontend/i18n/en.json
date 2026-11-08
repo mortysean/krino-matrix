@@ -804,5 +804,14 @@
   "先起个名字吧": "Give them a name first",
   "按描述设计声音需要自建语音服务": "Designing a voice needs the self-hosted voice service",
   "先描述一下声音": "Describe the voice first",
-  "设计声音出错（{x}）": "Voice design failed ({x})"
+  "设计声音出错（{x}）": "Voice design failed ({x})",
+  "酒馆": "Tavern",
+  "插一句，她们会接话…": "Say something — they'll pick it up…",
+  "说": "Send",
+  "让她们聊一会儿": "Let them chat",
+  "你": "You",
+  "她们正在聊…": "They're chatting…",
+  "这里是她们的私人小空间。给个话题，或者直接说句话。": "Their private hangout. Give them a topic, or just say something.",
+  "酒馆至少要两个角色：先去工作台新建一个": "The Tavern needs at least two characters: create another in the Studio first",
+  "清空酒馆的聊天记录？她们对彼此的印象不受影响。": "Clear the Tavern chat? What they think of each other is kept."
 }
