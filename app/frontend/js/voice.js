@@ -140,9 +140,24 @@ function playPcm(res, my) {
   const ctx = audioCtx();
   const rate = +(res.headers.get("x-sample-rate") || 24000);
   const reader = res.body.getReader();
-  let at = 0, left = null, stopped = false, last = null, finish;
+  // 小缓冲：攒够 0.25 秒的声音再开始播；中途断了（网络慢于播放）就再攒 0.15 秒，不让每个字之间“咔”一下
+  const PREBUF = 0.25, REBUF = 0.15;
+  let at = 0, left = null, stopped = false, last = null, finish, pending = [], pendingDur = 0, started = false;
   const done = new Promise((r) => (finish = r));
   const nodes = new Set();
+  function flush() {
+    if (stopped || my !== gen) { pending = []; pendingDur = 0; return; }
+    for (const buf of pending) {
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.connect(ctx.destination);
+      at = Math.max(at, ctx.currentTime + 0.03);  // 首尾相接；断过就从现在往后一点接上
+      src.start(at); at += buf.duration;
+      nodes.add(src); src.onended = () => nodes.delete(src);
+      last = src;
+    }
+    if (pending.length) started = true;
+    pending = []; pendingDur = 0;
+  }
   const pcm = { stop() { stopped = true; reader.cancel().catch(() => {}); nodes.forEach((n) => { try { n.stop(); } catch {} }); finish(); } };
   current = { pcm };
   (async () => {
@@ -158,14 +173,14 @@ function playPcm(res, my) {
         const buf = ctx.createBuffer(1, i16.length, rate);
         const ch = buf.getChannelData(0);
         for (let i = 0; i < i16.length; i++) ch[i] = i16[i] / 32768;
-        const src = ctx.createBufferSource();
-        src.buffer = buf; src.connect(ctx.destination);
-        at = Math.max(at, ctx.currentTime + 0.05);  // 第一段留 50ms 余量；之后首尾相接
-        src.start(at); at += buf.duration;
-        nodes.add(src); src.onended = () => nodes.delete(src);
-        last = src;
+        pending.push(buf); pendingDur += buf.duration;
+        const underrun = started && at < ctx.currentTime + 0.02;  // 已经播完了手上的声音
+        if (underrun) started = false;
+        if (!started && pendingDur < (at ? REBUF : PREBUF)) continue;
+        flush();
       }
-    } catch { /* 断开：已经收到的照常播完 */ }
+      flush();  // 结束：剩下不足一个缓冲的也播掉
+    } catch { flush(); /* 断开：已经收到的照常播完 */ }
     if (stopped || my !== gen) return finish();
     if (!last) return finish();
     last.onended = () => { nodes.delete(last); finish(); };

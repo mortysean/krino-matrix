@@ -233,7 +233,7 @@ async function send(text, { source = "app", audio = null } = {}) {
     if ($("#chat-input").value.trim() === text) $("#chat-input").value = "";
     C.stage?.play("think").catch(() => {});
     const res = await api(`/api/sessions/${sid}/stream`, { body: { text: audio ? "" : text, audio, image, source: source === "voice" ? "voice" : "app", character_id: cid }, raw: true });
-    let live = null, done = null, error = null;
+    let live = null, done = null, error = null, typer = null;
     for await (const [ev, data] of sse(res)) {
       if (ev === "delta" && here()) {
         if (!live) {
@@ -243,13 +243,14 @@ async function send(text, { source = "app", audio = null } = {}) {
           live.innerHTML = `${avaHTML(curChar())}<div class="msg-col"><div class="bubble"></div></div>`;
           $("#messages").appendChild(live);
         }
-        live.querySelector(".bubble").textContent += data.text;
-        $("#messages").scrollTop = $("#messages").scrollHeight;
+        typer ||= typewriter(live.querySelector(".bubble"));
+        typer.push(data.text);
       }
       if (ev === "done") done = data;
       if (ev === "error") error = data.message;
     }
     if (error) throw new Error(error);
+    if (typer) await typer.finish();  // 把还没显示完的字匀速打完，再换成最终的气泡
     if (!here()) return;  // 中途换了角色：这句回复留在原来那个角色的对话里，回去就能看到
     C.session.messages.pop();
     C.pending = false;
@@ -271,6 +272,39 @@ async function send(text, { source = "app", audio = null } = {}) {
     C.pending = false;
     $("#send-btn").disabled = false;
   }
+}
+
+// 匀速打字：模型生成很快，网络常常一次送来十几个字；直接贴上去就是“蹦一下、停一下”。
+// 收到的字先进缓冲，再按平稳的速度一个个显示：平时每秒约 40 字，积压多了自动加快，最多比收到的晚 0.4 秒左右
+function typewriter(el) {
+  let queue = "", shown = 0, last = 0, raf = 0, ended = false, resolve = null;
+  const box = $("#messages");
+  const tick = (now) => {
+    raf = 0;
+    const dt = last ? Math.min(100, now - last) : 16;
+    last = now;
+    const rate = Math.max(40, queue.length / 0.4);  // 字/秒
+    let n = Math.max(1, Math.round((rate * dt) / 1000));
+    if (n > queue.length) n = queue.length;
+    if (n) {
+      el.textContent += queue.slice(0, n);
+      queue = queue.slice(n); shown += n;
+      const near = box.scrollHeight - box.scrollTop - box.clientHeight < 80;  // 用户往上翻着看时不抢滚动条
+      if (near) box.scrollTop = box.scrollHeight;
+    }
+    if (queue.length) raf = requestAnimationFrame(tick);
+    else { last = 0; if (ended && resolve) resolve(); }
+  };
+  const kick = () => { if (!raf && queue.length) raf = requestAnimationFrame(tick); };
+  return {
+    push(t) { queue += t; kick(); },
+    finish() {  // 剩下的字打完（最多等 1.5 秒；页面在后台时 requestAnimationFrame 不走，直接补齐）
+      ended = true;
+      if (!queue.length) return Promise.resolve();
+      if (document.hidden) { el.textContent += queue; queue = ""; return Promise.resolve(); }
+      return Promise.race([new Promise((r) => (resolve = r)), new Promise((r) => setTimeout(r, 1500))]);
+    },
+  };
 }
 
 async function* sse(res) {
