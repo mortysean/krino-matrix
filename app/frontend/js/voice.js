@@ -24,6 +24,12 @@ async function useServer(kind) {
   return !!c[kind]?.server;
 }
 
+// 识别走哪：server = 服务端识别（录音上传），browser = 浏览器自带（边说边出字），off = 关了
+export async function sttMode() {
+  if (pref("stt") === "off") return "off";
+  return (await useServer("stt")) ? "server" : "browser";
+}
+
 export async function sttAvailable() {
   if (pref("stt") === "off") return { ok: false, why: t("语音输入在设置里关闭了") };
   if (await useServer("stt")) return { ok: !!navigator.mediaDevices?.getUserMedia, why: t("浏览器不支持录音") };
@@ -239,6 +245,45 @@ export async function record({ maxSeconds = 60, onLimit } = {}) {
       return toWav(downsample(all, rate, 16000), 16000);
     },
   };
+}
+
+// ---------- 语音对话用：一直开着的麦克风，一帧一帧交给调用方（自己判断什么时候开口、什么时候说完） ----------
+// 返回 { rate, onFrame(cb), close() }；cb(Float32Array 一帧, rms 音量)。一帧 2048 个采样，约 43 毫秒
+export async function openMic() {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ac = new AC();
+  if (ac.state === "suspended") await ac.resume().catch(() => {});
+  const src = ac.createMediaStreamSource(stream);
+  const node = ac.createScriptProcessor(2048, 1, 1);
+  let cb = null, closed = false;
+  node.onaudioprocess = (e) => {
+    if (closed || !cb) return;
+    const d = new Float32Array(e.inputBuffer.getChannelData(0));
+    let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] * d[i];
+    cb(d, Math.sqrt(s / (d.length / 4)));
+  };
+  src.connect(node); node.connect(ac.destination);
+  return {
+    rate: ac.sampleRate,
+    onFrame(f) { cb = f; },
+    close() { if (closed) return; closed = true; node.disconnect(); src.disconnect(); stream.getTracks().forEach((t) => t.stop()); ac.close().catch(() => {}); },
+  };
+}
+
+// 把几帧拼起来，转成 16kHz WAV 的 data URL（直接交给她听，或者先送去识别）
+export function framesToWav(frames, rate) {
+  const total = frames.reduce((n, f) => n + f.length, 0);
+  const all = new Float32Array(total); let o = 0;
+  for (const f of frames) { all.set(f, o); o += f.length; }
+  return toWav(downsample(all, rate, 16000), 16000);
+}
+
+// WAV data URL → 服务端识别 → 文字
+export async function transcribeWav(dataUrl) {
+  const blob = await (await fetch(dataUrl)).blob();
+  const fd = new FormData(); fd.append("file", blob, "speech.wav");
+  return ((await api("/api/voice/stt", { body: fd })).text || "").trim();
 }
 
 function downsample(buf, from, to) {

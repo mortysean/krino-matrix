@@ -1,11 +1,14 @@
 // 01 聊天：左边是她（2D 立绘 / Live2D），右边是对话。
 // 一键原则：会话自动管理（打开就能说，不用“开始 / 结束”）；每条回复右边一个喇叭，点一下就读；
-// 舞台右上角的喇叭开关决定是否自动朗读；麦克风点一下开始、再点一下发送。
+// 舞台右上角的喇叭开关决定是否自动朗读。语音两种用法（参照 ChatGPT）：
+//   麦克风 = 听写：点一下开始说，再点一下，文字填进输入框，看一眼再发；
+//   输入框空着时，“发送”换成“语音对话”：点一下进入边听边回，说完她自动回答，可以随时打断。
 // 角色做什么（说话 / 表情 / 动作 / 讲故事 / 提议记住）由后端互动策略决定，这里只执行后端给的 actions。
 import { $, $$, S, api, avaHTML, bus, curChar, esc, fail, ripple, storeGet, storeSet, t, toast, tr } from "./core.js";
 import { createStage } from "./stage.js";
 import { ICON } from "./icons.js";
-import { canHear, listen, record, speak, stopSpeaking, sttAvailable } from "./voice.js";
+import { listen, speak, stopSpeaking, sttAvailable, sttMode } from "./voice.js";
+import { createVoiceMode } from "./voicemode.js";
 import { renderDrawer, refreshAsks } from "./memory.js";
 
 const GESTURES = [["wave", "挥手"], ["pat_head", "摸摸头"], ["high_five", "击掌"], ["poke", "戳一下"], ["cheer_up", "加油"]];
@@ -65,8 +68,8 @@ function perform(actions, { speakIt = false } = {}) {
   const say = (actions || []).find((a) => a.type === "say");
   if (!say) return;
   sayOnStage(say.text, say.story);
-  if (speakIt || C.autoRead) readAloud(say.text, $(".msg.assistant:last-of-type .speak-btn"));
-  else { C.stage?.speaking(true); setTimeout(() => C.stage?.speaking(false), Math.min(6000, 600 + say.text.length * 90)); }
+  if (speakIt || C.autoRead) return readAloud(say.text, $(".msg.assistant:last-of-type .speak-btn"));
+  C.stage?.speaking(true); setTimeout(() => C.stage?.speaking(false), Math.min(6000, 600 + say.text.length * 90));
 }
 
 function rememberChip(a) {
@@ -214,10 +217,11 @@ async function watchJob(jobId, replyId) {
 }
 
 // ---------- 发送（流式） ----------
+// 返回 { ok, reply, speaking }：speaking 是她念完这句的 promise（不念就没有），语音对话靠它决定什么时候接着听
 async function send(text, { source = "app", audio = null } = {}) {
-  if (C.pending) return;
+  if (C.pending) return { ok: false };
   text = (text || "").trim();
-  if (!text && !C.image && !audio) return;
+  if (!text && !C.image && !audio) return { ok: false };
   if (!audio) text ||= t("你看看这个");
   activity();
   stopSpeaking();
@@ -231,6 +235,7 @@ async function send(text, { source = "app", audio = null } = {}) {
     C.session.messages.push({ id: "tmp", role: "user", content: audio ? t("🎙 语音") : text, meta: { image: !!image, source, audio: !!audio } });
     renderMessages();
     if ($("#chat-input").value.trim() === text) $("#chat-input").value = "";
+    composer();
     C.stage?.play("think").catch(() => {});
     const res = await api(`/api/sessions/${sid}/stream`, { body: { text: audio ? "" : text, audio, image, source: source === "voice" ? "voice" : "app", character_id: cid }, raw: true });
     let live = null, done = null, error = null, typer = null;
@@ -251,23 +256,26 @@ async function send(text, { source = "app", audio = null } = {}) {
     }
     if (error) throw new Error(error);
     if (typer) await typer.finish();  // 把还没显示完的字匀速打完，再换成最终的气泡
-    if (!here()) return;  // 中途换了角色：这句回复留在原来那个角色的对话里，回去就能看到
+    if (!here()) return { ok: false };  // 中途换了角色：这句回复留在原来那个角色的对话里，回去就能看到
     C.session.messages.pop();
     C.pending = false;
     if (done.user) C.session.messages.push(done.user);
     if (done.reply) C.session.messages.push(done.reply);
     renderMessages();
     if (!done.reply) toast("她安静地陪在你身边", 2000);
-    perform(done.actions, { speakIt: source === "voice" });
+    const speaking = perform(done.actions, { speakIt: source === "voice" });
     if (done.memory_job && done.reply) watchJob(done.memory_job, done.reply.id);
+    return { ok: true, reply: done.reply?.content || "", speaking };
   } catch (e) {
     C.pending = false;
     if (e.status === 409) loadSession().catch(() => {});  // 后端发现会话和角色对不上：重新加载当前角色的会话
     if (C.session?.messages?.at(-1)?.id === "tmp") C.session.messages.pop();
     renderMessages();
     if (!audio) $("#chat-input").value = text;
+    composer();
     C.stage?.setExpression("worried");
     fail(e);
+    return { ok: false };
   } finally {
     C.pending = false;
     $("#send-btn").disabled = false;
@@ -345,14 +353,14 @@ async function sendEvent(body) {
 function activity() { C.lastActivity = Date.now(); C.idleCount = 0; }
 setInterval(() => {
   const it = S.me?.settings?.interaction || {};
-  if (S.view !== "chat" || document.hidden || C.pending || !C.session || C.session.ended || it.proactive === false) return;
+  if (S.view !== "chat" || document.hidden || C.pending || !C.session || C.session.ended || it.proactive === false || VM?.active) return;
   if (Date.now() - C.lastActivity < (it.idle_seconds || 45) * 1000) return;
   C.idleCount += 1; C.lastActivity = Date.now();
   sendEvent({ type: "idle", idle_count: C.idleCount });
 }, 5000);
 
 // ---------- 图片 ----------
-function clearImage() { C.image = null; $("#img-chip").classList.add("hidden"); $("#img-chip").innerHTML = ""; }
+function clearImage() { C.image = null; $("#img-chip").classList.add("hidden"); $("#img-chip").innerHTML = ""; composer(); }
 async function pickImage(file) {
   if (!file) return;
   if (file.size > 4 * 1024 * 1024) return toast("图片不能超过 4MB");
@@ -361,42 +369,62 @@ async function pickImage(file) {
   $("#img-chip").innerHTML = `<img src="${C.image}" alt=""> ${t("会和下一句话一起发给她")} <button class="link small" id="img-x">${t("移除")}</button>`;
   $("#img-chip").classList.remove("hidden");
   $("#img-x").onclick = clearImage;
+  composer();
 }
 
-// ---------- 麦克风：点一下开始，再点一下发送 ----------
-function micIdle() { $("#mic-btn").classList.remove("listening"); $("#mic-btn").innerHTML = ICON.mic; }
+// ---------- 听写：点一下开始说，再点一下，文字填进输入框（不自动发送，看一眼再发） ----------
+function micIdle() {
+  const b = $("#mic-btn");
+  b.classList.remove("listening", "busy"); b.innerHTML = ICON.mic; b.style.removeProperty("--lv");
+  b.title = t("听写：点一下开始说，再点一下，文字填进输入框");
+}
+function putText(x) {  // 接在已经打的字后面
+  const box = $("#chat-input"), before = box.dataset.before || "";
+  box.value = before + (before && x && !/\s$/.test(before) ? " " : "") + x;
+  box.dispatchEvent(new Event("input"));
+}
 async function toggleMic() {
   if (C.listening) {
-    const l = C.listening; C.listening = null; micIdle();
-    if (l.hear) {  // 直接听：整段录音交给她
-      const audio = l.stop();
-      if (audio) send("", { source: "voice", audio }); else toast("没听清，再说一次？");
-      return;
-    }
-    try { const text = await l.stop(); if (text) send(text, { source: "voice" }); else toast("没听清，再说一次？"); } catch (e) { fail(e); }
-    return;
-  }
-  if (await canHear()) {
-    stopSpeaking();
+    const l = C.listening; C.listening = null;
+    const b = $("#mic-btn");
+    b.classList.remove("listening"); b.classList.add("busy"); b.innerHTML = '<i class="mic-spin"></i>';
+    b.title = t("识别中……");
     try {
-      const rec = await record({ maxSeconds: 60, onLimit: () => C.listening === live && toggleMic() });
-      const live = { hear: true, stop: rec.stop, cancel: rec.cancel };
-      C.listening = live;
-      $("#mic-btn").classList.add("listening"); $("#mic-btn").innerHTML = ICON.stop;
-      $("#mic-btn").title = t("她在听……说完再点一下");
-      const tick = setInterval(() => { if (C.listening !== live) return clearInterval(tick); $("#mic-btn").style.setProperty("--lv", rec.level().toFixed(2)); }, 80);
-      C.stage?.setExpression("focused");
-    } catch (e) { C.listening = null; micIdle(); fail(e.name === "NotAllowedError" ? new Error(t("没有麦克风权限：请在浏览器地址栏允许麦克风")) : e); }
+      const text = await l.stop();
+      if (text) putText(text); else toast("没听清，再说一次？");
+    } catch (e) { fail(e); }
+    micIdle();
+    delete $("#chat-input").dataset.before;
+    $("#chat-input").focus();
     return;
   }
   const a = await sttAvailable();
   if (!a.ok) return toast(a.why, 5000);
   stopSpeaking();
+  const box = $("#chat-input");
+  box.dataset.before = box.value;
   try {
-    C.listening = await listen({ onPartial: (x) => ($("#chat-input").value = x) });
+    const live = (await sttMode()) === "browser";
+    C.listening = await listen({ onPartial: (x) => live && putText(x) });
     $("#mic-btn").classList.add("listening"); $("#mic-btn").innerHTML = ICON.stop;
-    C.stage?.setExpression("focused");
+    $("#mic-btn").title = t("在听……说完再点一下");
   } catch (e) { C.listening = null; micIdle(); fail(e.name === "NotAllowedError" ? new Error(t("没有麦克风权限：请在浏览器地址栏允许麦克风")) : e); }
+}
+
+// ---------- 语音对话：输入框空着时，发送按钮的位置就是它 ----------
+const WAVE = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/></svg>';
+let VM = null;  // initChat 里建好（要挂在聊天栏上）
+function composer() {  // 有字（或带着图）就是“发送”，空着就是“语音对话”
+  const empty = !$("#chat-input").value.trim() && !C.image;
+  $("#send-btn").classList.toggle("hidden", empty);
+  $("#vm-btn").classList.toggle("hidden", !empty);
+}
+async function startVoice() {
+  if (C.listening) { C.listening.cancel?.(); C.listening = null; micIdle(); }
+  activity();
+  stopSpeaking();
+  await ensureSession().catch(fail);
+  VM.start();
 }
 
 function setAutoRead(on) {
@@ -423,6 +451,16 @@ export function initChat() {
   $("#new-session").onclick = () => newTopic().catch(fail);
   $("#mic-btn").onclick = toggleMic;
   $("#img-btn").innerHTML = ICON.image; micIdle();
+  VM = createVoiceMode({
+    host: $(".chat-col"),
+    submit: ({ text, audio }) => send(text || "", { source: "voice", audio }),
+    onExit: () => { C.stage?.speaking(false); composer(); },
+  });
+  $("#vm-btn").innerHTML = `${WAVE}<span>${t("语音对话")}</span>`;
+  $("#vm-btn").title = t("开始语音对话：说完她会自动回答，可以随时打断");
+  $("#vm-btn").onclick = () => { ripple($("#vm-btn")); startVoice(); };
+  $("#chat-input").addEventListener("input", composer);
+  composer();
   $("#voice-toggle").onclick = () => setAutoRead(!C.autoRead);
   setAutoRead(C.autoRead);
   $("#img-btn").onclick = () => $("#img-file").click();
@@ -444,6 +482,7 @@ export function initChat() {
     $("#chat-name").textContent = c.name;
     C.jobs = {};
     C.session = null;  // 立刻放下上一个角色的会话：加载完之前发的话也不会进到她那里
+    VM?.stop();
     stopSpeaking();
     renderMessages();
     C.loading = loadSession();
@@ -453,6 +492,6 @@ export function initChat() {
     if (!C.session) greet();
   });
   bus.on("character:changed", () => { C.portraitFor = null; ensureStage().catch(fail); });
-  bus.on("view", (v) => { if (v === "chat") { renderMessages(); ensureStage().catch(fail); } });
-  bus.on("logout", () => { Object.assign(C, { session: null, pending: false, jobs: {} }); C.seen = new Set(); stopSpeaking(); });
+  bus.on("view", (v) => { if (v === "chat") { renderMessages(); ensureStage().catch(fail); } else VM?.stop(); });
+  bus.on("logout", () => { VM?.stop(); Object.assign(C, { session: null, pending: false, jobs: {} }); C.seen = new Set(); stopSpeaking(); });
 }

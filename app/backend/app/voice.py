@@ -55,7 +55,8 @@ def transcribe(data: bytes, mime: str, filename: str = "audio.webm") -> str:
     try:
         with _client() as c:
             r = c.post(settings.stt_base_url.rstrip("/") + "/audio/transcriptions", headers=headers,
-                       data={"model": settings.stt_model, "language": "zh"}, files={"file": (filename, data, mime)})
+                       data={"model": settings.stt_model, "language": "en" if locale() == "en" else "zh"},  # 跟着站点版本
+                       files={"file": (filename, data, mime)})
     except httpx.HTTPError as e:
         raise ServiceError("无法连接语音识别服务") from e
     if r.status_code != 200:

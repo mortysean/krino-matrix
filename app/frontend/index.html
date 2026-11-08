@@ -56,7 +56,7 @@
     </aside>
 
     <main class="main">
-      <!-- 01 聊天：左边是她，右边是对话。底部一行：图片 · 输入 · 麦克风 · 发送 -->
+      <!-- 01 聊天：左边是她，右边是对话。底部一行：图片 · 输入 · 听写 · 发送（输入框空着时换成“语音对话”） -->
       <section id="view-chat" class="view">
         <div id="net-banner" class="net-banner hidden"></div>
         <div class="chat-body">
@@ -81,8 +81,9 @@
               <button type="button" id="img-btn" class="icon-btn" title="发一张图片给她看" data-i18n-title></button>
               <input type="file" id="img-file" accept="image/png,image/jpeg,image/webp" class="hidden">
               <textarea id="chat-input" rows="1" placeholder="说点什么…" data-i18n-ph></textarea>
-              <button type="button" id="mic-btn" class="icon-btn" title="点一下开始说，再点一下发送" data-i18n-title></button>
+              <button type="button" id="mic-btn" class="icon-btn" title="听写：点一下开始说，再点一下，文字填进输入框" data-i18n-title></button>
               <button type="submit" id="send-btn" data-i18n>发送</button>
+              <button type="button" id="vm-btn" class="vm-open hidden"></button>
             </form>
           </div>
           <aside id="drawer" class="drawer hidden">
