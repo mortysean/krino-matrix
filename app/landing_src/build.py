@@ -5,7 +5,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parent / "landing"
-CONTACT = "legal@krinomatrix.com"
+CONTACT = "support@krinomatrix.com"
 UPDATED = "2026-11-09"
 PAGES = {
     "privacy": ("隐私政策", "Privacy Policy"),

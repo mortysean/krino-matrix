@@ -4,7 +4,7 @@
 # 环境变量：
 #   SITES      本机提供的站点，逗号分隔，比如 "cn.krinomatrix.com, api-cn.krinomatrix.com"
 #   LANDING=1  同时提供 krinomatrix.com 品牌首页（海外服务器）
-#   WWW_TO     www.krinomatrix.com 跳到哪里（本机的站点）。DNS 按线路把 www 分给两台服务器：境内 → 国内，其余 → 海外
+#   WWW_TO     www.krinomatrix.com 跳到哪里：现在两台都跳到公司门户 https://krinomatrix.com（DNS 仍按线路把 www 分给两台服务器）
 #   PEER_ACME  另一台服务器的 IP:80。证书机构从境外验证，www 的验证请求总会到海外服务器；
 #              海外服务器把它不认识的验证请求转给国内服务器，国内的 www 证书才申请得下来
 set -euo pipefail

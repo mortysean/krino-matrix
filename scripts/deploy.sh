@@ -20,9 +20,9 @@ log() { echo "[deploy:$EDITION] $*" >&2; }
 
 case "$EDITION" in
   global) SITES="app.krinomatrix.com, api.krinomatrix.com"; LANDING=1; OTHER=https://cn.krinomatrix.com
-          CADDY="WWW_TO=https://app.krinomatrix.com PEER_ACME=${CN_IP:-111.229.152.63}:80"; MIRRORS="" ;;
+          CADDY="WWW_TO=https://krinomatrix.com PEER_ACME=${CN_IP:-111.229.152.63}:80"; MIRRORS="" ;;
   cn)     SITES="cn.krinomatrix.com, api-cn.krinomatrix.com"; LANDING=0; OTHER=https://app.krinomatrix.com
-          CADDY="WWW_TO=https://cn.krinomatrix.com"
+          CADDY="WWW_TO=https://krinomatrix.com"
           MIRRORS="PYTHON=python3.10 PIP_INDEX=https://mirrors.cloud.tencent.com/pypi/simple TORCH_FIND=https://mirrors.aliyun.com/pytorch-wheels/cpu/ HF_ENDPOINT=https://hf-mirror.com MODEL_SOURCE=modelscope NO_SPACY=1" ;;
   *) echo "版本只能是 cn 或 global"; exit 1 ;;
 esac

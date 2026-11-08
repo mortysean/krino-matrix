@@ -18,8 +18,8 @@ KRINO WORLD 有两个版本，代码是同一套，用 `SITE_EDITION` 区分：
 
 | 域名 | 服务器 | 内容 |
 | --- | --- | --- |
-| `krinomatrix.com` | 海外 | 品牌首页（`app/landing/`），两个入口按钮 |
-| `www.krinomatrix.com` | 按线路：境内 → 国内，默认 → 海外 | 302 跳到所在服务器的版本（cn. 或 app.） |
+| `krinomatrix.com` | 海外 | 公司门户（`app/landing/`；法律页由 `app/landing_src/build.py` 生成），两个产品入口 |
+| `www.krinomatrix.com` | 按线路：境内 → 国内，默认 → 海外 | 两台都 302 跳到公司门户 `krinomatrix.com` |
 | `app.krinomatrix.com`、`api.` | 海外 | 海外版 |
 | `cn.krinomatrix.com`、`api-cn.` | 国内 | 国内版 |
 
