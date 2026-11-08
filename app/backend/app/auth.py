@@ -111,6 +111,7 @@ class SettingsIn(BaseModel):
     voice: dict | None = None
     interaction: dict | None = None
     evaluator: dict | None = None
+    social: dict | None = None
 
 
 _ALLOWED = {  # 每个分组允许的键和取值，防止前端写进任意结构
@@ -119,6 +120,7 @@ _ALLOWED = {  # 每个分组允许的键和取值，防止前端写进任意结�
               "autoplay": bool, "voice": str},
     "interaction": {"proactive": bool, "idle_seconds": int, "animations": bool, "stories": bool, "web": bool},
     "evaluator": {"mode": (None, "rules", "matrix", "off")},
+    "social": {"autonomy": bool, "share_life": bool},
 }
 
 

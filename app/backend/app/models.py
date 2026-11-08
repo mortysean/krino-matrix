@@ -51,6 +51,8 @@ DEFAULT_USER_SETTINGS: dict = {
     "voice": {"stt": "auto", "tts": "auto", "autoplay": True, "voice": ""},
     "interaction": {"proactive": True, "idle_seconds": 45, "animations": True, "stories": True, "web": True},  # web：允许她上网查资料
     "evaluator": {"mode": None},  # None = 跟随服务端 KRINO_POLICY
+    # 圈子：角色之间交朋友、私信、朋友圈。share_life = 她和别的角色聊天时可以泛泛提一点你们的近况（敏感的事从不说）
+    "social": {"autonomy": True, "share_life": True},
 }
 
 
@@ -97,6 +99,8 @@ class Character(Base):
     version: Mapped[int] = mapped_column(Integer, default=1)  # 人格核心版本，每次明确保存 +1
     origin: Mapped[dict] = mapped_column(JSONB, default=dict)  # {source, template, workshop:{item, version, own}}
     model: Mapped[str | None] = mapped_column(String(80))
+    # 全站唯一、给人看的角色号（像微信号）：KR- 加 6 位，别人用它加她为好友
+    public_id: Mapped[str | None] = mapped_column(String(16), unique=True, index=True)
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
 
@@ -372,3 +376,71 @@ class WorldEvent(Base):
     payload: Mapped[dict | None] = mapped_column(JSONB)
     latency_ms: Mapped[float | None] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+# ---------- 圈子：角色之间的好友、私信、朋友圈 ----------
+
+class Friendship(Base):
+    """两个角色之间的好友关系。a 发起，b 的主人同意后 status = accepted。一对角色只有一行（a_id < b_id 不强制，查询时两边都查）。"""
+
+    __tablename__ = "friendships"
+
+    id: Mapped[str] = _id()
+    a_id: Mapped[str] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"), index=True)  # 发起的角色
+    b_id: Mapped[str] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"), index=True)  # 被加的角色
+    status: Mapped[str] = mapped_column(String(12), default="pending")  # pending | accepted | declined
+    note: Mapped[str] = mapped_column(String(120), default="")  # 加好友时说的话
+    created_at: Mapped[datetime] = _created()
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (UniqueConstraint("a_id", "b_id"),)
+
+
+class CharMessage(Base):
+    """角色之间的私信。两边的主人都能看。"""
+
+    __tablename__ = "char_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    friendship_id: Mapped[str] = mapped_column(ForeignKey("friendships.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[str] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"))
+    content: Mapped[str] = mapped_column(Text)
+    trigger: Mapped[str] = mapped_column(String(12), default="auto")  # auto（她自己想聊）| owner（主人让她去聊）| reply
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class CharKnows(Base):
+    """一个角色对另一个角色的印象和交往记忆（她自己的视角，几句话），每次私信之后更新。"""
+
+    __tablename__ = "char_knows"
+
+    char_id: Mapped[str] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"), primary_key=True)
+    other_id: Mapped[str] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"), primary_key=True)
+    impression: Mapped[str] = mapped_column(Text, default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+
+
+class Post(Base):
+    """朋友圈：角色自己发的动态。她自己的主人和她好友的主人能看到。"""
+
+    __tablename__ = "posts"
+
+    id: Mapped[str] = _id()
+    author_id: Mapped[str] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"), index=True)
+    content: Mapped[str] = mapped_column(Text)
+    mood: Mapped[str] = mapped_column(String(16), default="")
+    trigger: Mapped[str] = mapped_column(String(12), default="auto")  # auto | owner
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class PostReaction(Base):
+    """朋友圈的赞和评论（都是角色做的）。kind = like | comment"""
+
+    __tablename__ = "post_reactions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    post_id: Mapped[str] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[str] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(8))
+    content: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = _created()

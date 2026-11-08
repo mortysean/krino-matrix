@@ -331,7 +331,7 @@ def list_owned(db: Session, user: User) -> list[Character]:
 
 def summary(c: Character) -> dict:
     p = c.persona or {}
-    return {"id": c.id, "slug": c.slug, "name": c.name, "tagline": p.get("tagline", ""), "color": p.get("color") or "#1414a8",
+    return {"id": c.id, "public_id": c.public_id, "slug": c.slug, "name": c.name, "tagline": p.get("tagline", ""), "color": p.get("color") or "#1414a8",
             "tags": p.get("tags") or [], "style": (c.behavior or {}).get("style", ""), "version": c.version,
             "official": template_of(c) is not None, "source": (c.origin or {}).get("source", ""),
             "edited": c.version > 1, "workshop": (c.origin or {}).get("workshop"), "portrait": (c.behavior or {}).get("portrait"),
@@ -408,10 +408,24 @@ def create(db: Session, user: User, *, persona: dict, behavior: dict | None, lor
     persona.setdefault("color", "#1414a8")
     check_content(*(v for v in persona.values() if isinstance(v, str)), *(x.get("content", "") for x in lore or []))
     c = Character(owner_id=user.id, slug=_free_slug(db, user.id, slug or persona_io.make_slug(persona.get("name", ""))),
-                  persona=persona, behavior=validate_behavior(behavior), lore=lore or [], origin=origin or {})
+                  persona=persona, behavior=validate_behavior(behavior), lore=lore or [], origin=origin or {},
+                  public_id=new_public_id(db))
     db.add(c)
     db.flush()
     return c
+
+
+PUBLIC_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"  # 不要 0/O/1/I，念出来、抄下来都不会混
+
+
+def new_public_id(db: Session) -> str:
+    """角色号：KR- 加 6 位（32^6 ≈ 10 亿个），全站唯一，别人用它加她为好友。"""
+    import secrets
+    for _ in range(20):
+        pid = "KR-" + "".join(secrets.choice(PUBLIC_ALPHABET) for _ in range(6))
+        if not db.scalar(select(Character.id).where(Character.public_id == pid)):
+            return pid
+    raise PersonaError("角色号分配失败，请重试")
 
 
 def _text_hash(persona: dict, lore: list) -> str:
