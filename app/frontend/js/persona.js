@@ -4,7 +4,7 @@
 // “导出”得到一个文件（灵魂 + 肉体，图片内嵌），可以直接上传工坊；不常用的（历史版本、还原、告别）收进“更多”。
 import { $, $$, S, api, avaHTML, bus, confirmBox, curChar, download, esc, fail, fmtTime, modal, t, toast, tr } from "./core.js";
 import { speak, voiceConfig } from "./voice.js";
-import { bodyDirty, bodyPanel, bodyPortrait, bodyPrompt } from "./workbench.js";
+import { bodyDirty, bodyForget, bodyPanel, bodyPortrait, bodyPrompt } from "./workbench.js";
 import { soulGraph } from "./soulgraph.js";
 
 const P = { schema: null, dirty: false, advanced: false };
@@ -131,15 +131,45 @@ const PRONOUNS = [["她", "她"], ["他", "他"], ["它", "它（非人类）"],
 
 export async function addCharacter() {
   if (S.chars.length >= (S.me?.companion_limit || 8)) return toast(t("最多 {n} 位角色，先和一位告别吧", { n: S.me.companion_limit }));
-  D.draft = null; D.prompt = ""; D.voice = null;
-  await modal("新角色", `
+  const saved = D.saved;  // 写好的草稿还没创建就关了窗口（或者写的时候就关了）：留着，再点“新角色”接着改
+  D.draft = null; D.prompt = saved?.prompt || ""; D.voice = null;
+  const p = modal("新角色", `
     <label>${t("用一句话描述你想要的角色：原创的，或者书、动漫、游戏里已有的都行")}<textarea id="gen-prompt" rows="2" maxlength="500" placeholder="${t("例如：哈利·波特里的德拉科·马尔福；或者：在海边书店打工的抹香鲸，话少，打烊后给我念书")}"></textarea></label>
     <div class="row"><button id="gen-go">${t("写出灵魂")}</button><button class="ghost small" id="gen-blank">${t("从空白开始自己写")}</button>
       <span class="grow"></span>
       <label class="ghost-btn">${t("导入文件")}<input type="file" id="imp-file" accept=".json,.md,.png,.charx,.zip" hidden></label>
       <button class="link small" id="go-ws">${t("去工坊挑一个 →")}</button></div>
     <div id="gen-out"></div>`, null, { okText: "关闭", cancel: false, wide: true });
+  if (saved) { $("#gen-prompt").value = saved.prompt; await draftForm(saved.draft); }
+  if (D.writing) { $("#gen-prompt").value = D.writing; $("#gen-out").innerHTML = `<p class="muted small">${t("还在写，写好了会显示在这里…")}</p>`; }
+  await p;
 }
+
+// 新角色的形象和声音在后台做：每隔几秒看一眼，做好了换上并告诉一声。刷新页面也会接着看（角色带着 pending）
+const watching = new Set();
+function watchPending() {
+  for (const c of S.chars || []) {
+    if (!c.pending || watching.has(c.id)) continue;
+    watching.add(c.id);
+    (async () => {
+      for (let i = 0; i < 90; i++) {
+        await new Promise((r) => setTimeout(r, 4000));
+        const x = await api("/api/characters/" + c.id).catch((e) => (e.status === 404 ? { gone: true } : null));
+        if (x?.gone) break;
+        if (x && !x.pending) {
+          bodyForget(c.id);
+          await reloadChars();
+          if (S.charId === c.id) bus.emit("character:changed");
+          toast(x.behavior?.portrait ? t("{name} 的形象和声音好了", { name: x.name }) : t("{name} 的形象没画出来，可以在工作台里再画一次", { name: x.name }), 5000);
+          break;
+        }
+      }
+      watching.delete(c.id);
+    })();
+  }
+}
+bus.on("chars", watchPending);
+bus.on("chars:loaded", watchPending);
 
 async function draftForm(d) {
   const sc = await schema();
@@ -163,7 +193,7 @@ async function draftForm(d) {
         ${MORE_FIELDS.map((k) => `<label>${esc(tr(labels[k]))}<textarea data-d="${k}" rows="2">${esc(p[k] || "")}</textarea></label>`).join("")}
         <label>${t("风格")}<select data-d-style>${Object.keys(sc.styles).map((x) => `<option value="${esc(x)}" ${x === (d.behavior?.style || "温柔") ? "selected" : ""}>${esc(tr(x))}</option>`).join("")}</select></label>
       </details>
-      <div class="row"><button id="draft-go">${t("创建角色")}</button><span class="muted small">${t("会顺便按外貌画一张形象、按描述设计声音，大约半分钟")}</span></div>
+      <div class="row"><button id="draft-go">${t("创建角色")}</button><span class="muted small">${t("马上就能聊；形象和声音在后台做，大约一分钟，可以关掉窗口")}</span></div>
     </div>`;
 }
 
@@ -171,10 +201,17 @@ document.addEventListener("click", async (e) => {  // 弹窗里的按钮（弹�
   if (e.target.id === "gen-go") {
     const prompt = $("#gen-prompt").value.trim();
     if (!prompt) return $("#gen-prompt").focus();
-    e.target.disabled = true; $("#gen-out").innerHTML = `<p class="muted small">${t("正在查资料、写灵魂，十几秒到半分钟…")}</p>`;
-    try { await draftForm(await api("/api/characters/generate", { body: { prompt } })); D.prompt = prompt; }
-    catch (err) { $("#gen-out").innerHTML = `<p class="error">${esc(err.message)}</p>`; }
-    finally { e.target.disabled = false; }
+    e.target.disabled = true; $("#gen-out").innerHTML = `<p class="muted small">${t("正在查资料、写灵魂，十几秒到半分钟。可以先关掉这个窗口，写好了会告诉你")}</p>`;
+    D.writing = prompt;
+    try {
+      const d = await api("/api/characters/generate", { body: { prompt } });
+      const open = !$("#modal").classList.contains("hidden") && $("#gen-out");
+      D.saved = { draft: d, prompt };
+      if (open) { D.prompt = prompt; await draftForm(d); }
+      else { toast(t("{name} 的灵魂写好了，点“新角色”接着看", { name: d.persona?.name || "" }), 6000); }
+    } catch (err) {
+      if ($("#gen-out") && !$("#modal").classList.contains("hidden")) $("#gen-out").innerHTML = `<p class="error">${esc(err.message)}</p>`; else fail(err);
+    } finally { D.writing = ""; e.target.disabled = false; }
   }
   if (e.target.id === "gen-blank") { D.prompt = ""; await draftForm({ persona: {}, behavior: {}, lore: [], appearance: "" }); $("[data-d=name]")?.focus(); }
   if (e.target.id === "voice-design") {
@@ -203,11 +240,13 @@ document.addEventListener("click", async (e) => {  // 弹窗里的按钮（弹�
     if (D.voice && D.voice.style === vstyle) behavior.voice.voice = D.voice.id;  // 试听过、描述没改：就用这个声音，不再设计一次
     else if (vstyle && D.design) behavior.voice.voice = "";  // 描述改过：创建时按新描述设计
     const body = { draft: { persona, behavior, lore: d.lore || [], appearance: $("[data-d=appearance]").value.trim() }, prompt: D.prompt || "" };
-    e.target.disabled = true; e.target.textContent = t("正在画形象、设计声音，大约半分钟…");
-    try {
+    e.target.disabled = true; e.target.textContent = t("创建中…");
+    try {  // 角色马上建好、窗口马上关；形象和声音在后台做，大约一分钟，好了会告诉你
       const { character: c } = await api("/api/workbench/character", { body });
-      $("#modal").classList.add("hidden"); toast(t("欢迎 {name}！", { name: c.name }), 4000);
-      await reloadChars(c.id); bus.emit("select", { id: c.id, view: "persona" });
+      D.saved = null;
+      $("#modal").classList.add("hidden");
+      toast(c.pending ? t("{name} 建好了，可以先聊着。形象和声音在后台做，大约一分钟", { name: c.name }) : t("欢迎 {name}！", { name: c.name }), 5000);
+      await reloadChars(c.id); bus.emit("select", { id: c.id, view: "chat" });
     } catch (err) { fail(err); e.target.disabled = false; e.target.textContent = t("创建角色"); }
   }
   if (e.target.id === "go-ws") { $("#modal").classList.add("hidden"); bus.emit("goto", "workshop"); }

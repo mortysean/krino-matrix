@@ -337,7 +337,18 @@ def summary(c: Character) -> dict:
             "edited": c.version > 1, "workshop": (c.origin or {}).get("workshop"), "portrait": (c.behavior or {}).get("portrait"),
             "voice": (c.behavior or {}).get("voice"), "greeting": p.get("greeting", ""),
             "default_expression": (c.behavior or {}).get("default_expression"),
-            "model": c.model, "ai": True}
+            "model": c.model, "ai": True, "pending": _pending(c)}
+
+
+PENDING_MAX_S = 600  # 后台补形象 / 声音最多等这么久；超过（比如中途重启了服务）就不再显示“正在创建”
+
+
+def _pending(c: Character) -> bool:
+    """新角色的形象和声音还在后台做（workbench._finish_character）。"""
+    import time
+
+    ts = (c.origin or {}).get("pending")
+    return bool(ts) and time.time() - float(ts) < PENDING_MAX_S
 
 
 def full(c: Character) -> dict:

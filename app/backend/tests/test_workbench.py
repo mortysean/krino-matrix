@@ -199,7 +199,7 @@ def test_one_sentence_makes_soul_body_and_voice(user, monkeypatch):
     monkeypatch.setattr(settings, "tts_provider", "dashscope")
     k = user.krino
     before = user.ok("get", f"/api/characters/{k['id']}")
-    r = user.ok("post", "/api/workbench/character", json={"prompt": "一只戴围巾、爱读诗的小水獭", "character_id": k["id"]})
+    r = user.ok("post", "/api/workbench/character", json={"prompt": "一只戴围巾、爱读诗的小水獭", "character_id": k["id"], "wait": True})
     c = r["character"]
     assert r["created"] and c["id"] != k["id"] and c["name"] != "KRINO"
     assert c["behavior"]["portrait"]["kind"] == "image" and c["behavior"]["portrait"]["src"].startswith("/media/")
@@ -208,14 +208,14 @@ def test_one_sentence_makes_soul_body_and_voice(user, monkeypatch):
     assert user.ok("get", f"/api/characters/{k['id']}")["persona"] == before["persona"]  # KRINO 原样
     assert len(r["character"]["behavior"]["portrait"]) and r["used"] == 1  # 只生成一张
     # 在自己的角色上再点：也是新建，她自己的灵魂不变（灵魂只在新建时设计）
-    r2 = user.ok("post", "/api/workbench/character", json={"prompt": "一个总在打瞌睡的机器人管家", "character_id": c["id"]})
+    r2 = user.ok("post", "/api/workbench/character", json={"prompt": "一个总在打瞌睡的机器人管家", "character_id": c["id"], "wait": True})
     assert r2["created"] and r2["character"]["id"] != c["id"]
     assert user.ok("get", f"/api/characters/{c['id']}")["persona"] == c["persona"]
     # 新角色窗口里自己改过的灵魂：照着建，不再让模型重写
     draft = user.ok("post", "/api/characters/generate", json={"prompt": "爱下棋的老猫"})
     draft["persona"]["name"] = "棋棋"
     draft["persona"]["speech"] = "- 口头禅「将军喵」"
-    r3 = user.ok("post", "/api/workbench/character", json={"draft": draft})
+    r3 = user.ok("post", "/api/workbench/character", json={"draft": draft, "wait": True})
     assert r3["character"]["persona"]["name"] == "棋棋" and "将军喵" in r3["character"]["persona"]["speech"]
     assert r3["character"]["behavior"]["portrait"]["src"].startswith("/media/")
     assert user.post("/api/workbench/character", json={"draft": {"persona": {"name": ""}}}).status_code == 400
@@ -266,3 +266,20 @@ def test_voice_design_needs_self_hosted_tts_and_is_billed(user, monkeypatch):
     r = user.c.post("/api/voice/design", json={"description": "低沉的老年巫师", "sample": "你好"}, headers=user.h)
     assert r.status_code == 200 and r.headers["x-voice-id"] == "v0123456789-zh" and r.content == b"RIFFfake"
     assert charged == [("voice_design", settings.voice_design_price_cny)]
+
+
+
+def test_new_character_is_created_at_once_and_finished_in_background(user):
+    """创建新角色马上返回（窗口可以关），形象和声音在后台补上；做的时候标着 pending，做完去掉。"""
+    import time
+
+    r = user.ok("post", "/api/workbench/character", json={"draft": {"persona": {"name": "后台小鲸", "greeting": "你好"}, "appearance": "一头小鲸鱼"}})
+    c = r["character"]
+    assert r["created"] and c["name"] == "后台小鲸" and c["pending"] is True and not c["portrait"]
+    assert any(x["id"] == c["id"] for x in user.ok("get", "/api/characters"))  # 已经在角色列表里，能聊
+    for _ in range(50):
+        c = user.ok("get", f"/api/characters/{c['id']}")
+        if not c["pending"]:
+            break
+        time.sleep(0.1)
+    assert c["pending"] is False and c["behavior"]["portrait"]["src"].startswith("/media/")

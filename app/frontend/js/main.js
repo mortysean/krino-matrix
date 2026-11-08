@@ -49,7 +49,7 @@ function renderChars() {
   $("#char-list").innerHTML = S.chars.map((c) => `
     <div class="char-item ${c.id === S.charId ? "active" : ""}" data-id="${c.id}" style="--c:${esc(c.color)}">
       ${avaHTML(c)}
-      <div class="char-text"><div class="name">${esc(c.name)}</div><div class="muted small tagline" title="${esc(c.tagline)}">${esc(c.tagline)}</div></div>
+      <div class="char-text"><div class="name">${esc(c.name)}${c.pending ? `<i class="pending-tag" title="${esc(t("形象和声音在后台做"))}">${esc(t("创建中"))}</i>` : ""}</div><div class="muted small tagline" title="${esc(c.tagline)}">${esc(c.tagline)}</div></div>
     </div>`).join("");
   $$(".char-item").forEach((el) => (el.onclick = () => select(el.dataset.id)));
 }
@@ -106,6 +106,7 @@ async function boot() {
   if (fromPet) history.replaceState(null, "", location.pathname + location.search);
   await select(S.chars.find((c) => c.id === S.charId)?.id || S.chars[0]?.id, fromPet ? "persona" : "chat");
   refreshAsks();
+  bus.emit("chars:loaded");  // 有还在后台创建的角色：接着等它做完（persona.js）
   hideBoot();
 }
 

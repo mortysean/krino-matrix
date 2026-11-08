@@ -844,3 +844,7 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 .tv-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .tv-bar input { flex: 1; min-width: 180px; }
 .tv-typing { animation: pulse 1.4s ease-in-out infinite; margin: 0; }
+
+/* 新角色：形象和声音还在后台做 */
+.pending-tag { font: normal 10px/1 var(--mono); letter-spacing: .08em; color: #3df5ff; border: 1px solid rgba(61, 245, 255, .5); padding: 2px 5px; margin-left: 6px;
+  vertical-align: 2px; animation: pulse 1.4s steps(3) infinite; }

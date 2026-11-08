@@ -349,6 +349,55 @@ class CharacterIn(BaseModel):
     prompt: str = Field(default="", max_length=500)       # 一句话描述（没有 draft 时用它写灵魂）
     draft: dict | None = None                              # 新角色窗口里写好 / 改好的灵魂：{persona, behavior, lore, appearance}
     character_id: str | None = Field(default=None, max_length=32)  # 在哪个角色的工作台上点的（只用来记来源，不会改她）
+    wait: bool = False  # True = 画完形象、设计完声音再返回（测试用）；默认马上返回，后台补上
+
+
+def _finish_character(cid: str, user_id: str, look_prompt: str, voice: dict, greeting: str) -> None:
+    """后台给新角色补上形象和声音：两件事同时做（画图约一分钟，设计声音几秒），做完写回角色、去掉“正在创建”。
+    用自己的数据库会话；失败了也要把“正在创建”去掉，角色照样能聊（没有形象时显示名字首字的铭牌）。"""
+    from .db import SessionLocal
+    from .models import Character
+
+    t0 = time.perf_counter()
+    image, error = None, None
+    with SessionLocal() as db:
+        user = db.get(User, user_id)
+        if user is None:
+            return
+
+        def draw():
+            return _run(user, "design", [{"text": look_prompt}], 1, f"{MAX_W}*{MAX_H}")[0]
+
+        def speak():
+            with SessionLocal() as vdb:
+                return _own_voice(vdb, db.get(User, user_id), dict(voice), greeting)
+
+        with ThreadPoolExecutor(2) as pool:
+            fi, fv = pool.submit(draw), pool.submit(speak)
+            try:
+                image = fi.result()
+            except Exception as e:  # noqa: BLE001
+                error = getattr(e, "detail", str(e))
+                log.warning("新角色 %s 的形象没画出来：%s", cid, error)
+            try:
+                new_voice = fv.result()
+            except Exception:  # noqa: BLE001
+                log.exception("新角色 %s 的声音没设计出来", cid)
+                new_voice = voice
+        c = db.get(Character, cid)
+        if c is None:  # 等的时候被删了
+            return
+        b = dict(c.behavior or {})
+        if image:
+            b["portrait"] = {"kind": "image", "src": image}
+        b["voice"] = {**(b.get("voice") or {}), **new_voice}
+        c.behavior = b
+        o = {k: v for k, v in (c.origin or {}).items() if k != "pending"}
+        if error:
+            o["portrait_error"] = str(error)[:120]
+        c.origin = o
+        db.commit()
+    log.info("新角色 %s 补完形象和声音（%.0fs）%s", cid, time.perf_counter() - t0, "，形象失败" if error else "")
 
 
 def _own_voice(db: Session, user: User, voice: dict, greeting: str) -> dict:
@@ -401,13 +450,21 @@ def character(body: CharacterIn, user: User = Depends(current_user), db: Session
     p = d["persona"]
     who = body.prompt.strip() or f"{p.get('name', '')}，{p.get('tagline', '')}"
     look = f"{who}。{d.get('appearance') or ''}" if lang == "zh" else f"{who}. {d.get('appearance') or ''}"
-    image = _run(user, "design", [{"text": PROMPTS[lang]["design"].format(prompt=look[:800])}], 1, f"{MAX_W}*{MAX_H}")[0]
-    behavior = {**d["behavior"], "portrait": {"kind": "image", "src": image}}
-    behavior["voice"] = _own_voice(db, user, dict(behavior.get("voice") or {}), p.get("greeting", ""))
-    try:
+    look_prompt = PROMPTS[lang]["design"].format(prompt=look[:800])
+    behavior = {k: v for k, v in d["behavior"].items() if k != "portrait"}  # 先没有形象：显示名字铭牌，画好了再换上
+    try:  # 角色马上建好（灵魂已经定了），形象和声音在后台补；关掉窗口、刷新页面都不影响
         new = personas.create(db, user, persona=p, behavior=behavior, lore=d["lore"],
-                              origin={"source": "created", "prompt": who[:200]})
+                              origin={"source": "created", "prompt": who[:200], "pending": int(time.time())})
     except PersonaError as e:
         raise HTTPException(400, str(e)) from e
     db.commit()
+    job = (new.id, user.id, look_prompt, dict(behavior.get("voice") or {}), p.get("greeting", ""))
+    if body.wait:
+        _finish_character(*job)
+        db.expire_all()
+        new = personas.get_owned(db, user, new.id)
+    else:
+        import threading
+
+        threading.Thread(target=_finish_character, args=job, name=f"char-{new.id[:8]}", daemon=True).start()
     return {"character": personas.full(new), "created": True, "used": _used_today(db, user.id)}

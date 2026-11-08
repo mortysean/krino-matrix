@@ -37,6 +37,8 @@ function draft(c) {
 // 给 persona.js 用：草稿里的形象、有没有改过、预填描述（一句话新建角色后接着生成形象）
 export const bodyPortrait = (c) => draft(c).portrait;
 export const bodyDirty = (c) => !samePortrait(draft(c).portrait, c.behavior.portrait || null);
+// 后台补好了新角色的形象（版本号没变）：丢掉旧草稿，按角色现在的样子重来，不然会误以为“改了没保存”
+export function bodyForget(cid) { delete drafts[cid]; }
 export function bodyPrompt(cid, text) { (drafts[cid] ||= { version: -1, candidates: [], faces: {}, prompt: "" }).prompt = text; }
 
 function facesLabel(p) {
