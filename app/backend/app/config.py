@@ -87,6 +87,9 @@ class Settings:
     llm_api_key: str | None = field(default_factory=lambda: os.getenv("OPENROUTER_API_KEY") or os.getenv("LLM_OPENROUTER_API_KEY") or None)
     llm_max_tokens: int = field(default_factory=lambda: _int("LLM_MAX_TOKENS", 2000))
     llm_reasoning: str = field(default_factory=lambda: _env("LLM_REASONING", "off"))  # off | low | medium | high
+    # OpenRouter 优先用这几家（逗号分隔；空 = 让 OpenRouter 自己挑）。默认路由每次随机换一家，慢的一家首字要 5 秒；
+    # 2026-11-09 实测 Together、BaseTen 在两台服务器上都最快最稳。这几家都不可用时自动退回其他家。
+    openrouter_providers: list = field(default_factory=lambda: [x.strip() for x in _env("OPENROUTER_PROVIDERS", "Together,BaseTen").split(",") if x.strip()])
     llm_timeout_s: float = field(default_factory=lambda: _float("LLM_TIMEOUT_S", 60))
     # 角色可选的聊天模型（白名单，第一个是默认）。后台任务（记忆整理、摘要）始终用 LLM_MODEL
     llm_character_models: tuple[str, ...] = field(default_factory=lambda: _list("LLM_CHARACTER_MODELS", DEFAULT_LLM))

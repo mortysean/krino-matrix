@@ -96,7 +96,7 @@ export function soulGraph(host, c, { onNew } = {}) {
   // ---------- 点云 ----------
   const r = rng(hash(c.id));
   const dust = [];
-  const N = innerWidth < 700 ? 2600 : 4600;
+  const N = innerWidth < 700 ? 1400 : 2600;
   for (let i = 0; i < N; i++) {
     const side = i % 2 ? 1 : -1;
     const [x, y, z] = brainPoint(r, side);
@@ -119,11 +119,12 @@ export function soulGraph(host, c, { onNew } = {}) {
   });
   const mems = [];
   let links = [];
+  const sample = { [-1]: dust.filter((d) => d.side < 0).filter((_, i) => i % 4 === 0), [1]: dust.filter((d) => d.side > 0).filter((_, i) => i % 4 === 0) };
   function buildLinks() {
     links = [];
     for (const n of [...nodes, ...mems]) {
       const side = n.x < 0 ? -1 : 1;
-      dust.filter((d) => d.side === side).map((d) => [d, (d.x - n.x) ** 2 + (d.y - n.y) ** 2 + (d.z - n.z) ** 2])
+      sample[side].map((d) => [d, (d.x - n.x) ** 2 + (d.y - n.y) ** 2 + (d.z - n.z) ** 2])
         .sort((a, b) => a[1] - b[1]).slice(0, 3).forEach(([d]) => links.push({ a: n, b: d, ph: r() * 6.28, sp: 0.6 + r() * 1.6 }));
     }
     nodes.forEach((n) => {
@@ -209,10 +210,12 @@ export function soulGraph(host, c, { onNew } = {}) {
   showTab("soul");
 
   // ---------- 渲染 ----------
-  let W = 0, H = 0, dpr = 1, rotY = -0.35, rotX = 0.12, spin = !reduce, last = performance.now(), raf = 0, alive = true;
+  const buckets = Array.from({ length: 16 }, () => []);
+  const BUCKET_STYLE = Array.from({ length: 16 }, (_, i) => rgba(i < 8 ? GOLD : VIOLET, ((i % 8) + 0.5) / 13));
+  let W = 0, H = 0, dpr = 1, rotY = -0.35, rotX = 0.12, spin = !reduce, last = performance.now(), raf = 0, alive = true, drawn = 0;
   let drag = null, mouse = null, hover = null;
   function resize() {
-    dpr = Math.min(2, devicePixelRatio || 1);
+    dpr = Math.min(1.5, devicePixelRatio || 1);
     W = canvas.clientWidth; H = canvas.clientHeight;
     canvas.width = Math.max(1, W * dpr); canvas.height = Math.max(1, H * dpr);
     kick();
@@ -234,7 +237,10 @@ export function soulGraph(host, c, { onNew } = {}) {
     if (!alive) return;
     if (!host.isConnected) return stop();
     if (!W || !H) return;
-    const dt = Math.min(50, now - last); last = now;
+    if (!document.getElementById("modal")?.classList.contains("hidden")) { raf = requestAnimationFrame(frame); return; }  // 弹窗盖着：不画
+    if (now - drawn < 33 && !drag) { raf = requestAnimationFrame(frame); return; }  // 最多 30 帧
+    drawn = now;
+    const dt = Math.min(66, now - last); last = now;
     if (spin && !drag) rotY += dt * 0.00012;
     const T = now / 1000;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -245,11 +251,10 @@ export function soulGraph(host, c, { onNew } = {}) {
     const bx = W / 2, by = H * 0.93;
     for (let i = 0; i < 5; i++) {
       const rx = W * (0.09 + i * 0.06), ry = rx * 0.17, a = 0.5 - i * 0.08 + 0.1 * Math.sin(T * 2 + i);
-      ctx.strokeStyle = rgba(CYAN, Math.max(0.05, a)); ctx.lineWidth = i === 0 ? 2.2 : 1;
-      ctx.shadowColor = rgba(CYAN, 0.9); ctx.shadowBlur = i === 0 ? 18 : 6;
-      ctx.beginPath(); ctx.ellipse(bx, by, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(bx, by, rx, ry, 0, 0, Math.PI * 2);
+      if (i === 0) { ctx.strokeStyle = rgba(CYAN, 0.12); ctx.lineWidth = 9; ctx.stroke(); }
+      ctx.strokeStyle = rgba(CYAN, Math.max(0.05, a)); ctx.lineWidth = i === 0 ? 2.2 : 1; ctx.stroke();
     }
-    ctx.shadowBlur = 0;
     ctx.setLineDash([2, 6]); ctx.strokeStyle = rgba(CYAN, 0.55); ctx.lineDashOffset = -T * 20;
     ctx.beginPath(); ctx.ellipse(bx, by, W * 0.18, W * 0.18 * 0.17, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
     const beam = ctx.createLinearGradient(0, 0, 0, by);
@@ -260,13 +265,21 @@ export function soulGraph(host, c, { onNew } = {}) {
     ctx.beginPath(); ctx.ellipse(W / 2, H * 0.48, W * 0.38, H * 0.44, 0, 0, Math.PI * 2); ctx.stroke();
 
     // 脑形粒子（远的暗、近的亮）
+    for (const b of buckets) b.length = 0;
     for (const d of dust) {
       const [x, y, s, z] = project(d);
       const tw = 0.55 + 0.45 * Math.sin(T * 1.7 + d.tw);
-      ctx.fillStyle = rgba(d.side < 0 ? GOLD : VIOLET, (0.2 + 0.38 * tw) * (z < 0 ? 1 : 0.5));
+      const lvl = Math.min(7, Math.floor((0.2 + 0.38 * tw) * (z < 0 ? 1 : 0.5) * 13));
       const sz = d.s * s * 1.35;
-      ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
+      buckets[(d.side < 0 ? 0 : 8) + lvl].push(x - sz / 2, y - sz / 2, sz);
     }
+    buckets.forEach((b, i) => {
+      if (!b.length) return;
+      ctx.fillStyle = BUCKET_STYLE[i];
+      ctx.beginPath();
+      for (let k = 0; k < b.length; k += 3) ctx.rect(b[k], b[k + 1], b[k + 2], b[k + 2]);
+      ctx.fill();
+    });
     // 神经连线和流过的信号
     for (const l of links) {
       const [x1, y1] = project(l.a), [x2, y2] = project(l.b);
@@ -298,17 +311,18 @@ export function soulGraph(host, c, { onNew } = {}) {
       const pulse = n.hot ? 1 + 0.5 * Math.abs(Math.sin(T * 3 + n.x * 9)) : 1 + 0.12 * Math.sin(T * 2 + n.y * 7);
       const on = focus && (n.key === focus || n.parent === focus || n.id === focus);
       const rad = n.size * s * pulse * (on ? 1.5 : 1) * (n.kind === "mem" && a < 1 ? 1 + (1 - a) * 2 : 1);
-      ctx.shadowColor = rgba(n.col, 1); ctx.shadowBlur = (n.kind === "dim" ? 22 : n.kind === "mem" ? 16 : 10) * (on ? 1.6 : 1);
+      const halo = (n.kind === "dim" ? 3.2 : n.kind === "mem" ? 2.6 : 2) * (on ? 1.4 : 1);
+      ctx.fillStyle = rgba(n.col, 0.16 * a);
+      ctx.beginPath(); ctx.arc(x, y, rad * halo, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = rgba(n.col, 0.95 * a);
       ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
       if (n.newest && !reduce) {
         const k = (T % 2.4) / 2.4;
-        ctx.shadowBlur = 0; ctx.strokeStyle = rgba(n.col, 0.7 * (1 - k)); ctx.lineWidth = 1.2;
+        ctx.strokeStyle = rgba(n.col, 0.7 * (1 - k)); ctx.lineWidth = 1.2;
         ctx.beginPath(); ctx.arc(x, y, rad + k * 22, 0, Math.PI * 2); ctx.stroke();
       }
       if (mouse && (mouse[0] - x) ** 2 + (mouse[1] - y) ** 2 < Math.max(64, (rad + 5) ** 2)) hover = n;
     }
-    ctx.shadowBlur = 0;
     ctx.globalCompositeOperation = "source-over";
     ctx.font = "500 11.5px system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif";
     ctx.textAlign = "center";

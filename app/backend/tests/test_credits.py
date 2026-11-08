@@ -41,6 +41,7 @@ def test_openrouter_usage_is_charged(user, monkeypatch):
     def handler(req):
         body = json.loads(req.content)
         assert body["usage"] == {"include": True}
+        assert body["provider"] == {"order": ["Together", "BaseTen"], "allow_fallbacks": True}  # 先走快的几家，不行再换
         usage = {"prompt_tokens": 100, "completion_tokens": 20, "cost": 0.01}
         if body.get("stream"):
             chunks = [{"choices": [{"delta": {"content": "嗨"}}]}, {"choices": [{"delta": {}}], "usage": usage}]

@@ -80,6 +80,7 @@ class OpenRouterLLM:
                 "messages": [{"role": "system", "content": system}, *messages],
                 "max_tokens": max_tokens or settings.llm_max_tokens, "reasoning": reasoning,
                 "usage": {"include": True},  # 让 OpenRouter 返回这次的实际花费，用来记积分
+                **({"provider": {"order": settings.openrouter_providers, "allow_fallbacks": True}} if settings.openrouter_providers else {}),
                 **({"tools": [web_tool()]} if (context or {}).get("web") else {})}
 
     def _headers(self) -> dict:

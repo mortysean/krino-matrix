@@ -58,6 +58,10 @@ async def lifespan(app: FastAPI):
         from .policy import MatrixPolicy
         threading.Thread(target=MatrixPolicy.evaluator, name="matrix-warmup", daemon=True).start()
     social.start_autonomy()  # 角色们自己在圈子里生活
+    import threading
+
+    from .text import tokenize
+    threading.Thread(target=tokenize, args=("预热分词词典",), name="jieba-warmup", daemon=True).start()  # 第一次分词要加载词典约 0.5 秒
     if settings.tts_provider == "local":  # 预热本地语音，第一句话不用等加载
         from .tts_local import warmup
         warmup()
