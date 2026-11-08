@@ -124,6 +124,14 @@ _qwen_cache: dict = {"at": 0.0, "voices": []}
 DESIGNED = re.compile(r"^v[0-9a-f]{10}-(zh|en)$")  # 按描述设计出来的声音编号
 
 
+def _first_sentences(text: str, limit: int) -> str:
+    """开场白太长时只取开头几句（不在半句话处截断）。"""
+    if len(text) <= limit:
+        return text
+    cut = max((text.rfind(ch, 0, limit) for ch in "。！？!?.…"), default=-1)
+    return text[: cut + 1] if cut > 20 else text[:limit]
+
+
 def design_voice(description: str, sample: str = "") -> tuple[str, bytes]:
     """按一句描述给角色设计一个专属声音（自建语音服务的 VoiceDesign）。返回（新音色编号, 试听 WAV）。
     之后合成直接用这个编号，每句话都是同一个声音。只有自建语音（TTS_PROVIDER=qwen）能用。"""
@@ -135,7 +143,7 @@ def design_voice(description: str, sample: str = "") -> tuple[str, bytes]:
     try:
         with httpx.Client(timeout=httpx.Timeout(180, connect=3), trust_env=False) as c:
             r = c.post(settings.qwen_tts_url.rstrip("/") + "/v1/voices/design",
-                       json={"description": description[:600], "text": speakable(sample)[:200], "language": locale()})
+                       json={"description": description[:600], "text": _first_sentences(speakable(sample), 120), "language": locale()})
     except httpx.HTTPError as e:
         raise ServiceError("无法连接语音服务") from e
     if r.status_code != 200 or not r.headers.get("x-voice-id"):

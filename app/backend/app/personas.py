@@ -773,7 +773,7 @@ def generate(body: GenerateIn, user: User = Depends(current_user), db: Session =
 
 class VoiceDesignIn(BaseModel):
     description: str = Field(min_length=2, max_length=300)
-    sample: str = Field(default="", max_length=200)  # 试听用的一句话（一般是开场白）
+    sample: str = Field(default="", max_length=2000)  # 试听用的一句话（一般是开场白；太长只念开头）
 
 
 @router.post("/voice/design")
