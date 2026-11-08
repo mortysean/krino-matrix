@@ -1,5 +1,5 @@
 #!/bin/bash
-# 算力服务器上启停自建模型服务。只占两张卡：GPU_MAIN 放生图的两个扩散模型，GPU_AUX 放文本编码器 + 语音。
+# 算力服务器上启停自建模型服务。只占两张卡：GPU_AUX 只放语音（常驻，不和生图抢算力），GPU_MAIN 只放生图（用时才上卡，闲置退回内存）。
 #   ./run.sh start|stop|status|logs [tts|speech|image]
 #   tts    = vllm-omni 跑 Qwen3-TTS（127.0.0.1:8650，只对本机）
 #   speech = 对外的语音接口（8640）：合成转给 tts，识别用 SenseVoice
@@ -30,17 +30,30 @@ tunnel_loop() {  # 一个网站服务器一个循环：ssh 断了 5 秒后重连
   done
 }
 
+tts_deploy() {  # 官方配置上只改显存：默认两段各按整卡 30% 预留（48G 卡上光缓存就 9.5G，够 21 路长句同时合成），用不了这么多
+  cat >"$LOGS/tts_deploy.yaml" <<EOF
+base_config: $CONDA_PREFIX/lib/python3.11/site-packages/vllm_omni/deploy/qwen3_tts.yaml
+stages:
+  - stage_id: 0
+    gpu_memory_utilization: ${TTS_MEM:-0.16}  # 48G 卡：权重 4.1G + 运行约 1G + 缓存约 2.5G（够 5 路长句、十几路短句同时说）
+    max_num_seqs: 16
+  - stage_id: 1
+    max_num_seqs: 16
+EOF
+}
+
 start_one() {
   local name=$1
   if [ -f "$LOGS/$name.pid" ] && kill -0 "$(cat "$LOGS/$name.pid")" 2>/dev/null; then echo "$name 已在运行"; return; fi
   case $name in
     tts)
+      tts_deploy
       CUDA_VISIBLE_DEVICES=$GPU_AUX nohup vllm-omni serve "$MODELS/Qwen3-TTS-12Hz-1.7B-Base" --omni --host 127.0.0.1 --port 8650 \
-        --served-model-name qwen3-tts --trust-remote-code >"$LOGS/tts.log" 2>&1 & ;;
+        --served-model-name qwen3-tts --trust-remote-code --deploy-config "$LOGS/tts_deploy.yaml" >"$LOGS/tts.log" 2>&1 & ;;
     speech)
       CUDA_VISIBLE_DEVICES=$GPU_AUX nohup python -m uvicorn speech_server:app --host 0.0.0.0 --port 8640 >"$LOGS/speech.log" 2>&1 & ;;
     image)
-      CUDA_VISIBLE_DEVICES=$GPU_MAIN,$GPU_AUX nohup python -m uvicorn image_server:app --host 0.0.0.0 --port 8641 >"$LOGS/image.log" 2>&1 & ;;
+      CUDA_VISIBLE_DEVICES=$GPU_MAIN nohup python -m uvicorn image_server:app --host 0.0.0.0 --port 8641 >"$LOGS/image.log" 2>&1 & ;;
     tunnel)
       (for h in $TUNNEL_HOSTS; do tunnel_loop "$h" & done; wait) >"$LOGS/tunnel.log" 2>&1 &
       ;;

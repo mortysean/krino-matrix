@@ -44,6 +44,14 @@ _asr_lock = threading.Lock()
 _asr = None
 _registered: set[str] = set()
 _http = httpx.Client(timeout=httpx.Timeout(120, connect=3), trust_env=False)
+_async_client: httpx.AsyncClient | None = None
+
+
+def _ahttp() -> httpx.AsyncClient:  # 流式合成专用，在事件循环里用（要等循环起来再建）
+    global _async_client
+    if _async_client is None:
+        _async_client = httpx.AsyncClient(timeout=httpx.Timeout(120, connect=3), trust_env=False)
+    return _async_client
 
 
 def asr():
@@ -131,20 +139,27 @@ def speech(body: SpeechIn):
     req = _omni_body(text, body.voice, body.speed, body.stream)
     t = time.time()
     if body.stream:
-        def gen():
+        # 用异步：用户打断（中途挂断）时请求直接被取消，合成引擎那边也马上停。
+        # 以前用同步生成器，挂断后生成器挂着不收尾，过一阵被垃圾回收时去关共用连接池里的连接，
+        # 正好碰上别的线程拿着连接池的锁就互相卡死，之后所有请求（连 /health）都没反应（2026-11-07 遇到）。
+        async def gen():
             first = None
             n = 0
-            with _http.stream("POST", f"{OMNI}/v1/audio/speech", json=req) as r:
-                if r.status_code != 200:
-                    log.error("合成出错 %s：%s", r.status_code, r.read()[:200])
-                    return
-                for chunk in r.iter_bytes():
-                    if first is None:
-                        first = time.time() - t
-                    n += len(chunk)
-                    yield chunk
-            log.info("流式合成 %s %d 字 → %.1fs 音频，首包 %.2fs，总 %.2fs", body.voice, len(text), n / 2 / SAMPLE_RATE,
-                     first or 0, time.time() - t)
+            done = False
+            try:
+                async with _ahttp().stream("POST", f"{OMNI}/v1/audio/speech", json=req) as r:
+                    if r.status_code != 200:
+                        log.error("合成出错 %s：%s", r.status_code, (await r.aread())[:200])
+                        return
+                    async for chunk in r.aiter_bytes():
+                        if first is None:
+                            first = time.time() - t
+                        n += len(chunk)
+                        yield chunk
+                done = True
+            finally:
+                log.info("流式合成%s %s %d 字 → %.1fs 音频，首包 %.2fs，总 %.2fs", "" if done else "（中途挂断）", body.voice,
+                         len(text), n / 2 / SAMPLE_RATE, first or 0, time.time() - t)
         return StreamingResponse(gen(), media_type="audio/pcm", headers={"X-Sample-Rate": str(SAMPLE_RATE)})
     try:
         r = _http.post(f"{OMNI}/v1/audio/speech", json=req)

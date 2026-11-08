@@ -89,7 +89,7 @@ def _dashscope(content: list[dict], n: int, size: str, base_url: str | None = No
                     break
                 log.warning("百炼生图限流，%s 秒后重试", wait)
                 time.sleep(wait + random.random())
-            if r.status_code == 429:
+            if r.status_code in (429, 503):  # 503：自建服务那张卡正被别的任务占着，或模型还在加载
                 raise ImageError("图像服务太忙了，过一会儿再点一次")
             if r.status_code != 200:
                 log.error("百炼生图 %s: %s", r.status_code, r.text[:300])
