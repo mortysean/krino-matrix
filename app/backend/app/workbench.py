@@ -351,6 +351,21 @@ class CharacterIn(BaseModel):
     character_id: str | None = Field(default=None, max_length=32)  # 在哪个角色的工作台上点的（只用来记来源，不会改她）
 
 
+def _own_voice(db: Session, user: User, voice: dict, greeting: str) -> dict:
+    """新角色有声音描述、还没有专属声音时，按描述设计一个（自建语音才能设计）。设计不了就照旧用默认声音，不耽误建角色。"""
+    from . import personas
+    from .voice import _qwen_voices
+
+    if settings.tts_provider != "qwen" or not voice.get("style") or voice.get("voice") in _qwen_voices():
+        return voice
+    try:
+        vid, _ = personas.design_character_voice(db, user, voice["style"], greeting)
+        voice["voice"] = vid
+    except (PersonaError, HTTPException) as e:
+        log.warning("新角色的声音没设计出来，先用默认声音：%s", getattr(e, "detail", e))
+    return voice
+
+
 @router.post("/character")
 def character(body: CharacterIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     """设计一个新角色：灵魂（人设、开场白、对话示例、音色）+ 按外貌画一张形象，总是新建。
@@ -373,7 +388,7 @@ def character(body: CharacterIn, user: User = Depends(current_user), db: Session
             raw = body.draft
             d0 = persona_io.from_package({"format": persona_io.FORMAT, "persona": raw.get("persona") or {}, "lore": raw.get("lore") or []})
             if not str(d0.persona.get("name") or "").strip():
-                raise PersonaError("给她起个名字吧")
+                raise PersonaError("先起个名字吧")
             beh = raw.get("behavior") if isinstance(raw.get("behavior"), dict) else {}
             d = {"persona": d0.persona, "lore": d0.lore, "appearance": str(raw.get("appearance") or "")[:500],
                  "behavior": personas.validate_behavior({k: v for k, v in beh.items() if k != "portrait"} or None)
@@ -388,6 +403,7 @@ def character(body: CharacterIn, user: User = Depends(current_user), db: Session
     look = f"{who}。{d.get('appearance') or ''}" if lang == "zh" else f"{who}. {d.get('appearance') or ''}"
     image = _run(user, "design", [{"text": PROMPTS[lang]["design"].format(prompt=look[:800])}], 1, f"{MAX_W}*{MAX_H}")[0]
     behavior = {**d["behavior"], "portrait": {"kind": "image", "src": image}}
+    behavior["voice"] = _own_voice(db, user, dict(behavior.get("voice") or {}), p.get("greeting", ""))
     try:
         new = personas.create(db, user, persona=p, behavior=behavior, lore=d["lore"],
                               origin={"source": "created", "prompt": who[:200]})

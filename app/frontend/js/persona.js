@@ -44,10 +44,14 @@ export async function personaPage() {
           <div id="body-host"></div>
           <div class="section-title mono">${t("VOICE · 声音")}</div>
           <div class="row">
-            ${vc.tts.voices?.length ? `<select data-v="voice" style="flex:1">${vc.tts.voices.map((v) => `<option value="${esc(v)}" ${v === (b.voice.voice || vc.tts.default) ? "selected" : ""}>${esc(voiceLabel(v))}</option>`).join("")}</select>`
+            ${vc.tts.voices?.length ? `<select data-v="voice" style="flex:1">${voiceOptions(vc.tts, b.voice.voice)}</select>`
               : `<input data-v="voice" value="${esc(b.voice.voice || "")}" placeholder="${t("音色（服务端语音时用）")}" style="flex:1">`}
             <button class="ghost small" id="voice-try">▶ ${t("试听")}</button>
           </div>
+          ${vc.tts.design ? `<div class="voice-design">
+            <textarea data-v="style" rows="2" placeholder="${t("描述想要的声音：性别年龄、音色、语速、情绪……例如：低沉沙哑的老年巫师，慢条斯理")}">${esc(b.voice.style || "")}</textarea>
+            <button class="ghost small" id="voice-redesign">${t("按描述设计新声音")}</button>
+          </div>` : ""}
           <div class="slider-row"><span>${t("语速")}</span><input type="range" min="0.6" max="1.6" step="0.05" data-v="rate" value="${b.voice.rate}"><span>${b.voice.rate}</span></div>
           <p class="muted small">${voiceNote(vc.tts)}</p>
         </div>
@@ -66,6 +70,20 @@ export async function personaPage() {
   root.oninput = (e) => { if (!e.target.closest("#body-host")) markDirty(true); };  // 每次重画都覆盖，不会越绑越多
   bodyPanel($("#body-host", root), c, { onChange: markDirty }).then(() => markDirty()).catch(fail);
   $("#voice-try").onclick = () => speak(p.greeting || t("你好，我在这里。"), collect(root, c).behavior.voice).catch(fail);
+  $("#voice-redesign", root)?.addEventListener("click", async (e) => {  // 设计好就选上并试听；点“保存”才算数
+    const style = $("[data-v=style]", root).value.trim();
+    if (!style) return $("[data-v=style]", root).focus();
+    const btn = e.currentTarget; btn.disabled = true; btn.textContent = t("正在设计，几秒…");
+    try {
+      const res = await api("/api/voice/design", { body: { description: style, sample: p.greeting || "" }, raw: true });
+      const id = res.headers.get("x-voice-id"), sel = $("[data-v=voice]", root);
+      sel.insertAdjacentHTML("afterbegin", `<option value="${esc(id)}">${esc(t("专属声音（刚设计的）"))}</option>`);
+      sel.value = id; markDirty(true);
+      new Audio(URL.createObjectURL(await res.blob())).play().catch(() => {});
+      toast("设计好了，点“保存”就换成这个声音");
+    } catch (err) { fail(err); }
+    finally { btn.disabled = false; btn.textContent = t("按描述设计新声音"); }
+  });
   $("#p-save").onclick = () => save(root, c);
   $("#p-more").onclick = () => moreMenu(c);
   $("#p-export").onclick = async () => {  // 先存再导出：导出的就是现在看到的样子
@@ -81,6 +99,8 @@ export async function personaPage() {
 function collect(root, c) {  // 只有肉体：形象和声音。灵魂不在这里改
   const behavior = { ...c.behavior };
   behavior.voice = { ...c.behavior.voice, voice: $("[data-v=voice]", root).value, rate: +$("[data-v=rate]", root).value };
+  const st = $("[data-v=style]", root);
+  if (st) behavior.voice.style = st.value.trim();
   behavior.portrait = bodyPortrait(c);
   return { behavior };
 }
@@ -101,18 +121,20 @@ async function save(root, c, { quiet = false } = {}) {
 }
 
 // ---------- 新角色：唯一能设计灵魂的地方 ----------
-// 一句话 → 写出一份灵魂草稿（性格、说话方式、开场白、对话样例、外貌、声音）→ 在这里随便改 → “创建她”（顺便画一张形象）。
+// 一句话 → 写出一份灵魂草稿（性格、说话方式、开场白、对话样例、外貌、声音）→ 在这里随便改 → “创建角色”（顺便画形象、设计声音）。
+// 一句话可以是原创，也可以是已有作品里的角色（“哈利·波特里的马尔福”）：后端会先联网查设定。角色不一定是“她”，称呼跟着设定走。
 // 也可以从空白开始自己写，或者导入文件、去工坊挑。建好之后灵魂就固定了，工作台里只看不改。
-const D = { draft: null, prompt: "" };
+const D = { draft: null, prompt: "", voice: null };  // voice：试听时设计出来的声音 { id, style }，描述没改就直接用
 const DRAFT_FIELDS = [["name", "名字", 1], ["tagline", "简介", 1], ["greeting", "开场白", 2], ["personality", "性格", 3], ["speech", "说话方式（口头禅写在这里）", 3],
-  ["examples", "对话示例（一行一句：“用户：……”“她的名字：……”）", 5]];
+  ["examples", "对话示例（一行一句：“用户：……”“角色名：……”）", 5]];
+const PRONOUNS = [["她", "她"], ["他", "他"], ["它", "它（非人类）"], ["TA", "TA（不确定 / 不区分）"]];
 
 export async function addCharacter() {
   if (S.chars.length >= (S.me?.companion_limit || 8)) return toast(t("最多 {n} 位角色，先和一位告别吧", { n: S.me.companion_limit }));
-  D.draft = null; D.prompt = "";
+  D.draft = null; D.prompt = ""; D.voice = null;
   await modal("新角色", `
-    <label>${t("用一句话描述她（人、动物、机器人都行）")}<textarea id="gen-prompt" rows="2" maxlength="500" placeholder="${t("例如：在海边书店打工的抹香鲸娘，话少，喜欢在打烊后给我念书")}"></textarea></label>
-    <div class="row"><button id="gen-go">${t("写出她的灵魂")}</button><button class="ghost small" id="gen-blank">${t("从空白开始自己写")}</button>
+    <label>${t("用一句话描述你想要的角色：原创的，或者书、动漫、游戏里已有的都行")}<textarea id="gen-prompt" rows="2" maxlength="500" placeholder="${t("例如：哈利·波特里的德拉科·马尔福；或者：在海边书店打工的抹香鲸，话少，打烊后给我念书")}"></textarea></label>
+    <div class="row"><button id="gen-go">${t("写出灵魂")}</button><button class="ghost small" id="gen-blank">${t("从空白开始自己写")}</button>
       <span class="grow"></span>
       <label class="ghost-btn">${t("导入文件")}<input type="file" id="imp-file" accept=".json,.md,.png,.charx,.zip" hidden></label>
       <button class="link small" id="go-ws">${t("去工坊挑一个 →")}</button></div>
@@ -122,20 +144,26 @@ export async function addCharacter() {
 async function draftForm(d) {
   const sc = await schema();
   const labels = Object.fromEntries(sc.fields.map((x) => [x.key, x.label]));
-  D.draft = d;
+  const vc = await voiceConfig().catch(() => ({ tts: {} }));
+  D.draft = d; D.voice = null; D.design = !!vc.tts?.design;
   const p = d.persona || {};
+  const pron = p.pronoun || "TA";
   $("#gen-out").innerHTML = `
     <div class="draft-form">
-      <p class="muted small">${t("这是她的灵魂。建好之后就固定了（改了就不是她了），所以现在想清楚、随便改。")}</p>
+      <p class="muted small">${t("这是角色的灵魂。建好之后就固定了（改了就不像本人了），所以现在想清楚、随便改。")}</p>
+      ${d.sources?.length ? `<p class="muted small">${t("参考了这些资料：")}${d.sources.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title || new URL(x.url).hostname)}</a>`).join("、")}</p>` : ""}
       ${DRAFT_FIELDS.map(([k, l, rows]) => rows === 1
         ? `<label>${t(l)}<input data-d="${k}" value="${esc(p[k] || "")}" maxlength="${k === "name" ? 40 : 80}"></label>`
         : `<label>${t(l)}<textarea data-d="${k}" rows="${rows}">${esc(p[k] || "")}</textarea></label>`).join("")}
-      <label>${t("她的样子（用来画形象）")}<textarea data-d="appearance" rows="2">${esc(d.appearance || "")}</textarea></label>
+      <label>${t("称呼")}<select data-d-pron>${PRONOUNS.map(([v, l]) => `<option value="${v}" ${v === pron ? "selected" : ""}>${esc(t(l))}</option>`).join("")}</select></label>
+      <label>${t("外貌（用来画形象）")}<textarea data-d="appearance" rows="2">${esc(d.appearance || "")}</textarea></label>
+      <label>${t("声音（描述想要的声音：性别年龄、音色、语速、情绪……）")}<textarea data-d-voice rows="2" placeholder="${t("例如：年轻男性，冷淡傲慢，语速偏慢，咬字清晰")}">${esc(d.behavior?.voice?.style || "")}</textarea></label>
+      ${vc.tts?.design ? `<div class="row"><button class="ghost small" id="voice-design">▶ ${t("试听这个声音")}</button><span class="muted small" id="voice-design-note">${t("不满意就改描述再听一次；不试听也会按描述设计")}</span></div>` : ""}
       <details><summary>${t("更多设定（背景、价值观、兴趣、世界观、关系……）")}</summary>
         ${MORE_FIELDS.map((k) => `<label>${esc(tr(labels[k]))}<textarea data-d="${k}" rows="2">${esc(p[k] || "")}</textarea></label>`).join("")}
         <label>${t("风格")}<select data-d-style>${Object.keys(sc.styles).map((x) => `<option value="${esc(x)}" ${x === (d.behavior?.style || "温柔") ? "selected" : ""}>${esc(tr(x))}</option>`).join("")}</select></label>
       </details>
-      <div class="row"><button id="draft-go">${t("创建她")}</button><span class="muted small">${t("会顺便按“她的样子”画一张形象，大约半分钟")}</span></div>
+      <div class="row"><button id="draft-go">${t("创建角色")}</button><span class="muted small">${t("会顺便按外貌画一张形象、按描述设计声音，大约半分钟")}</span></div>
     </div>`;
 }
 
@@ -143,25 +171,44 @@ document.addEventListener("click", async (e) => {  // 弹窗里的按钮（弹�
   if (e.target.id === "gen-go") {
     const prompt = $("#gen-prompt").value.trim();
     if (!prompt) return $("#gen-prompt").focus();
-    e.target.disabled = true; $("#gen-out").innerHTML = `<p class="muted small">${t("正在写她的灵魂，十几秒…")}</p>`;
+    e.target.disabled = true; $("#gen-out").innerHTML = `<p class="muted small">${t("正在查资料、写灵魂，十几秒到半分钟…")}</p>`;
     try { await draftForm(await api("/api/characters/generate", { body: { prompt } })); D.prompt = prompt; }
     catch (err) { $("#gen-out").innerHTML = `<p class="error">${esc(err.message)}</p>`; }
     finally { e.target.disabled = false; }
   }
   if (e.target.id === "gen-blank") { D.prompt = ""; await draftForm({ persona: {}, behavior: {}, lore: [], appearance: "" }); $("[data-d=name]")?.focus(); }
+  if (e.target.id === "voice-design") {
+    const style = $("[data-d-voice]").value.trim();
+    if (!style) return $("[data-d-voice]").focus();
+    const btn = e.target, note = $("#voice-design-note");
+    btn.disabled = true; note.textContent = t("正在设计声音，几秒…");
+    try {
+      const res = await api("/api/voice/design", { body: { description: style, sample: $("[data-d=greeting]")?.value.trim() || "" }, raw: true });
+      D.voice = { id: res.headers.get("x-voice-id"), style };
+      const audio = new Audio(URL.createObjectURL(await res.blob()));
+      note.textContent = t("这就是创建后的声音。不满意就改描述再听一次");
+      audio.play().catch(() => {});
+    } catch (err) { note.textContent = ""; fail(err); }
+    finally { btn.disabled = false; }
+  }
   if (e.target.id === "draft-go") {
     const d = D.draft || { persona: {}, behavior: {}, lore: [] };
     const persona = { ...(d.persona || {}) };
     $$("[data-d]").forEach((el) => { if (el.dataset.d !== "appearance") persona[el.dataset.d] = el.value.trim(); });
-    if (!persona.name) { toast("给她起个名字吧"); return $("[data-d=name]")?.focus(); }
+    if (!persona.name) { toast("先起个名字吧"); return $("[data-d=name]")?.focus(); }
+    persona.pronoun = $("[data-d-pron]")?.value || "TA";
     const behavior = { ...(d.behavior || {}), style: $("[data-d-style]")?.value || d.behavior?.style || "温柔" };
+    const vstyle = $("[data-d-voice]")?.value.trim() || "";
+    behavior.voice = { ...(behavior.voice || {}), style: vstyle };
+    if (D.voice && D.voice.style === vstyle) behavior.voice.voice = D.voice.id;  // 试听过、描述没改：就用这个声音，不再设计一次
+    else if (vstyle && D.design) behavior.voice.voice = "";  // 描述改过：创建时按新描述设计
     const body = { draft: { persona, behavior, lore: d.lore || [], appearance: $("[data-d=appearance]").value.trim() }, prompt: D.prompt || "" };
-    e.target.disabled = true; e.target.textContent = t("正在画她，大约半分钟…");
+    e.target.disabled = true; e.target.textContent = t("正在画形象、设计声音，大约半分钟…");
     try {
       const { character: c } = await api("/api/workbench/character", { body });
       $("#modal").classList.add("hidden"); toast(t("欢迎 {name}！", { name: c.name }), 4000);
       await reloadChars(c.id); bus.emit("select", { id: c.id, view: "persona" });
-    } catch (err) { fail(err); e.target.disabled = false; e.target.textContent = t("创建她"); }
+    } catch (err) { fail(err); e.target.disabled = false; e.target.textContent = t("创建角色"); }
   }
   if (e.target.id === "go-ws") { $("#modal").classList.add("hidden"); bus.emit("goto", "workshop"); }
 });
@@ -229,9 +276,18 @@ function voiceLabel(v) {
   return role ? t(role) : VOICE_LABELS[v] || v;
 }
 
+// 声音下拉：大家共用的音色 + 这个角色自己的专属声音（按描述设计的，只有它有）
+function voiceOptions(tts, current) {
+  const list = [...tts.voices];
+  if (current && !list.includes(current) && /^v[0-9a-f]{10}-(zh|en)$/.test(current)) list.unshift(current);
+  const cur = current || tts.default;
+  return list.map((v) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(/^v[0-9a-f]{10}-/.test(v) ? t("专属声音（按描述设计）") : voiceLabel(v))}</option>`).join("");
+}
+
 function voiceNote(tts) {
   if (!tts.server) return t("现在用浏览器自带的朗读。");
-  if (tts.provider === "local") return t("本地语音（Kokoro，{n} 个音色）。挑一个最像她的。", { n: tts.voices.length });
+  if (tts.provider === "local") return t("本地语音（Kokoro，{n} 个音色）。挑一个最像的。", { n: tts.voices.length });
+  if (tts.design) return t("可以挑一个现成的声音，也可以写一句描述，设计一个只属于这个角色的声音。");
   return t("按人设描述生成的声音。");
 }
 

@@ -49,7 +49,9 @@ TEXT_FIELDS = tuple(FIELDS)
 EN_TITLES = {"background": "Background", "personality": "Personality", "values": "Values", "speech": "Speech",
              "interests": "Interests", "preferences": "Habits", "worldview": "World", "relationships": "Relationships",
              "boundaries": "Boundaries", "greeting": "Greeting", "examples": "Example dialogue"}
-HEAD_FIELDS = ("name", "tagline", "tags", "color")
+HEAD_FIELDS = ("name", "tagline", "tags", "color", "pronoun")
+# 怎么称呼这个角色：不一定是“她”——男性、非人类、性别不明的都有。界面和提示词按它说话
+PRONOUNS = ("她", "他", "它", "TA")
 LORE_PREFIX = "设定笔记 · "
 
 MAX_FIELD = 8000
@@ -155,6 +157,12 @@ def _finish(d: Draft) -> Draft:
     if not p["name"]:
         raise PersonaError("缺少角色名")
     p["tagline"] = _s(p.get("tagline"), 80)
+    pron = str(p.get("pronoun") or "").strip()
+    pron = {"ta": "TA", "she": "她", "he": "他", "it": "它", "they": "TA"}.get(pron.lower(), pron)
+    if pron in PRONOUNS:
+        p["pronoun"] = pron
+    else:
+        p.pop("pronoun", None)  # 没写就不猜：老角色、导入的角色照旧
     p["tags"] = [str(t)[:12] for t in (p.get("tags") or []) if str(t).strip()][:8] if isinstance(p.get("tags"), list) else []
     if p.get("boundaries"):
         p["boundaries"] = _LEGACY_BOUNDARY.sub("", p["boundaries"]).strip()
@@ -183,7 +191,8 @@ def from_markdown(text: str) -> Draft:
     fm, body = _split_frontmatter(text)
     h1 = re.search(r"^#\s+(.+)$", body, re.M)
     persona: dict[str, Any] = {"name": str(fm.get("name") or (h1.group(1).strip() if h1 else "")),
-                               "tagline": fm.get("tagline") or "", "tags": fm.get("tags") or [], "color": fm.get("color")}
+                               "tagline": fm.get("tagline") or "", "tags": fm.get("tags") or [], "color": fm.get("color"),
+                               "pronoun": fm.get("pronoun")}
     mapping = [{"source": "frontmatter.name" if fm.get("name") else "# 标题", "target": "name"}]
     mapping += [{"source": f"frontmatter.{k}", "target": k} for k in ("tagline", "tags") if fm.get(k)]
     lore, extra, unknown = [], [], []
@@ -209,7 +218,7 @@ def from_markdown(text: str) -> Draft:
     style = fm.get("style")
     if style and not behavior:
         behavior = {"style": style}
-    known = {"format", "id", "name", "tagline", "tags", "color", "behavior", "style", "avatar", "age", "title", "aliases", "version"}
+    known = {"format", "id", "name", "tagline", "tags", "color", "pronoun", "behavior", "style", "avatar", "age", "title", "aliases", "version"}
     extra_fm = {k: v for k, v in fm.items() if k not in known}
     if extra_fm:
         persona["unmapped"] = {"frontmatter": extra_fm}
@@ -221,7 +230,8 @@ def from_markdown(text: str) -> Draft:
 
 def to_markdown(persona: dict, behavior: dict, lore: list[dict], slug: str) -> str:
     fm = {"format": FORMAT, "id": slug, "name": persona.get("name", ""), "tagline": persona.get("tagline", ""),
-          "tags": persona.get("tags") or [], "color": persona.get("color") or "", "behavior": behavior}
+          "tags": persona.get("tags") or [], "color": persona.get("color") or "",
+          **({"pronoun": persona["pronoun"]} if persona.get("pronoun") else {}), "behavior": behavior}
     head = yaml.safe_dump(fm, allow_unicode=True, sort_keys=False, default_flow_style=None).strip()
     parts = [f"---\n{head}\n---\n", f"# {persona.get('name', '')}\n"]
     for key, (_, title, _) in FIELDS.items():

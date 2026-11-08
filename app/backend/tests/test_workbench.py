@@ -219,3 +219,50 @@ def test_one_sentence_makes_soul_body_and_voice(user, monkeypatch):
     assert r3["character"]["persona"]["name"] == "棋棋" and "将军喵" in r3["character"]["persona"]["speech"]
     assert r3["character"]["behavior"]["portrait"]["src"].startswith("/media/")
     assert user.post("/api/workbench/character", json={"draft": {"persona": {"name": ""}}}).status_code == 400
+
+
+def test_generate_researches_known_characters_and_keeps_pronoun(user, monkeypatch):
+    """一句话里提到已有作品的角色：生成时打开联网搜索；称呼（他 / 她 / 它 / TA）跟着设定走，存下来、导出也在。"""
+    from app import llm, mock
+
+    seen = {}
+    real = mock.MockLLM.complete
+
+    def spy(self, *, system, messages, max_tokens=None, context=None):
+        seen.update(context or {})
+        r = real(self, system=system, messages=messages, max_tokens=max_tokens, context=context)
+        if (context or {}).get("task") == "persona":
+            import json as _j
+            d = _j.loads(r.text); d.update(name="德拉科·马尔福", pronoun="他", voice_style="年轻男性，冷淡傲慢，语速偏慢")
+            r.text = _j.dumps(d, ensure_ascii=False)
+        return r
+
+    monkeypatch.setattr(mock.MockLLM, "complete", spy)
+    monkeypatch.setattr(llm, "_llm", None)
+    d = user.ok("post", "/api/characters/generate", json={"prompt": "哈利·波特里的德拉科·马尔福"})
+    assert seen.get("web") is True  # 让模型先查设定
+    assert d["persona"]["pronoun"] == "他" and "男性" in d["behavior"]["voice"]["style"]
+    c = user.ok("post", "/api/characters", json={"persona": d["persona"], "behavior": d["behavior"], "lore": d["lore"]})
+    assert c["persona"]["pronoun"] == "他"
+    md = user.c.get(f"/api/characters/{c['id']}/export?format=md", headers=user.h).text
+    assert "pronoun: 他" in md
+    bad = user.ok("post", "/api/characters", json={"persona": {**d["persona"], "name": "某人", "pronoun": "xx"}})
+    assert "pronoun" not in bad["persona"]  # 不认识的称呼不存
+
+
+def test_voice_design_needs_self_hosted_tts_and_is_billed(user, monkeypatch):
+    """按描述设计声音：没有自建语音时说清楚；有的话返回试听和新音色编号，按百炼的价记一笔积分。"""
+    from app import voice
+
+    monkeypatch.setattr(settings, "tts_provider", "mock")
+    r = user.c.post("/api/voice/design", json={"description": "低沉的老年巫师"}, headers=user.h)
+    assert r.status_code == 400 and "自建语音" in r.json()["detail"]
+
+    monkeypatch.setattr(settings, "tts_provider", "qwen")
+    monkeypatch.setattr(voice, "design_voice", lambda desc, sample="": ("v0123456789-zh", b"RIFFfake"))
+    charged = []
+    from app import credits
+    monkeypatch.setattr(credits, "charge", lambda uid, what, cny, **kw: charged.append((what, cny)))
+    r = user.c.post("/api/voice/design", json={"description": "低沉的老年巫师", "sample": "你好"}, headers=user.h)
+    assert r.status_code == 200 and r.headers["x-voice-id"] == "v0123456789-zh" and r.content == b"RIFFfake"
+    assert charged == [("voice_design", settings.voice_design_price_cny)]

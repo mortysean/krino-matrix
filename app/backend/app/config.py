@@ -167,6 +167,8 @@ class Settings:
     image_price_cny: float = field(default_factory=lambda: _float("IMAGE_PRICE_CNY", 0.25))  # 元 / 张
     tts_price_cny: float = field(default_factory=lambda: _float("TTS_PRICE_CNY", 1))   # 元 / 万字
     qwen_tts_price_cny: float = field(default_factory=lambda: _float("QWEN_TTS_PRICE_CNY", 0.8))  # 自建 Qwen3-TTS：按百炼 qwen3-tts-flash 元 / 万字
+    # 按描述设计一个角色的专属声音（自建 Qwen3-TTS VoiceDesign）：按百炼 qwen-voice-design 的价，元 / 个音色
+    voice_design_price_cny: float = field(default_factory=lambda: _float("VOICE_DESIGN_PRICE_CNY", 0.2))
     # elevenlabs：Eleven v4（同一榜单第 1，海外版推荐；国内服务器要能访问 api.elevenlabs.io）。音色是 ElevenLabs 自带的 voice_id
     elevenlabs_api_key: str | None = field(default_factory=lambda: os.getenv("ELEVENLABS_API_KEY") or None)
     elevenlabs_model: str = field(default_factory=lambda: _env("ELEVENLABS_MODEL", "eleven_v4"))

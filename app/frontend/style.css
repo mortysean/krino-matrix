@@ -802,3 +802,9 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
   .vm-orb i, .mic-spin { animation: none !important; }
   .vm { transition: none; }
 }
+
+/* 角色的专属声音：按描述设计 */
+.voice-design { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0 4px; }
+.voice-design textarea { flex: 1; min-height: 2.8em; }
+.voice-design button { flex: none; }
+@media (max-width: 760px) { .voice-design { flex-direction: column; align-items: stretch; } }

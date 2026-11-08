@@ -591,39 +591,66 @@ def package_of(c: Character) -> dict:
 
 # ---------- 描述生成 ----------
 
-GENERATE_SYSTEM = f"""你是 ACG 角色设定作者，根据用户的描述写一个原创虚拟角色。
-要求：不以真实人物或现有作品的角色为原型；不写露骨或成人向内容；中文写作，具体、有画面感。
+GENERATE_SYSTEM = f"""你是角色设定作者，根据用户的描述写一个能陪人聊天的角色。
+用户要的可能是原创角色，也可能是小说、动漫、游戏、电影里已有的角色（比如“哈利·波特里的德拉科·马尔福”）：
+- 是已有角色时，先用搜索工具查清楚官方设定（外貌、身份、性格、经历、口头禅、人际关系、所在世界），按设定写，不要凭印象编；
+  名字、外貌、说话方式都要贴合原作，像原作里走出来的；查不到的细节宁可不写。
+- 是原创角色时，照用户的描述发挥，具体、有画面感。
+角色可以是任何性别，也可以不是人（动物、机器人、精灵、物件……）：照用户要的写，不要默认写成女性，也不要默认是人类。
+不写露骨或成人向内容；不以现实中的真实人物为原型。
 只输出一个 JSON 对象，不要解释或代码块标记。字段：
-{{"name": "2-6 个字", "tagline": "一句话简介，30 字以内", "style": "从 {list(STYLES)} 里选一个",
+{{"name": "角色名（已有角色用官方中文译名）", "pronoun": "怎么称呼这个角色：她 / 他 / 它 / TA 选一个",
+  "tagline": "一句话简介，30 字以内", "style": "从 {list(STYLES)} 里选一个",
   "tags": ["3-5 个标签"], "background": "外貌、身份、背景，3-5 句", "personality": "用 - 开头的 3-5 行",
   "values": "价值倾向，用 - 开头的 2-3 行", "speech": "语言风格，用 - 开头的 3 行，含口头禅",
   "interests": "兴趣，用 - 开头的 2-3 行", "preferences": "行为偏好（会怎么动、怎么回应），用 - 开头的 2-3 行",
-  "worldview": "她所在的世界，1-2 句", "relationships": "和用户、和其他人的关系，用 - 开头的 1-3 行",
-  "greeting": "第一次见面时说的一句话，口语，不要自我介绍式的开场",
-  "examples": "5-6 组对话示例，每行一句，格式为“用户：……”和“<角色名>：……”交替；要能看出她独特的口吻、口头禅和小脾气，像在聊天软件里打字",
+  "worldview": "角色所在的世界，1-2 句", "relationships": "和用户、和其他人的关系，用 - 开头的 1-3 行",
+  "greeting": "第一次见面时说的一句话，口语，符合角色口吻，不要自我介绍式的开场",
+  "examples": "5-6 组对话示例，每行一句，格式为“用户：……”和“<角色名>：……”交替；要能看出角色独特的口吻、口头禅和小脾气，像在聊天软件里打字",
   "lore": [{{"name": "地点或物件", "content": "2-3 句设定"}}],
-  "appearance": "外貌，给画师看的一段话：身体特征、发型发色、眼睛、服装配饰、标志性物件、整体气质；角色不是人的就写清楚是什么",
-  "voice": "从这些音色里选最贴合她的一个：{{voices}}",
-  "voice_style": "她的声音和说话语气，给配音演员看的一句话（音色、音高、语速、情绪）"}}
-角色不一定是人：用户描述的是动物、机器人、精灵或物件，就照着写，不要写成人类。
+  "appearance": "外貌，给画师看的一段话：物种 / 体型、发型发色、眼睛、服装配饰、标志性物件、整体气质；已有角色写原作里的标志性造型",
+  "voice_style": "这个角色的声音，给配音演员看的一句话：性别和年龄感、音色（低沉 / 清亮 / 沙哑……）、音高、语速、情绪和说话习惯；不是人的写清楚是什么样的声音"}}
 避免空泛的形容词和“AI 助手”腔调（不要“很高兴为你服务”“作为……”“领航员”“向导”之类）。"""
+
+GENERATE_SYSTEM_EN = f"""You write character profiles for a companion chat app, from the user's description.
+The user may want an original character, or an existing one from a novel, anime, game or film (e.g. "Draco Malfoy from Harry Potter"):
+- For an existing character, first use the search tool to look up the official canon (looks, role, personality, history, catchphrases,
+  relationships, world) and write to it, not from memory. Name, looks and voice should feel lifted straight from the source; leave out
+  details you can't confirm.
+- For an original character, follow the user's description; be concrete and vivid.
+The character can be any gender, or not human at all (animal, robot, spirit, object…): write what the user asked for; don't default to
+female or to human.
+No explicit or adult content; no characters based on real people.
+Output one JSON object only, no explanation or code fences. Fields (write the values in English):
+{{"name": "the character's name", "pronoun": "how to refer to them, one of: 她 (she) / 他 (he) / 它 (it) / TA (they)",
+  "tagline": "one-line intro, under 80 characters", "style": "one of {list(STYLES)}",
+  "tags": ["3-5 tags"], "background": "looks, role, background, 3-5 sentences", "personality": "3-5 lines starting with -",
+  "values": "2-3 lines starting with -", "speech": "3 lines starting with -, including catchphrases",
+  "interests": "2-3 lines starting with -", "preferences": "habits (how they move and respond), 2-3 lines starting with -",
+  "worldview": "their world, 1-2 sentences", "relationships": "to the user and others, 1-3 lines starting with -",
+  "greeting": "the first thing they say on meeting, casual, in character, not a self-introduction",
+  "examples": "5-6 exchanges, one line each, alternating 'User: …' and '<name>: …'; show their own voice, catchphrases and quirks",
+  "lore": [{{"name": "a place or object", "content": "2-3 sentences"}}],
+  "appearance": "for the artist: species / build, hair, eyes, outfit and accessories, signature items, overall feel; for an existing character, their iconic look",
+  "voice_style": "their voice, one sentence for a voice actor: gender and age, timbre (deep / bright / husky…), pitch, pace, mood and speech habits; if not human, what it sounds like"}}
+Avoid vague adjectives and assistant-speak ("happy to help", "as your guide", etc.)."""
 
 
 def generate_draft(prompt: str, style: str | None, payer: str | None = None) -> dict:
+    """一句话 → 角色草稿。提到已有作品的角色时，模型会先联网查设定再写（OpenRouter 的搜索工具，查不了就照常写）。"""
+    from .config import settings as _s
     from .llm import LLMError, get_llm
 
     prompt = (prompt or "").strip()
     if not prompt:
         raise PersonaError("先描述一下你想要的角色")
     check_content(prompt)
-    ask = prompt + (f"\n（互动风格偏好：{style}）" if style in STYLES else "")
-    from .voice import VOICE_CATALOG, catalog_voices
-
-    choices = catalog_voices("zh")
-    system = GENERATE_SYSTEM.replace("{voices}", "；".join(f"{k}={VOICE_CATALOG[k][0]}" for k in choices))
+    en = locale() == "en"
+    ask = prompt + ((f"\n(Preferred interaction style: {style})" if en else f"\n（互动风格偏好：{style}）") if style in STYLES else "")
     try:
-        r = get_llm().complete(system=system, messages=[{"role": "user", "content": ask}], max_tokens=2400,
-                               context={"task": "persona", "payer": payer, "prompt": prompt, "style": style})
+        r = get_llm().complete(system=GENERATE_SYSTEM_EN if en else GENERATE_SYSTEM, messages=[{"role": "user", "content": ask}],
+                               max_tokens=3000, context={"task": "persona", "payer": payer, "prompt": prompt, "style": style,
+                                                          "web": _s.web_search != "off"})
     except LLMError as e:
         raise PersonaError(str(e)) from e
     m = re.search(r"\{.*\}", r.text or "", re.S)
@@ -635,17 +662,34 @@ def generate_draft(prompt: str, style: str | None, payer: str | None = None) -> 
         raise PersonaError("生成结果格式不正确，请重试")
     style = style if style in STYLES else (data.get("style") if data.get("style") in STYLES else "温柔")
     appearance = str(data.pop("appearance", "") or "")[:500]
-    voice, voice_style = str(data.pop("voice", "") or ""), str(data.pop("voice_style", "") or "")[:300]
+    voice_style = str(data.pop("voice_style", "") or "")[:300]
+    data.pop("voice", None)
     d = persona_io.from_package({"format": persona_io.FORMAT, "persona": data, "lore": data.get("lore") or []})
     behavior = default_behavior(style)
-    from .config import settings as _s
-    if _s.tts_provider == "dashscope":  # 有百炼语音才给她挑音色；没有就用默认朗读
-        en = locale() == "en"
+    if voice_style:
+        behavior["voice"]["style"] = voice_style  # 声音描述：自建语音按它设计专属声音，百炼按它调语气
+    if _s.tts_provider == "dashscope":  # 百炼：从它的音色表里挑一个最接近描述的
+        from .voice import catalog_voices
+
         pool = catalog_voices("en" if en else "zh")
-        behavior["voice"]["voice"] = voice if voice in pool else _guess_voice(voice_style, pool)
-        if voice_style:
-            behavior["voice"]["style"] = voice_style
-    return {"persona": d.persona, "behavior": behavior, "lore": d.lore, "appearance": appearance}
+        behavior["voice"]["voice"] = _guess_voice(voice_style, pool)
+    sources = [{"title": x.get("title", ""), "url": x.get("url", "")} for x in (getattr(r, "sources", None) or [])][:6]
+    return {"persona": d.persona, "behavior": behavior, "lore": d.lore, "appearance": appearance, "sources": sources}
+
+
+def design_character_voice(db: Session, user: User, description: str, sample: str = "") -> tuple[str, bytes]:
+    """按描述给角色设计一个专属声音，按百炼 qwen-voice-design 的价记一笔。"""
+    from . import credits
+    from .config import settings as _s
+    from .voice import ServiceError, design_voice
+
+    credits.check(db, user)
+    try:
+        vid, wav = design_voice(description, sample)
+    except ServiceError as e:
+        raise PersonaError(str(e)) from e
+    credits.charge(user.id, "voice_design", _s.voice_design_price_cny, voice=vid)
+    return vid, wav
 
 
 def _guess_voice(style: str, pool: list[str]) -> str:
@@ -725,6 +769,20 @@ def generate(body: GenerateIn, user: User = Depends(current_user), db: Session =
 
     credits.check(db, user)
     return _err(lambda: generate_draft(body.prompt, body.style, payer=user.id))
+
+
+class VoiceDesignIn(BaseModel):
+    description: str = Field(min_length=2, max_length=300)
+    sample: str = Field(default="", max_length=200)  # 试听用的一句话（一般是开场白）
+
+
+@router.post("/voice/design")
+def voice_design(body: VoiceDesignIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """按描述设计一个专属声音：返回试听 WAV，响应头 X-Voice-Id 是新音色编号（存进 behavior.voice.voice）。"""
+    _err(lambda: check_content(body.description))
+    vid, wav = _err(lambda: design_character_voice(db, user, body.description, body.sample))
+    return Response(wav, media_type="audio/wav", headers={"X-Voice-Id": vid, "Cache-Control": "no-store",
+                                                          "Access-Control-Expose-Headers": "X-Voice-Id"})
 
 
 @router.get("/characters/{cid}")

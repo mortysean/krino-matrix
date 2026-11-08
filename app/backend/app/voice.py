@@ -121,6 +121,29 @@ def _qwen_voices() -> list[str]:
 
 
 _qwen_cache: dict = {"at": 0.0, "voices": []}
+DESIGNED = re.compile(r"^v[0-9a-f]{10}-(zh|en)$")  # 按描述设计出来的声音编号
+
+
+def design_voice(description: str, sample: str = "") -> tuple[str, bytes]:
+    """按一句描述给角色设计一个专属声音（自建语音服务的 VoiceDesign）。返回（新音色编号, 试听 WAV）。
+    之后合成直接用这个编号，每句话都是同一个声音。只有自建语音（TTS_PROVIDER=qwen）能用。"""
+    if settings.tts_provider != "qwen":
+        raise ServiceError("按描述设计声音需要自建语音服务")
+    description = (description or "").strip()
+    if len(description) < 2:
+        raise ServiceError("先描述一下声音")
+    try:
+        with httpx.Client(timeout=httpx.Timeout(180, connect=3), trust_env=False) as c:
+            r = c.post(settings.qwen_tts_url.rstrip("/") + "/v1/voices/design",
+                       json={"description": description[:600], "text": speakable(sample)[:200], "language": locale()})
+    except httpx.HTTPError as e:
+        raise ServiceError("无法连接语音服务") from e
+    if r.status_code != 200 or not r.headers.get("x-voice-id"):
+        log.error("设计声音 %s：%s", r.status_code, r.text[:200])
+        raise ServiceError(f"设计声音出错（{r.status_code}）")
+    vid = r.headers["x-voice-id"]
+    _qwen_cache["at"] = 0.0  # 新音色马上能用
+    return vid, r.content
 
 
 def _qwen(text: str, voice: str | None, speed: float) -> bytes:
@@ -470,8 +493,9 @@ def voice_config(user: User = Depends(current_user)):
 
 def _tts_config() -> dict:
     p = settings.tts_provider
-    if p == "qwen" and _qwen_voices():
-        return {"provider": p, "server": True, "voices": _qwen_voices(), "default": _qwen_voices()[0]}
+    if p == "qwen" and _qwen_voices():  # 按描述设计的专属声音（v 开头）属于各自的角色，不放进大家都能挑的列表
+        shared = [v for v in _qwen_voices() if not DESIGNED.match(v)] or _qwen_voices()
+        return {"provider": p, "server": True, "voices": shared, "default": shared[0], "design": True}
     keys = {"openai": settings.tts_api_key, "dashscope": settings.dashscope_api_key, "elevenlabs": settings.elevenlabs_api_key}
     if keys.get(p):
         roles = [k for k in _styles() if k.endswith("-en" if locale() == "en" else "-zh")]
