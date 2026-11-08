@@ -133,3 +133,28 @@ def test_autonomy_tick(user, client, monkeypatch):
     db.expire_all()
     assert not any(social.autonomy_tick(db, tick_s=16 * 3600, rng=Always(1), budget=100)[k] for k in ("posts", "dms"))
     db.close()
+
+
+def test_pending_character_stays_out_of_autonomy(user, monkeypatch):
+    """刚新建、形象还在后台做的角色，先不自己发动态。"""
+    import time as _t
+
+    from app.db import SessionLocal
+    from app.models import Character
+
+    sid = user.session(user.krino["id"])
+    user.say(sid, "你好")
+    db = SessionLocal()
+    c = db.get(Character, user.official["id"])
+    c.origin = {**(c.origin or {}), "pending": _t.time()}
+    db.commit()
+    monkeypatch.setattr(social, "now", lambda: __import__("app.models", fromlist=["now"]).now().replace(hour=12))
+
+    class Always(random.Random):
+        def random(self):
+            return 0.0
+
+    social.autonomy_tick(db, tick_s=16 * 3600, rng=Always(1), budget=100)
+    authors = {p["author"]["id"] for p in user.ok("get", "/api/social/feed")}
+    assert user.official["id"] not in authors and user.krino["id"] in authors
+    db.close()

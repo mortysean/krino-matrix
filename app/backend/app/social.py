@@ -30,7 +30,7 @@ from .config import locale, settings
 from .db import SessionLocal, get_db
 from .llm import LLMError, get_llm
 from .models import Bond, Character, CharKnows, CharMessage, Friendship, Memory, Post, PostReaction, User, now
-from .personas import get_owned, list_owned, prompt_text, summary
+from .personas import _pending, get_owned, list_owned, prompt_text, summary
 
 log = logging.getLogger("krino.social")
 router = APIRouter(prefix="/api/social", tags=["social"])
@@ -600,6 +600,8 @@ def autonomy_tick(db: Session, tick_s: float, rng: random.Random | None = None, 
         for c in list_owned(db, owner):
             if budget <= 0:
                 break
+            if _pending(c):  # 刚新建、形象还在后台做：先不自己出来活动
+                continue
             last = db.scalar(select(func.max(Post.created_at)).where(Post.author_id == c.id))
             if awake and (last is None or now() - last > timedelta(hours=4)) and rng.random() < 1.5 * tick_s / day_s:
                 if write_post(db, c):
