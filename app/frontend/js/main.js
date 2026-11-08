@@ -119,6 +119,7 @@ async function loadSite() {
     S.site.police && esc(S.site.police),
     S.site.switch?.url && `<a href="${esc(S.site.switch.url)}">${esc(S.site.switch.label)}</a>`].filter(Boolean).join(" · ");
   $("#site-foot").innerHTML = foot;
+  $("[data-action=register]")?.classList.toggle("hidden", S.site.registration === false);  // 暂未开放注册：只留“进入”
 }
 
 await loadSite();

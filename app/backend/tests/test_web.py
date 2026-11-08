@@ -150,3 +150,17 @@ def test_self_hosted_hear_falls_back_to_bailian(monkeypatch):
     except llm.LLMError:
         pass
     assert out == ["你好"]
+
+
+def test_registration_can_be_closed(client, monkeypatch):
+    """REGISTRATION=closed：注册接口拒绝，站点信息告诉前端隐藏注册按钮；已有账号照常登录。"""
+    from app.config import settings
+
+    client.post("/api/auth/register", json={"username": "reg_before_close", "password": "secret123"})
+    monkeypatch.setattr(settings, "registration", "closed")
+    assert client.get("/api/site").json()["registration"] is False
+    r = client.post("/api/auth/register", json={"username": "reg_after_close", "password": "secret123"})
+    assert r.status_code == 403
+    assert client.post("/api/auth/login", json={"username": "reg_before_close", "password": "secret123"}).status_code == 200
+    monkeypatch.setattr(settings, "registration", "open")
+    assert client.get("/api/site").json()["registration"] is True

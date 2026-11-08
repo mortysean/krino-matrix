@@ -67,6 +67,8 @@ DEFAULT_LLM = "~deepseek/deepseek-flash-latest"  # OpenRouter 上最新的 DeepS
 class Settings:
     # 站点版本：cn = 国内版（中文、带中文商标和备案号）| global = 海外版（英文）。两个版本是两套独立部署，各用各的数据库
     edition: str = field(default_factory=lambda: _env("SITE_EDITION", "cn"))
+    # 注册入口：open = 谁都能注册 | closed = 关掉（登录照常；新账号只能在服务器上用 scripts/add_user.py 建）
+    registration: str = field(default_factory=lambda: _env("REGISTRATION", "open"))
     icp_number: str = field(default_factory=lambda: _env("ICP_NUMBER", ""))          # 国内版页脚的 ICP 备案号
     police_number: str = field(default_factory=lambda: _env("POLICE_RECORD_NUMBER", ""))  # 公安联网备案号（可选）
     # 另一个版本的网址（页脚的切换链接）：按 IP 分流不一定准，用了代理的人要能手动切过去

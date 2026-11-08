@@ -81,6 +81,7 @@ def site():
             "brand": {"zh": "决策矩阵", "en": "KRINO MATRIX"}, "company": COMPANY[locale()],
             "icp": settings.icp_number if settings.edition == "cn" else "",
             "police": settings.police_number if settings.edition == "cn" else "",
+            "registration": settings.registration != "closed",
             "switch": {"url": settings.other_edition_url, "label": "Global" if settings.edition == "cn" else "中国大陆"}
             if settings.other_edition_url else None}
 

@@ -149,6 +149,8 @@ def _clean_group(group: str, data: dict) -> dict:
 
 @router.post("/auth/register")
 def register(body: Credentials, db: Session = Depends(get_db)):
+    if settings.registration == "closed":
+        raise HTTPException(403, "暂未开放注册")
     if not _USERNAME_RE.match(body.username):
         raise HTTPException(400, "用户名需 2-32 位字母、数字、下划线或中文")
     if db.scalar(select(User).where(User.username == body.username)):
