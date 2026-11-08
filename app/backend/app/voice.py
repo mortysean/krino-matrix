@@ -17,6 +17,7 @@ import struct
 import time
 import unicodedata
 import wave
+from contextlib import nullcontext
 
 import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -46,14 +47,15 @@ def _client(timeout: float = 60) -> httpx.Client:
 
 # ---------- STT ----------
 
-def transcribe(data: bytes, mime: str, filename: str = "audio.webm") -> str:
+def transcribe(data: bytes, mime: str, filename: str = "audio.webm", payer: str | None = None) -> str:
     if settings.stt_provider == "mock":
         return "你好，这是一段模拟识别的语音"
     if settings.stt_provider != "openai" or not settings.stt_base_url:
         raise ServiceError("服务端没有配置语音识别（STT_PROVIDER=openai），请使用浏览器识别")
     headers = {"Authorization": f"Bearer {settings.stt_api_key}"} if settings.stt_api_key else {}
+    meter = credits.gpu(payer, "stt", "asr") if credits.is_self_hosted(settings.stt_base_url) else nullcontext()
     try:
-        with _client() as c:
+        with meter, _client() as c:
             r = c.post(settings.stt_base_url.rstrip("/") + "/audio/transcriptions", headers=headers,
                        data={"model": settings.stt_model, "language": "en" if locale() == "en" else "zh"},  # 跟着站点版本
                        files={"file": (filename, data, mime)})
@@ -140,7 +142,7 @@ def _qwen(text: str, voice: str | None, speed: float) -> bytes:
     return r.content
 
 
-def _qwen_stream(text: str, voice: str | None, speed: float):
+def _qwen_stream(text: str, voice: str | None, speed: float, payer: str | None = None):
     """自建语音服务的流式合成，原样转给浏览器（audio/pcm，24kHz 单声道 16-bit）。
     第一段声音拿到了才开始回应；连不上、出错就返回 None，由调用方按整句合成（还会退回 Kokoro）。"""
     text = speakable(text)
@@ -154,21 +156,23 @@ def _qwen_stream(text: str, voice: str | None, speed: float):
     voice = {v: k for k, v in FALLBACK.items()}.get(voice or "", voice)
     name = voice if voice in vs else vs[0]
     client = httpx.Client(timeout=httpx.Timeout(60, connect=3), trust_env=False)
+    meter = credits.gpu(payer, "tts", "tts", chars=len(text))  # 按算力：从发请求到最后一段声音
+    meter.__enter__()
     try:
         cm = client.stream("POST", settings.qwen_tts_url.rstrip("/") + "/v1/audio/speech",
                            json={"input": text, "voice": name, "speed": speed, "stream": True})
         r = cm.__enter__()
         if r.status_code != 200 or not r.headers.get("content-type", "").startswith("audio/pcm"):
-            cm.__exit__(None, None, None); client.close()
+            cm.__exit__(None, None, None); client.close(); meter.__exit__(None, None, None)
             return None
         it = r.iter_bytes()
         first = next(it, b"")
         if not first:
-            cm.__exit__(None, None, None); client.close()
+            cm.__exit__(None, None, None); client.close(); meter.__exit__(None, None, None)
             return None
     except httpx.HTTPError as e:
         log.warning("流式语音不可用，改整句合成：%s", e)
-        client.close()
+        client.close(); meter.__exit__(None, None, None)
         return None
 
     def gen():
@@ -178,7 +182,7 @@ def _qwen_stream(text: str, voice: str | None, speed: float):
         except httpx.HTTPError as e:
             log.warning("流式语音中途断开：%s", e)
         finally:
-            cm.__exit__(None, None, None); client.close()
+            cm.__exit__(None, None, None); client.close(); meter.__exit__(None, None, None)
 
     rate = r.headers.get("x-sample-rate", "24000")
     return StreamingResponse(gen(), media_type="audio/pcm", headers={"X-Sample-Rate": rate, "Cache-Control": "no-store",
@@ -422,7 +426,7 @@ def _mock_describe(data: bytes) -> str:
     return f"［模拟视觉，未理解内容］一张{shape}的图片，整体偏{name}色，{mood}（{w}×{h}）"
 
 
-def describe_image(data: bytes, mime: str, question: str = "") -> str:
+def describe_image(data: bytes, mime: str, question: str = "", payer: str | None = None) -> str:
     """返回给角色看的画面描述。mock 只读颜色和亮度，描述里会写明是模拟。"""
     if settings.vlm_provider != "openai":
         return _mock_describe(data)
@@ -434,14 +438,17 @@ def describe_image(data: bytes, mime: str, question: str = "") -> str:
                                  + (f"对方的问题：{question[:200]}" if question else "")},
         {"type": "image_url", "image_url": {"url": url}}]}]}
     headers = {"Authorization": f"Bearer {settings.vlm_api_key}"} if settings.vlm_api_key else {}
+    local = credits.is_self_hosted(settings.vlm_base_url)  # 自建的 Omni 按算力；云端的按返回的 token 用量
     try:
-        with _client() as c:
+        with credits.gpu(payer, "vision", "omni") if local else nullcontext(), _client() as c:
             r = c.post(settings.vlm_base_url.rstrip("/") + "/chat/completions", json=body, headers=headers)
     except httpx.HTTPError as e:
         raise ServiceError("无法连接视觉理解服务") from e
     if r.status_code != 200:
         log.error("VLM %s: %s", r.status_code, r.text[:200])
         raise ServiceError(f"视觉理解出错（{r.status_code}）")
+    if not local:
+        credits.charge_llm(payer, r.json().get("usage"), settings.vlm_model)
     return str(((r.json().get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()[:400]
 
 
@@ -486,7 +493,7 @@ async def stt(file: UploadFile = File(...), user: User = Depends(current_user)):
         raise HTTPException(413, "音频太长了")
     t0 = time.perf_counter()
     try:
-        text = transcribe(data, mime, file.filename or "audio.webm")
+        text = transcribe(data, mime, file.filename or "audio.webm", payer=user.id)
     except ServiceError as e:
         raise HTTPException(503, str(e)) from e
     events.record("voice", "stt", user_id=user.id, latency_ms=(time.perf_counter() - t0) * 1000,
@@ -507,13 +514,14 @@ def tts(body: TTSIn, user: User = Depends(current_user), db: Session = Depends(g
     credits.check(db, user)
     t0 = time.perf_counter()
     if body.stream and settings.tts_provider == "qwen":
-        resp = _qwen_stream(body.text, body.voice, body.rate)
+        resp = _qwen_stream(body.text, body.voice, body.rate, payer=user.id)
         if resp is not None:
             events.record("voice", "tts", user_id=user.id, latency_ms=(time.perf_counter() - t0) * 1000,
                           payload={"provider": "qwen", "chars": len(body.text), "stream": True})
             return resp
     try:
-        audio, mime = synthesize(body.text, body.voice, body.rate, body.style)
+        with credits.gpu(user.id, "tts", "tts", chars=len(body.text)) if settings.tts_provider == "qwen" else nullcontext():
+            audio, mime = synthesize(body.text, body.voice, body.rate, body.style)
     except ServiceError as e:
         raise HTTPException(503, str(e)) from e
     events.record("voice", "tts", user_id=user.id, latency_ms=(time.perf_counter() - t0) * 1000,
@@ -528,12 +536,13 @@ class VisionIn(BaseModel):
 
 
 @router.post("/vision/describe")
-def vision(body: VisionIn, user: User = Depends(current_user)):
+def vision(body: VisionIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     from .chat import decode_image
 
+    credits.check(db, user)
     img = decode_image(body.image)
     try:
-        return {"description": describe_image(img[0], img[1], body.question),
+        return {"description": describe_image(img[0], img[1], body.question, payer=user.id),
                 "simulated": settings.vlm_provider != "openai"}
     except ServiceError as e:
         raise HTTPException(503, str(e)) from e

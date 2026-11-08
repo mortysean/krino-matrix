@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Iterator
+from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -198,9 +199,10 @@ class OmniLLM:
                         if part.get("type") == "input_audio":
                             part["input_audio"]["data"] = part["input_audio"]["data"].split(",", 1)[-1]
         usage = None
+        meter = credits.gpu(ctx.get("payer"), "hear", "omni", model=self.model) if self.self_hosted else nullcontext()
         try:
-            with self._client.stream("POST", "/chat/completions", json=body,
-                                     headers={"Authorization": f"Bearer {settings.dashscope_api_key}"}) as resp:
+            with meter, self._client.stream("POST", "/chat/completions", json=body,
+                                            headers={"Authorization": f"Bearer {settings.dashscope_api_key}"}) as resp:
                 if resp.status_code != 200:
                     resp.read()
                     log.error("Qwen-Omni %s: %s", resp.status_code, resp.text[:300])
@@ -224,7 +226,7 @@ class OmniLLM:
             raise LLMError("听的服务响应超时，请再说一次") from e
         except httpx.HTTPError as e:
             raise LLMError("无法连接听的服务") from e
-        if usage and not self.self_hosted:  # 自建的不花钱
+        if usage and not self.self_hosted:  # 百炼按 token；自建的按算力（上面的 meter）
             details = usage.get("prompt_tokens_details") or {}
             audio_t = details.get("audio_tokens") or 0
             text_t = (usage.get("prompt_tokens") or 0) - audio_t

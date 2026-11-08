@@ -184,7 +184,7 @@ def plan_turn(db: Session, user: User, sess: ChatSession, *, event: str, text: s
         from .voice import describe_image
 
         t0 = time.perf_counter()
-        p.perception = describe_image(image[0], image[1], question=text)
+        p.perception = describe_image(image[0], image[1], question=text, payer=user.id)
         events.record("vision", "describe", user_id=user.id, character_id=char.id,
                       latency_ms=(time.perf_counter() - t0) * 1000)
     p.mode = {"RESPOND": {"message": "respond", "idle": "proactive", "gesture": "react", "perception": "respond"}[event],
@@ -335,7 +335,7 @@ def record_said(wav_b64: str, compact_b64: str, fmt: str, payer: str | None) -> 
     if settings.stt_provider == "openai" and settings.stt_base_url:
         try:
             from .voice import transcribe
-            text = transcribe(base64.b64decode(wav_b64), "audio/wav", "audio.wav")
+            text = transcribe(base64.b64decode(wav_b64), "audio/wav", "audio.wav", payer=payer)
             if text:
                 return text[:2000]
         except Exception as e:  # noqa: BLE001

@@ -75,3 +75,44 @@ def test_event_write_never_hangs_on_a_locked_user(user):
     finally:
         holder.rollback()
         holder.close()
+
+
+def test_gpu_meter_splits_time_between_concurrent_requests(monkeypatch):
+    """自建显卡按算力收：同一张卡上同时跑两个请求，这段时间两人平摊。"""
+    clock = [100.0]
+    monkeypatch.setattr(credits.time, "monotonic", lambda: clock[0])
+    m = credits.GpuMeter("t")
+    a = m.start()
+    clock[0] += 2          # 只有 a：2 秒全算 a
+    b = m.start()
+    clock[0] += 4          # a、b 一起：各 2 秒
+    assert m.stop(a) == 4
+    clock[0] += 1          # 只剩 b
+    assert m.stop(b) == 3
+    monkeypatch.setattr(settings, "gpu_price_cny_hour", 6)
+    assert credits.gpu_cny(3600) == 6
+
+
+def test_self_hosted_asr_and_vision_are_charged_by_gpu_time(user, monkeypatch):
+    from app import voice
+
+    monkeypatch.setattr(settings, "gpu_price_cny_hour", 3600)  # 1 元 / 秒，好算
+    monkeypatch.setattr(settings, "stt_provider", "openai")
+    monkeypatch.setattr(settings, "stt_base_url", "http://127.0.0.1:18640/v1")
+    monkeypatch.setattr(settings, "vlm_provider", "openai")
+    monkeypatch.setattr(settings, "vlm_base_url", "http://127.0.0.1:18660/v1")
+    monkeypatch.setattr(settings, "vlm_model", "qwen3-omni")
+    clock = [0.0]
+    monkeypatch.setattr(credits.time, "monotonic", lambda: clock[0])
+
+    def handler(req):
+        clock[0] += 0.5    # 每次在显卡上跑 0.5 秒
+        if req.url.path.endswith("/audio/transcriptions"):
+            return httpx.Response(200, json={"text": "你好"})
+        return httpx.Response(200, json={"choices": [{"message": {"content": "一只猫"}}]})
+
+    real = httpx.Client
+    monkeypatch.setattr(voice.httpx, "Client", lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
+    assert voice.transcribe(b"x", "audio/wav", payer=user.info["id"]) == "你好"
+    assert voice.describe_image(b"x", "image/png", payer=user.info["id"]) == "一只猫"
+    assert user.ok("get", "/api/credits")["spent"] == 10  # 两次各 0.5 元 = 10 积分

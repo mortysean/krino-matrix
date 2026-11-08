@@ -165,6 +165,8 @@ class Settings:
     llm_price_out: float = field(default_factory=lambda: _float("LLM_PRICE_OUT", 8))   # 元 / 百万输出 token
     image_price_cny: float = field(default_factory=lambda: _float("IMAGE_PRICE_CNY", 0.25))  # 元 / 张
     tts_price_cny: float = field(default_factory=lambda: _float("TTS_PRICE_CNY", 1))   # 元 / 万字
+    # 自建显卡（算力服务器）按算力收：每次实际占用显卡的秒数 × 每卡时单价；同一张卡上同时在跑的请求平摊这段时间
+    gpu_price_cny_hour: float = field(default_factory=lambda: _float("GPU_PRICE_CNY_HOUR", 6))  # 元 / 卡时
     # elevenlabs：Eleven v4（同一榜单第 1，海外版推荐；国内服务器要能访问 api.elevenlabs.io）。音色是 ElevenLabs 自带的 voice_id
     elevenlabs_api_key: str | None = field(default_factory=lambda: os.getenv("ELEVENLABS_API_KEY") or None)
     elevenlabs_model: str = field(default_factory=lambda: _env("ELEVENLABS_MODEL", "eleven_v4"))
