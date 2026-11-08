@@ -138,10 +138,19 @@ await step("她记得的：说过的称呼被记下", async () => {
 
 await step("工作台：灵魂只看不改（神经网络视图）；换 Live2D 形象", async () => {
   await page.click('.nav [data-view="persona"]');
-  await page.waitForSelector(".soul-graph svg");
+  await page.waitForSelector(".soul-brain canvas");
   expect(await page.locator("#persona-page [data-p]").count() === 0, "工作台里不该能编辑灵魂");
-  await page.click('.sg-dim[data-k="speech"] .sg-hit');
-  expect((await page.textContent(".sg-detail")).length > 4, "点维度后下面没有显示内容");
+  await page.waitForTimeout(1500);
+  // 点画布上的“说话方式”节点 → 下面面板高亮它
+  const node = await page.evaluate(() => document.querySelector("#soul-host")._sbNodes().find((n) => n.key === "speech"));
+  const box = await page.$eval(".soul-brain canvas", (e) => e.getBoundingClientRect().toJSON());
+  await page.mouse.move(box.x + node.at[0], box.y + node.at[1]); await page.waitForTimeout(200);
+  await page.mouse.down(); await page.mouse.up(); await page.waitForTimeout(300);
+  expect((await page.textContent(".sb-list li.hot").catch(() => "")).length > 2, "点节点后面板没有高亮对应的设定");
+  // 记忆：前面聊过“小林”，记忆标签里要能看到，右半脑有记忆星
+  await page.click('[data-sb-tab="mem"]');
+  expect((await page.textContent("[data-sb-body]")).includes("小林"), "记忆面板里没有之前记下的内容");
+  expect(await page.evaluate(() => document.querySelector("#soul-host")._sbNodes().some((n) => n.kind === "mem")), "大脑里没有记忆星");
   await shot("06-persona");
   await page.click('.portrait-opt[data-portrait*="live2d"]');
   await page.click("#p-save");
@@ -184,7 +193,7 @@ await step("新角色：一句话写出灵魂 → 在窗口里改（加口头禅
     && document.querySelector(".wb-stage img")?.src.includes("/media/"); }, null, { timeout: 60000 })
     .catch(async () => { throw new Error("没有新建出角色：" + await page.textContent("#toast").catch(() => "")); });
   const name = await page.textContent(".cast-card.active b");
-  expect((await page.textContent(".soul-graph")).length > 0, "新角色没有灵魂视图");
+  expect(!!(await page.$(".soul-brain canvas")), "新角色没有意识星图");
   expect(await page.locator(".pick-portrait .portrait-opt img[src*='/media/']").count() === 1, "应该只生成一张形象");
   expect((await page.inputValue("[data-v=voice]")) === "longanlingxin_v3.1", "声音没换：" + await page.inputValue("[data-v=voice]"));
   expect(!(await page.$eval("#p-save", (b) => b.classList.contains("dirty"))), "生成的角色应该已经存好");
