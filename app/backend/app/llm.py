@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Iterator
-from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -199,9 +198,8 @@ class OmniLLM:
                         if part.get("type") == "input_audio":
                             part["input_audio"]["data"] = part["input_audio"]["data"].split(",", 1)[-1]
         usage = None
-        meter = credits.gpu(ctx.get("payer"), "hear", "omni", model=self.model) if self.self_hosted else nullcontext()
         try:
-            with meter, self._client.stream("POST", "/chat/completions", json=body,
+            with self._client.stream("POST", "/chat/completions", json=body,
                                             headers={"Authorization": f"Bearer {settings.dashscope_api_key}"}) as resp:
                 if resp.status_code != 200:
                     resp.read()
@@ -226,13 +224,14 @@ class OmniLLM:
             raise LLMError("听的服务响应超时，请再说一次") from e
         except httpx.HTTPError as e:
             raise LLMError("无法连接听的服务") from e
-        if usage and not self.self_hosted:  # 百炼按 token；自建的按算力（上面的 meter）
-            details = usage.get("prompt_tokens_details") or {}
-            audio_t = details.get("audio_tokens") or 0
-            text_t = (usage.get("prompt_tokens") or 0) - audio_t
-            cny = (text_t * settings.hear_price_text_in + audio_t * settings.hear_price_audio_in
-                   + (usage.get("completion_tokens") or 0) * settings.hear_price_out) / 1_000_000
-            credits.charge(ctx.get("payer"), "hear", cny, model=settings.hear_model, audio_tokens=audio_t)
+        if usage:  # 百炼和自建的都按 qwen3-omni-flash 的价目表；自建的用量里不分音频，按录音时长拆
+            prompt_t = usage.get("prompt_tokens") or 0
+            audio_t = (usage.get("prompt_tokens_details") or {}).get("audio_tokens") or 0
+            if not audio_t and audio:
+                audio_t = min(prompt_t, round(credits.audio_seconds(audio, ctx.get("audio_format", "wav")) * credits.OMNI_AUDIO_TOKENS_PER_S))
+            cny = credits.omni_cny(prompt_t, usage.get("completion_tokens") or 0, audio_t)
+            credits.charge(ctx.get("payer"), "hear", cny, model=self.model, audio_tokens=audio_t,
+                           tokens=prompt_t + (usage.get("completion_tokens") or 0), self_hosted=self.self_hosted)
 
 
 def transcribe_for_record(audio_b64: str, payer: str | None = None, fmt: str = "wav") -> str:

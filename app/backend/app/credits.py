@@ -6,16 +6,13 @@
 - 对话：OpenRouter 返回的实际花费（美元，按 USD_CNY 换成人民币）；没有返回时按 LLM_PRICE_IN / LLM_PRICE_OUT（元 / 百万 token）
 - 图片：IMAGE_PRICE_CNY 元 / 张
 - 语音：TTS_PRICE_CNY 元 / 万字（本地 Kokoro、浏览器朗读不花钱）
-- 自建显卡（Qwen3-Omni 直接听和看图、Qwen3-TTS 朗读、SenseVoice 识别）：按算力，占用显卡的秒数 × GPU_PRICE_CNY_HOUR 元 / 卡时，
-  同一张卡上同时有几个请求就平摊（GpuMeter）
+- 自建显卡上的模型照百炼同类模型的价目表按用量收：Qwen3-Omni（直接听、看图）按 token（qwen3-omni-flash），
+  Qwen3-TTS 按字数（qwen3-tts-flash，QWEN_TTS_PRICE_CNY），SenseVoice 识别按秒（qwen3-asr-flash，HEAR_ASR_PRICE）
 超了限额：已经在进行的这一次照常完成，下一次请求直接拒绝。
 """
 from __future__ import annotations
 
 import logging
-import threading
-import time
-from contextlib import contextmanager
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -78,54 +75,20 @@ def charge_llm(user_id: str | None, usage: dict | None, model: str = "") -> None
                tokens=(usage.get("prompt_tokens") or 0) + (usage.get("completion_tokens") or 0))
 
 
-class GpuMeter:
-    """一张卡（一个自建服务）上的计时：每过一段时间，这段时间平分给当时正在跑的所有请求。"""
-
-    def __init__(self, card: str) -> None:
-        self.card = card
-        self._lock = threading.Lock()
-        self._live: dict[int, float] = {}  # 请求 → 到现在分到的秒数
-        self._last = time.monotonic()
-        self._seq = 0
-
-    def _advance(self) -> None:
-        now = time.monotonic()
-        if self._live:
-            share = (now - self._last) / len(self._live)
-            for k in self._live:
-                self._live[k] += share
-        self._last = now
-
-    def start(self) -> int:
-        with self._lock:
-            self._advance()
-            self._seq += 1
-            self._live[self._seq] = 0.0
-            return self._seq
-
-    def stop(self, token: int) -> float:
-        with self._lock:
-            self._advance()
-            return self._live.pop(token, 0.0)
+OMNI_AUDIO_TOKENS_PER_S = 13  # Qwen3-Omni 的音频：实测每秒约 13 个 token（自建服务的用量里不分音频和文字，按时长拆出来）
 
 
-METERS = {"omni": GpuMeter("omni"), "tts": GpuMeter("tts"), "asr": GpuMeter("asr")}
+def audio_seconds(b64_or_bytes, fmt: str = "wav") -> float:
+    """录音时长：wav 按 16kHz 16bit 单声道，其他（mp3 / webm）按约 32kbps 估。"""
+    n = len(b64_or_bytes) * 3 / 4 if isinstance(b64_or_bytes, str) else len(b64_or_bytes)
+    return n / (32000 if "wav" in fmt else 4000)
 
 
-def gpu_cny(seconds: float) -> float:
-    return seconds / 3600 * settings.gpu_price_cny_hour
-
-
-@contextmanager
-def gpu(payer: str | None, what: str, service: str, **detail):
-    """包住一次自建显卡上的调用：结束时按分到的显卡秒数记账（出错也算，显卡已经跑过了）。"""
-    meter = METERS[service]
-    token = meter.start()
-    try:
-        yield
-    finally:
-        seconds = meter.stop(token)
-        charge(payer, what, gpu_cny(seconds), gpu=service, gpu_seconds=round(seconds, 3), **detail)
+def omni_cny(prompt_tokens: int, completion_tokens: int, audio_tokens: int = 0, image: bool = False) -> float:
+    """Qwen3-Omni 按百炼 qwen3-omni-flash 的价目表：文字 / 图片 / 音频输入分开算，输入里有多模态时的输出价。"""
+    rest = max(0, prompt_tokens - audio_tokens)
+    return (rest * (settings.hear_price_image_in if image else settings.hear_price_text_in)
+            + audio_tokens * settings.hear_price_audio_in + completion_tokens * settings.hear_price_out) / 1_000_000
 
 
 def is_self_hosted(url: str | None) -> bool:
@@ -143,11 +106,13 @@ def charge_images(user_id: str, n: int) -> None:
 
 
 def tts_cny(chars: int) -> float:
-    """云端朗读按字数；自建的 Qwen3-TTS 按算力另算（credits.gpu），本地 Kokoro、浏览器朗读不花钱。"""
-    return chars / 10_000 * settings.tts_price_cny if settings.tts_provider not in ("local", "browser", "mock", "qwen") else 0.0
+    """朗读按字数：自建的 Qwen3-TTS 按百炼 qwen3-tts-flash 的价，云端按 TTS_PRICE_CNY；本地 Kokoro、浏览器朗读不花钱。"""
+    if settings.tts_provider == "qwen":
+        return chars / 10_000 * settings.qwen_tts_price_cny
+    return chars / 10_000 * settings.tts_price_cny if settings.tts_provider not in ("local", "browser", "mock") else 0.0
 
 
 @router.get("")
 def info(user: User = Depends(current_user), db: Session = Depends(get_db)):
     return {"limit": daily_limit(user), "spent": spent_today(db, user.id), "per_cny": settings.credits_per_cny,
-            "image": image_points(1), "gpu_hour": points(settings.gpu_price_cny_hour)}
+            "image": image_points(1)}

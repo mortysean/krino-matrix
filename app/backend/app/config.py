@@ -99,8 +99,9 @@ class Settings:
     # 她直接听着回答；同时（并行，不增加等待）用识别模型记下你说的原话，存进对话记录和记忆
     hear_asr_model: str = field(default_factory=lambda: _env("HEAR_ASR_MODEL", "qwen3-asr-flash"))
     hear_asr_price: float = field(default_factory=lambda: _float("HEAR_ASR_PRICE", 0.00022))  # 元 / 秒
-    # 价格（元 / 百万 token，按百炼北京价估算；用来记积分）
-    hear_price_text_in: float = field(default_factory=lambda: _float("HEAR_PRICE_TEXT_IN", 3.2))
+    # 价格（元 / 百万 token，百炼北京 qwen3-omni-flash 原价；用来记积分）。自建的 Qwen3-Omni（听、看图）按同一张价目表收
+    hear_price_text_in: float = field(default_factory=lambda: _float("HEAR_PRICE_TEXT_IN", 1.8))
+    hear_price_image_in: float = field(default_factory=lambda: _float("HEAR_PRICE_IMAGE_IN", 3.3))
     hear_price_audio_in: float = field(default_factory=lambda: _float("HEAR_PRICE_AUDIO_IN", 15.8))
     hear_price_out: float = field(default_factory=lambda: _float("HEAR_PRICE_OUT", 12.7))
     # 联网：聊天时给模型一个搜索工具（OpenRouter 的 openrouter:web_search，服务端执行），她觉得需要时才查。off = 关
@@ -165,8 +166,7 @@ class Settings:
     llm_price_out: float = field(default_factory=lambda: _float("LLM_PRICE_OUT", 8))   # 元 / 百万输出 token
     image_price_cny: float = field(default_factory=lambda: _float("IMAGE_PRICE_CNY", 0.25))  # 元 / 张
     tts_price_cny: float = field(default_factory=lambda: _float("TTS_PRICE_CNY", 1))   # 元 / 万字
-    # 自建显卡（算力服务器）按算力收：每次实际占用显卡的秒数 × 每卡时单价；同一张卡上同时在跑的请求平摊这段时间
-    gpu_price_cny_hour: float = field(default_factory=lambda: _float("GPU_PRICE_CNY_HOUR", 6))  # 元 / 卡时
+    qwen_tts_price_cny: float = field(default_factory=lambda: _float("QWEN_TTS_PRICE_CNY", 0.8))  # 自建 Qwen3-TTS：按百炼 qwen3-tts-flash 元 / 万字
     # elevenlabs：Eleven v4（同一榜单第 1，海外版推荐；国内服务器要能访问 api.elevenlabs.io）。音色是 ElevenLabs 自带的 voice_id
     elevenlabs_api_key: str | None = field(default_factory=lambda: os.getenv("ELEVENLABS_API_KEY") or None)
     elevenlabs_model: str = field(default_factory=lambda: _env("ELEVENLABS_MODEL", "eleven_v4"))

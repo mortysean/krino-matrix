@@ -77,42 +77,37 @@ def test_event_write_never_hangs_on_a_locked_user(user):
         holder.close()
 
 
-def test_gpu_meter_splits_time_between_concurrent_requests(monkeypatch):
-    """自建显卡按算力收：同一张卡上同时跑两个请求，这段时间两人平摊。"""
-    clock = [100.0]
-    monkeypatch.setattr(credits.time, "monotonic", lambda: clock[0])
-    m = credits.GpuMeter("t")
-    a = m.start()
-    clock[0] += 2          # 只有 a：2 秒全算 a
-    b = m.start()
-    clock[0] += 4          # a、b 一起：各 2 秒
-    assert m.stop(a) == 4
-    clock[0] += 1          # 只剩 b
-    assert m.stop(b) == 3
-    monkeypatch.setattr(settings, "gpu_price_cny_hour", 6)
-    assert credits.gpu_cny(3600) == 6
-
-
-def test_self_hosted_asr_and_vision_are_charged_by_gpu_time(user, monkeypatch):
+def test_self_hosted_models_are_charged_like_bailian(user, monkeypatch):
+    """自建显卡上的模型照百炼同类模型的价目表按用量收：识别按秒，看图按 token，朗读按字。"""
     from app import voice
 
-    monkeypatch.setattr(settings, "gpu_price_cny_hour", 3600)  # 1 元 / 秒，好算
     monkeypatch.setattr(settings, "stt_provider", "openai")
     monkeypatch.setattr(settings, "stt_base_url", "http://127.0.0.1:18640/v1")
     monkeypatch.setattr(settings, "vlm_provider", "openai")
     monkeypatch.setattr(settings, "vlm_base_url", "http://127.0.0.1:18660/v1")
     monkeypatch.setattr(settings, "vlm_model", "qwen3-omni")
-    clock = [0.0]
-    monkeypatch.setattr(credits.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(settings, "hear_asr_price", 0.001)
+    monkeypatch.setattr(settings, "hear_price_image_in", 10)
+    monkeypatch.setattr(settings, "hear_price_out", 20)
 
     def handler(req):
-        clock[0] += 0.5    # 每次在显卡上跑 0.5 秒
         if req.url.path.endswith("/audio/transcriptions"):
             return httpx.Response(200, json={"text": "你好"})
-        return httpx.Response(200, json={"choices": [{"message": {"content": "一只猫"}}]})
+        return httpx.Response(200, json={"choices": [{"message": {"content": "一只猫"}}],
+                                         "usage": {"prompt_tokens": 1_000_000, "completion_tokens": 100_000, "total_tokens": 1_100_000}})
 
     real = httpx.Client
     monkeypatch.setattr(voice.httpx, "Client", lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
-    assert voice.transcribe(b"x", "audio/wav", payer=user.info["id"]) == "你好"
-    assert voice.describe_image(b"x", "image/png", payer=user.info["id"]) == "一只猫"
-    assert user.ok("get", "/api/credits")["spent"] == 10  # 两次各 0.5 元 = 10 积分
+    assert voice.transcribe(b"\0" * 320000, "audio/wav", payer=user.info["id"]) == "你好"   # 10 秒 × 0.001 = 0.01 元
+    assert voice.describe_image(b"x", "image/png", payer=user.info["id"]) == "一只猫"         # 10 + 2 = 12 元
+    assert user.ok("get", "/api/credits")["spent"] == 120.1
+    monkeypatch.setattr(settings, "tts_provider", "qwen")
+    monkeypatch.setattr(settings, "qwen_tts_price_cny", 0.8)
+    assert credits.tts_cny(10_000) == 0.8
+
+
+def test_omni_audio_tokens_split_by_duration():
+    """自建 Omni 的用量里不分音频：按录音时长拆出音频 token（每秒约 13 个）。"""
+    assert credits.audio_seconds(b"\0" * 64000, "wav") == 2
+    cny = credits.omni_cny(100, 10, audio_tokens=26)
+    assert cny == (74 * settings.hear_price_text_in + 26 * settings.hear_price_audio_in + 10 * settings.hear_price_out) / 1_000_000
