@@ -1,6 +1,6 @@
 // 语音：识别（STT）和朗读（TTS）。服务端配置了就走服务端（密钥只在服务端），否则用浏览器自带的能力。
 // 麦克风只在用户点了按钮、浏览器授权之后才会打开；停止后立即关闭。
-import { api, S, t } from "./core.js";
+import { api, S, t, toast } from "./core.js";
 import { getLocale } from "./i18n.js";
 
 // 语音的语言跟着站点版本：国内版中文，海外版英文
@@ -138,12 +138,23 @@ function audioCtx() {
   if (actx.state === "suspended") actx.resume().catch(() => {});
   return actx;
 }
-// 浏览器要求用户先点过、按过键才能出声：第一次交互时就把播放器准备好
-["pointerdown", "keydown"].forEach((ev) => addEventListener(ev, () => audioCtx(), { once: true, capture: true }));
+// 浏览器要求用户先点过、按过键才能出声：每次点击、按键、触摸都确认一下播放器是开着的。
+// 只在第一次交互时准备一次不够：那一下如果不算“用户操作”（比如输入法的按键），播放器会一直是暂停的，之后永远没声音
+["pointerdown", "keydown", "touchend", "click"].forEach((ev) => addEventListener(ev, () => audioCtx(), { capture: true, passive: true }));
+let warned = false;
+function blocked(ctx) {  // 浏览器还不让出声：提示一次，点一下页面就好（resume 是异步的，稍等一下再看）
+  if (!ctx || warned) return;
+  setTimeout(() => {
+    if (ctx.state === "running" || warned) return;
+    warned = true;
+    toast(t("浏览器还没允许播放声音：点一下页面就能听到"), 5000);
+  }, 400);
+}
 const canStream = () => !!AC && !!window.ReadableStream;
 
 function playPcm(res, my) {
   const ctx = audioCtx();
+  blocked(ctx);
   const rate = +(res.headers.get("x-sample-rate") || 24000);
   const reader = res.body.getReader();
   // 小缓冲：攒够 0.25 秒的声音再开始播；中途断了（网络慢于播放）就再攒 0.15 秒，不让每个字之间“咔”一下
@@ -189,7 +200,9 @@ function playPcm(res, my) {
     } catch { flush(); /* 断开：已经收到的照常播完 */ }
     if (stopped || my !== gen) return finish();
     if (!last) return finish();
-    last.onended = () => { nodes.delete(last); finish(); };
+    // 播完再算“读完了”：按排好的结束时间等，不靠最后一段的 onended（那一段可能已经播完，再挂上去就永远等不到，按钮一直亮着）
+    const left = Math.max(0, at - ctx.currentTime);
+    setTimeout(() => { if (!stopped) finish(); }, left * 1000 + 80);
   })();
   return { done };
 }
