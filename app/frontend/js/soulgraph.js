@@ -3,7 +3,7 @@
 //   右半脑（紫色）是记忆：你们之间每记下一条，就多一颗星；越重要越大，一天内新记下的会闪，最新的一条有扩散的光波。
 //   下面是全息底座和光柱，神经连线会闪、有信号流过。可以拖动旋转，点节点在下面面板看全文。
 // 灵魂是她自己的，改了就不是她了（OOC）；想要不一样的她，就新建一个角色。
-import { api, esc } from "./core.js";
+import { api, esc, tr } from "./core.js";
 import { getLocale } from "./i18n.js";
 
 const DIMS = [  // [字段, 中文, 英文]
@@ -158,7 +158,7 @@ export function soulGraph(host, c, { onNew } = {}) {
     host.querySelector("[data-sb-bars]").innerHTML = `<div class="sb-kicker" style="margin-bottom:6px">${L("记忆类型", "MEMORY TYPES")}</div>` +
       Object.entries(MEM_TYPES).filter(([k]) => k !== "summary").map(([k, [zh, e, col]]) =>
         `<div class="sb-bar" style="--c:${rgba(col, 1)};--w:${((counts[k] || 0) / max) * 100}%"><span>${en ? e : zh}</span><i></i><em>${counts[k] || 0}</em></div>`).join("") +
-      (bond ? `<div class="sb-kicker" style="margin:8px 0 4px">${L("关系", "BOND")}</div><div class="sb-bar" style="--c:#5fd4ff;--w:${Math.min(100, bond.closeness)}%"><span>${esc(bond.stage)}</span><i></i><em>${Math.round(bond.closeness)}</em></div>` : "");
+      (bond ? `<div class="sb-kicker" style="margin:8px 0 4px">${L("关系", "BOND")}</div><div class="sb-bar" style="--c:#5fd4ff;--w:${Math.min(100, bond.closeness)}%"><span>${esc(tr(bond.stage))}</span><i></i><em>${Math.round(bond.closeness)}</em></div>` : "");
     if (tab === "mem") showTab("mem");
     kick();
   });

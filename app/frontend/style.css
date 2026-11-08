@@ -698,9 +698,9 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
   overflow: hidden; color: #cfe6ff; }
 .soul-brain canvas { display: block; width: 100%; height: 540px; cursor: grab; touch-action: none; }
 .sb-hud { position: absolute; pointer-events: none; font-size: 11px; letter-spacing: .04em; }
-.sb-tl { top: 12px; left: 14px; max-width: 50%; }
+.sb-tl { top: 12px; left: 14px; max-width: 62%; }
 .sb-kicker { font: 10px var(--mono); letter-spacing: .28em; color: #5fd4ff; opacity: .85; }
-.sb-title { margin-top: 6px; font-size: 16px; font-weight: 600; color: #f2f7ff; text-shadow: 0 0 12px rgba(95, 212, 255, .45); }
+.sb-title { margin-top: 6px; font-size: 16px; white-space: nowrap; font-weight: 600; color: #f2f7ff; text-shadow: 0 0 12px rgba(95, 212, 255, .45); }
 .sb-sub { margin-top: 3px; color: #8fa5c8; font-size: 11px; }
 .sb-stats { display: flex; gap: 16px; margin-top: 10px; }
 .sb-stats b { display: block; font: 600 18px var(--mono); color: #fff; text-shadow: 0 0 10px rgba(255, 190, 90, .55); }
