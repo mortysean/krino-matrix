@@ -184,3 +184,26 @@ def test_static_portraits_served_as_cached_webp(client):
     assert r.headers["content-type"] == "image/png"
     assert client.get("/static/index.html").headers["cache-control"] == "no-cache"
     assert "cache-control" not in client.get("/media/c/missing.webp").headers
+
+
+def test_tts_compressed_to_opus(user, monkeypatch):
+    """浏览器说能播 Opus：整句的 WAV 压成 Ogg Opus（小 10 倍以上）；流式 PCM 分成任意大小的片段喂进去，也能边收边出完整的 Opus。"""
+    import io as _io
+    import math as _math
+    import wave as _wave
+    import soundfile as sf
+    from app import voice
+    b = _io.BytesIO()
+    with _wave.open(b, "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000)
+        w.writeframes(b"".join(int(9000 * _math.sin(i / 9) * _math.sin(i / 4000)).to_bytes(2, "little", signed=True) for i in range(72000)))
+    wav = b.getvalue()
+    monkeypatch.setattr(voice, "synthesize", lambda *a, **k: (wav, "audio/wav"))
+    r = user.post("/api/voice/tts", json={"text": "你好", "opus_file": True})
+    assert r.status_code == 200 and r.headers["content-type"] == "audio/ogg" and len(r.content) < len(wav) / 8
+    assert abs(len(sf.read(_io.BytesIO(r.content))[0]) / 24000 - 3) < 0.05
+    assert user.post("/api/voice/tts", json={"text": "你好"}).headers["content-type"] == "audio/wav"  # 没说能播：照旧
+    pcm = wav[44:]
+    out = list(voice.opus_stream(iter(pcm[i:i + 1001] for i in range(0, len(pcm), 1001)), 24000))
+    assert len(out) > 10 and out[0][:4] == b"OggS"  # 边收边出，不是最后一次性
+    assert abs(len(sf.read(_io.BytesIO(b"".join(out)))[0]) / 24000 - 3) < 0.05

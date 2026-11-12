@@ -111,11 +111,14 @@ export async function speak(text, voiceParams = {}) {
   if (await useServer("tts")) {
     let res;
     try {
-      res = await api("/api/voice/tts", { body: { text: text.slice(0, 600), rate, voice: voiceParams.voice || null, style: voiceParams.style || null, stream: canStream() }, raw: true });
+      const stream = canStream();
+      res = await api("/api/voice/tts", { body: { text: text.slice(0, 600), rate, voice: voiceParams.voice || null, style: voiceParams.style || null, stream,
+        opus_stream: stream && await canOpusStream(), opus_file: canOpusFile() }, raw: true });
     } catch (e) {  // 只走自己的语音服务：出问题就如实报错，不偷偷换成浏览器朗读
       if (my !== gen) return { done: Promise.resolve() };
       throw e;
     }
+    if (res.headers.get("x-audio-stream") === "opus") return playOpus(res, my);  // 边下边解边播
     if ((res.headers.get("content-type") || "").startsWith("audio/pcm")) return playPcm(res, my);  // 边下边播
     const blob = await res.blob();
     if (my !== gen) return { done: Promise.resolve() };  // 合成期间又开始了新的一句（或被停止），这句不读了
@@ -152,19 +155,27 @@ function blocked(ctx) {  // 浏览器还不让出声：提示一次，点一下�
 }
 const canStream = () => !!AC && !!window.ReadableStream;
 
-function playPcm(res, my) {
-  const ctx = audioCtx();
-  blocked(ctx);
-  const rate = +(res.headers.get("x-sample-rate") || 24000);
-  const reader = res.body.getReader();
+// 语音压成 Opus 发过来，带宽只要原始 PCM 的约 1/12。流式的用 WebCodecs 边收边解（不支持的浏览器照旧要 PCM），整句的直接交给 <audio>
+let opusStream = null;
+function canOpusStream() {
+  opusStream ??= window.AudioDecoder && window.EncodedAudioChunk
+    ? AudioDecoder.isConfigSupported({ codec: "opus", sampleRate: 48000, numberOfChannels: 1 }).then((r) => !!r.supported).catch(() => false)
+    : Promise.resolve(false);
+  return opusStream;
+}
+const canOpusFile = () => { try { return !!new Audio().canPlayType('audio/ogg; codecs="opus"'); } catch { return false; } };
+
+// 播放队列：解出来的声音一段段排进去（流式 PCM 和流式 Opus 共用）
+function queue(ctx, my) {
   // 小缓冲：攒够 0.25 秒的声音再开始播；中途断了（网络慢于播放）就再攒 0.15 秒，不让每个字之间“咔”一下。
   // 开播以后，手上排着的声音还多（超过 AHEAD 秒）就先攒着，攒够 MERGE 秒再拼成一整段排进去：段数少，接缝少
   const PREBUF = 0.25, REBUF = 0.15, MERGE = 0.6, AHEAD = 0.5;
-  let at = 0, left = null, stopped = false, last = null, finish, pending = [], pendingDur = 0, started = false;
+  let at = 0, stopped = false, last = null, finish, pending = [], pendingDur = 0, started = false;
   const done = new Promise((r) => (finish = r));
   const nodes = new Set();
+  const off = () => stopped || my !== gen;
   function flush() {
-    if (stopped || my !== gen) { pending = []; pendingDur = 0; return; }
+    if (off()) { pending = []; pendingDur = 0; return; }
     if (pending.length > 1) {  // 拼成一段
       const n = pending.reduce((k, b) => k + b.length, 0), one = ctx.createBuffer(1, n, pending[0].sampleRate), out = one.getChannelData(0);
       let o = 0; for (const b of pending) { out.set(b.getChannelData(0), o); o += b.length; }
@@ -181,37 +192,125 @@ function playPcm(res, my) {
     if (pending.length) started = true;
     pending = []; pendingDur = 0;
   }
-  const pcm = { stop() { stopped = true; reader.cancel().catch(() => {}); nodes.forEach((n) => { try { n.stop(); } catch {} }); finish(); } };
-  current = { pcm };
+  return {
+    done, off,
+    push(samples, rate) {
+      if (off() || !samples.length) return;
+      const buf = ctx.createBuffer(1, samples.length, rate);
+      buf.getChannelData(0).set(samples);
+      pending.push(buf); pendingDur += buf.duration;
+      const underrun = started && at < ctx.currentTime + 0.02;  // 已经播完了手上的声音
+      if (underrun) started = false;
+      if (!started && pendingDur < (at ? REBUF : PREBUF)) return;
+      if (started && pendingDur < MERGE && at - ctx.currentTime > AHEAD) return;  // 前面还够播：再攒一点，拼大一点
+      flush();
+    },
+    end() {  // 收完了（或断开）：剩下不足一个缓冲的也播掉，播完再算“读完了”
+      flush();
+      if (off() || !last) return finish();
+      // 按排好的结束时间等，不靠最后一段的 onended（那一段可能已经播完，再挂上去就永远等不到，按钮一直亮着）
+      const remain = Math.max(0, at - ctx.currentTime);
+      setTimeout(() => { if (!stopped) finish(); }, remain * 1000 + 80);
+    },
+    stop() { stopped = true; nodes.forEach((n) => { try { n.stop(); } catch {} }); finish(); },
+  };
+}
+
+function playPcm(res, my) {
+  const ctx = audioCtx();
+  blocked(ctx);
+  const rate = +(res.headers.get("x-sample-rate") || 24000);
+  const reader = res.body.getReader();
+  const q = queue(ctx, my);
+  current = { pcm: { stop() { q.stop(); reader.cancel().catch(() => {}); } } };
   (async () => {
+    let left = null;  // 上一段末尾多出来的半个采样
     try {
       for (;;) {
         const { value, done: end } = await reader.read();
-        if (end || stopped || my !== gen) break;
+        if (end || q.off()) break;
         let bytes = value;
         if (left) { const m = new Uint8Array(left.length + bytes.length); m.set(left); m.set(bytes, left.length); bytes = m; left = null; }
         if (bytes.length % 2) { left = bytes.slice(-1); bytes = bytes.slice(0, -1); }
         if (!bytes.length) continue;
         const i16 = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.length / 2);
-        const buf = ctx.createBuffer(1, i16.length, rate);
-        const ch = buf.getChannelData(0);
-        for (let i = 0; i < i16.length; i++) ch[i] = i16[i] / 32768;
-        pending.push(buf); pendingDur += buf.duration;
-        const underrun = started && at < ctx.currentTime + 0.02;  // 已经播完了手上的声音
-        if (underrun) started = false;
-        if (!started && pendingDur < (at ? REBUF : PREBUF)) continue;
-        if (started && pendingDur < MERGE && at - ctx.currentTime > AHEAD) continue;  // 前面还够播：再攒一点，拼大一点
-        flush();
+        const f = new Float32Array(i16.length);
+        for (let i = 0; i < i16.length; i++) f[i] = i16[i] / 32768;
+        q.push(f, rate);
       }
-      flush();  // 结束：剩下不足一个缓冲的也播掉
-    } catch { flush(); /* 断开：已经收到的照常播完 */ }
-    if (stopped || my !== gen) return finish();
-    if (!last) return finish();
-    // 播完再算“读完了”：按排好的结束时间等，不靠最后一段的 onended（那一段可能已经播完，再挂上去就永远等不到，按钮一直亮着）
-    const remain = Math.max(0, at - ctx.currentTime);  // 别叫 left：外面的 left 存着半个采样，同名会让整段报错、一个字都不播
-    setTimeout(() => { if (!stopped) finish(); }, remain * 1000 + 80);
+    } catch { /* 断开：已经收到的照常播完 */ }
+    q.end();
   })();
-  return { done };
+  return { done: q.done };
+}
+
+// Ogg 拆包：收到多少喂多少，吐出完整的包（第一个是 OpusHead，第二个是 OpusTags，之后是声音）
+function oggPackets() {
+  let buf = new Uint8Array(0), part = [];
+  const join = (xs) => { if (xs.length === 1) return xs[0]; const out = new Uint8Array(xs.reduce((k, x) => k + x.length, 0)); let o = 0; for (const x of xs) { out.set(x, o); o += x.length; } return out; };
+  return (chunk) => {
+    const m = new Uint8Array(buf.length + chunk.length); m.set(buf); m.set(chunk, buf.length); buf = m;
+    const out = [];
+    let o = 0;
+    while (buf.length - o >= 27) {
+      const nseg = buf[o + 26], body = o + 27 + nseg;
+      if (buf.length < body) break;
+      let size = 0; for (let i = o + 27; i < body; i++) size += buf[i];
+      if (buf.length < body + size) break;
+      let p = body;
+      for (let i = o + 27; i < body; i++) {
+        const l = buf[i];
+        part.push(buf.slice(p, p + l)); p += l;
+        if (l < 255) { out.push(join(part)); part = []; }
+      }
+      o = p;
+    }
+    buf = buf.slice(o);
+    return out;
+  };
+}
+
+function playOpus(res, my) {
+  const ctx = audioCtx();
+  blocked(ctx);
+  const reader = res.body.getReader();
+  const q = queue(ctx, my);
+  let dec = null;
+  current = { pcm: { stop() { q.stop(); reader.cancel().catch(() => {}); try { dec?.close(); } catch {} } } };
+  const out = (d) => {
+    const f = new Float32Array(d.numberOfFrames);
+    d.copyTo(f, { planeIndex: 0, format: "f32-planar" });
+    const r = d.sampleRate; d.close();
+    // 解码器一般出 48kHz；播放器开在 24kHz（见 audioCtx）：两两取平均降回去，免得每段各自重采样、接缝处“咔”
+    if (r === ctx.sampleRate * 2) {
+      const h = new Float32Array(f.length >> 1);
+      for (let i = 0; i < h.length; i++) h[i] = (f[2 * i] + f[2 * i + 1]) / 2;
+      q.push(h, ctx.sampleRate);
+    } else q.push(f, r);
+  };
+  (async () => {
+    const split = oggPackets();
+    let n = 0, ts = 0;
+    try {
+      for (;;) {
+        const { value, done: end } = await reader.read();
+        if (end || q.off()) break;
+        for (const pkt of split(value)) {
+          n++;
+          if (n === 1) {
+            dec = new AudioDecoder({ output: out, error: () => {} });
+            dec.configure({ codec: "opus", sampleRate: 48000, numberOfChannels: 1, description: pkt });
+          } else if (n > 2) {
+            dec.decode(new EncodedAudioChunk({ type: "key", timestamp: ts, data: pkt }));
+            ts += 20000;
+          }
+        }
+      }
+      if (dec?.state === "configured") await dec.flush();
+    } catch { /* 断开：已经解出来的照常播完 */ }
+    q.end();
+  })();
+  return { done: q.done };
 }
 
 function browserSpeak(text, rate, pitch) {

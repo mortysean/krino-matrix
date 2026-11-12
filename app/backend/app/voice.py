@@ -173,8 +173,100 @@ def _qwen(text: str, voice: str | None, speed: float) -> bytes:
     return r.content
 
 
-def _qwen_stream(text: str, voice: str | None, speed: float, payer: str | None = None):
-    """自建语音服务的流式合成，原样转给浏览器（audio/pcm，24kHz 单声道 16-bit）。
+# ---------- 压成 Opus：语音占的带宽降到约 1/12 ----------
+# 原始 16-bit PCM（24kHz）是 384 kbps，Opus 约 32 kbps，声音听不出差别。浏览器说它能解（请求里的 opus_stream / opus_file）才压，
+# 不然照旧发 PCM / WAV。用 soundfile 自带的 libsndfile 编码，不用另装 ffmpeg。
+OPUS_RATES = (8000, 12000, 16000, 24000, 48000)
+OPUS_LEVEL = 0.9    # libsndfile 的压缩等级：0.9 时说话约 32 kbps
+OPUS_PAGE_MS = 100  # 每 0.1 秒出一页：默认要攒满 1 秒，第一声会晚到
+
+
+class _Sink(io.RawIOBase):
+    """libsndfile 往这里写 Ogg 页；take() 取走新写的部分。开头它会 seek 一下，都在还没写东西的时候。"""
+    def __init__(self):
+        super().__init__()
+        self.buf, self.pos, self.sent = bytearray(), 0, 0
+
+    def writable(self): return True
+    def seekable(self): return True
+    def tell(self): return self.pos
+
+    def seek(self, off, whence=0):
+        self.pos = off if whence == 0 else self.pos + off if whence == 1 else len(self.buf) + off
+        return self.pos
+
+    def write(self, b):
+        if self.pos < self.sent:
+            raise OSError("Opus 编码器想改已经发出去的数据")
+        self.buf[self.pos:self.pos + len(b)] = b
+        self.pos += len(b)
+        return len(b)
+
+    def take(self) -> bytes:
+        out = bytes(self.buf[self.sent:])
+        self.sent = len(self.buf)
+        return out
+
+
+def opus_ok(rate: int) -> bool:
+    try:
+        import soundfile as sf
+        return rate in OPUS_RATES and "OPUS" in sf.available_subtypes("OGG")
+    except (ImportError, OSError):
+        return False
+
+
+def _opus_writer(rate: int):
+    import soundfile as sf
+    from soundfile import _ffi, _snd
+
+    sink = _Sink()
+    f = sf.SoundFile(sink, "w", samplerate=rate, channels=1, format="OGG", subtype="OPUS", compression_level=OPUS_LEVEL)
+    _snd.sf_command(f._file, 0x1302, _ffi.new("double*", float(OPUS_PAGE_MS)), _ffi.sizeof("double"))  # SFC_SET_OGG_PAGE_LATENCY_MS
+    return sink, f
+
+
+def opus_stream(chunks, rate: int):
+    """16-bit PCM 片段（任意切分）→ Ogg Opus 字节流，边收边出。"""
+    import numpy as np
+
+    sink, f = _opus_writer(rate)
+    left = b""
+    try:
+        for c in chunks:
+            c = left + c
+            n = len(c) - len(c) % 2
+            left = c[n:]
+            if n:
+                f.write(np.frombuffer(c[:n], dtype="<i2"))
+                out = sink.take()
+                if out:
+                    yield out
+    finally:
+        f.close()
+    yield sink.take()
+
+
+def wav_to_opus(wav: bytes) -> bytes | None:
+    """整句的 WAV → Ogg Opus 文件。采样率 Opus 不支持就返回 None（照旧发 WAV）。"""
+    import soundfile as sf
+
+    try:
+        data, rate = sf.read(io.BytesIO(wav), dtype="int16")
+    except (RuntimeError, sf.LibsndfileError):
+        return None
+    if not opus_ok(rate):
+        return None
+    if data.ndim > 1:
+        data = data.mean(axis=1).astype("int16")
+    sink, f = _opus_writer(rate)
+    f.write(data)
+    f.close()
+    return sink.take()
+
+
+def _qwen_stream(text: str, voice: str | None, speed: float, payer: str | None = None, opus: bool = False):
+    """自建语音服务的流式合成转给浏览器：audio/pcm（24kHz 单声道 16-bit），opus=True 时边收边压成 Ogg Opus。
     第一段声音拿到了才开始回应；连不上、出错就返回 None，由调用方按整句合成（还会退回 Kokoro）。"""
     text = speakable(text)
     vs = _qwen_voices()
@@ -215,8 +307,10 @@ def _qwen_stream(text: str, voice: str | None, speed: float, payer: str | None =
             cm.__exit__(None, None, None); client.close()
 
     rate = r.headers.get("x-sample-rate", "24000")
-    return StreamingResponse(gen(), media_type="audio/pcm", headers={"X-Sample-Rate": rate, "Cache-Control": "no-store",
-                                                                    "X-Accel-Buffering": "no"})
+    headers = {"X-Sample-Rate": rate, "Cache-Control": "no-store", "X-Accel-Buffering": "no"}
+    if opus and rate.isdigit() and opus_ok(int(rate)):
+        return StreamingResponse(opus_stream(gen(), int(rate)), media_type="audio/ogg; codecs=opus", headers={**headers, "X-Audio-Stream": "opus"})
+    return StreamingResponse(gen(), media_type="audio/pcm", headers=headers)
 
 
 def _styles() -> dict:
@@ -542,6 +636,8 @@ class TTSIn(BaseModel):
     rate: float = Field(default=1.0, ge=0.5, le=2.0)
     style: str | None = Field(default=None, max_length=300)  # 角色自己的声音描述（一句话生成的角色才有）
     stream: bool = False  # 边合成边返回 16-bit PCM（24kHz 单声道）：第一段声音零点几秒就到，不用等整句
+    opus_stream: bool = False  # 浏览器能边收边解 Ogg Opus（WebCodecs）：流式的也压成 Opus
+    opus_file: bool = False    # 浏览器能播 Ogg Opus 文件：整句的 WAV 压成 Opus
 
 
 @router.post("/voice/tts")
@@ -549,7 +645,7 @@ def tts(body: TTSIn, user: User = Depends(current_user), db: Session = Depends(g
     credits.check(db, user)
     t0 = time.perf_counter()
     if body.stream and settings.tts_provider == "qwen":
-        resp = _qwen_stream(body.text, body.voice, body.rate, payer=user.id)
+        resp = _qwen_stream(body.text, body.voice, body.rate, payer=user.id, opus=body.opus_stream)
         if resp is not None:
             events.record("voice", "tts", user_id=user.id, latency_ms=(time.perf_counter() - t0) * 1000,
                           payload={"provider": "qwen", "chars": len(body.text), "stream": True})
@@ -561,6 +657,10 @@ def tts(body: TTSIn, user: User = Depends(current_user), db: Session = Depends(g
     events.record("voice", "tts", user_id=user.id, latency_ms=(time.perf_counter() - t0) * 1000,
                   payload={"provider": settings.tts_provider, "chars": len(body.text)})
     credits.charge(user.id, "tts", credits.tts_cny(len(body.text)), chars=len(body.text))
+    if body.opus_file and mime in ("audio/wav", "audio/x-wav"):
+        small = wav_to_opus(audio)
+        if small:
+            audio, mime = small, "audio/ogg"
     return Response(audio, media_type=mime)
 
 
