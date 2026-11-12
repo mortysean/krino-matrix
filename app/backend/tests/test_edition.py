@@ -181,6 +181,11 @@ def test_cloud_tts_falls_back_to_kokoro(monkeypatch):
 
 
 def test_landing_page(client):
+    """官网（app/landing，build.py 生成）：后端在 /landing/ 下也能预览；线上由 Caddy 直接出。产品页才放应用入口。"""
     r = client.get("/landing/")
-    assert r.status_code == 200 and "cn.krinomatrix.com" in r.text and "/static/assets/krino-mark.svg" in r.text
-    assert client.get("/static/assets/krino-mark.svg").status_code == 200
+    assert r.status_code == 200 and 'href="cn/"' in r.text and 'href="global/"' in r.text
+    # 应用不再有子域名：产品介绍页指向本地区路径下的应用
+    assert 'href="/cn/products/world/"' in client.get("/landing/cn/products/").text
+    assert 'href="/global/products/world/"' in client.get("/landing/global/products/").text
+    assert client.get("/landing/global/apocalypse/").status_code == 200
+    assert client.get("/landing/portal.css").status_code == 200

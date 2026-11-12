@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 在服务器上以 root 运行（scripts/deploy.sh 会调用）。可重复运行。
 # 可选：PYTHON（默认 python3.11）、PIP_INDEX / TORCH_FIND / HF_ENDPOINT（国内镜像）、NO_SPACY=1（不装英文分词模型）
-# 需要的环境变量：DEST（安装目录，默认 ~APP_USER/krino-world）、SITES（Caddy 站点，逗号分隔）、LANDING（1 = 同时提供 krinomatrix.com 品牌首页）、APP_USER（运行服务的用户）
+# 需要的环境变量：DEST（安装目录，默认 ~APP_USER/krino-world）、SITES（Caddy 站点，逗号分隔）、LANDING（1 = 同时提供官网 krinomatrix.com，另需 SITE_REGION、PEER_ORIGIN，见 caddy_setup.sh）、APP_USER（运行服务的用户）
 set -euo pipefail
 DEST="${DEST:-$(getent passwd "$APP_USER" | cut -d: -f6)/krino-world}"
 cd "$DEST"

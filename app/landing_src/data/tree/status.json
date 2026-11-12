@@ -1,0 +1,101 @@
+{
+ "_note": "Krino Tree 节点的实际进度。和节点性质（产品/研究/外部突破/阶段终点）是两回事：性质来自 V3，进度只来自这里。只写核实过的；没写的节点按 defaults 取（按阶段：前两阶段 planned，后两阶段 vision）。阶段终点和汇合门（structure.json 的 milestones）不在这里写，由前置自动算：前置全部 completed 才算 completed（ASCENSION 是四道门任一）。改进度只改这个文件再重跑 build.py；写 completed 必须给出 evidence，build 会检查。",
+ "checked": "2026-11-12",
+ "defaults": {
+  "seed": "planned",
+  "embodiment": "planned",
+  "neural": "vision",
+  "ascension": "vision"
+ },
+ "nodes": {
+  "seed": {
+   "status": "completed",
+   "related": "world",
+   "done": {
+    "zh": [
+     "KRINO WORLD 已上线：国内版、海外版（目前内测，未开放公开注册）",
+     "长期记忆：按重要程度与时间衰减（遗忘曲线），用户能查看、修改、让它忘记、再恢复",
+     "关系状态（羁绊）与会话摘要，换话题后仍记得共同经历",
+     "关系导出与导入（格式 krino-relation/1）；人设版本、导出可把灵魂与形象带到另一个账号",
+     "注销账号即删除角色、记忆与聊天"
+    ],
+    "en": [
+     "KRINO WORLD is live in a China edition and a global edition (closed beta, public sign-up not open yet)",
+     "Long-term memory that decays by importance and time (a forgetting curve); users can view, edit, make it forget and restore",
+     "Relationship state (bond) and session summaries, so shared history survives a change of topic",
+     "Relationship export and import (format krino-relation/1); persona versions, and exports that carry a character's soul and look to another account",
+     "Deleting an account deletes its characters, memories and chats"
+    ]
+   },
+   "remaining": {
+    "zh": [
+     "验收标准里的“换底层模型、换设备后仍正确记得共同经历，分清发生过与只是讨论过”还没有自动化的连续性测试",
+     "“迁移后记忆完整性可自动验证”：目前有导出导入的往返测试，没有完整性审计"
+    ],
+    "en": [
+     "The pass criterion \"still remembers shared history correctly after switching the underlying model or device, and tells what happened from what was only discussed\" has no automated continuity test yet",
+     "\"Memory integrity can be verified automatically after migration\": export/import round-trips are tested, but there is no integrity audit yet"
+    ]
+   },
+   "evidence": "app/backend/app/memory.py · app/backend/tests/test_acceptance.py · test_units.py::test_forgetting_curve · test_workbench.py::test_export_carries_soul_and_body_to_another_account",
+   "decision": "2026-11-10 由公司确认：软件 MVP（KRINO WORLD）视为本节点完成；V3 验收标准中尚未自动化的两项列为后续加强，公开展示。"
+  },
+  "glasses": {
+   "status": "in_progress",
+   "related": "glasses-sim",
+   "done": {
+    "zh": [
+     "统一的设备适配层（Device Adapter）：设备的摄像头、麦克风、头部姿态接入同一套互动流程，输出经过校验的 AR 显示事件",
+     "浏览器里的 KRINO GLASSES 模拟器（应用内“设置 → 高级”），用来开发和测试眼镜上的交互"
+    ],
+    "en": [
+     "A unified Device Adapter: a device's camera, microphone and head pose feed the same interaction pipeline, which emits validated AR display events",
+     "A KRINO GLASSES simulator in the browser (in the app under Settings → Advanced) for building and testing the in-glasses experience"
+    ]
+   },
+   "remaining": {
+    "zh": [
+     "还没有接入任何真实眼镜硬件，也没有硬件合作或出货",
+     "验收标准（全天佩戴留存、<70 g 全天续航、走动与打断后能正确继续）均未开始验证"
+    ],
+    "en": [
+     "No real glasses hardware is connected yet, and there is no hardware partnership or shipment",
+     "None of the pass criteria (all-day wear retention, all-day battery under 70 g, correct continuation after walking around and interruptions) have been tested"
+    ]
+   },
+   "evidence": "app/backend/app/devices.py · app/frontend/js/glasses.js · app/backend/tests/test_devices.py"
+  },
+  "memexport": {
+   "status": "planned",
+   "done": {
+    "zh": [
+     "相关的现有能力：KRINO WORLD 已能导出你和一个角色之间的记忆与关系（JSON），这是本节点的起点，不是本节点本身"
+    ],
+    "en": [
+     "Related existing capability: KRINO WORLD can already export the memories and relationship between you and a character (JSON). That is a starting point for this node, not the node itself"
+    ]
+   },
+   "evidence": "app/backend/app/memory.py · GET /api/relations/{cid}/export"
+  },
+  "openApi": {
+   "status": "planned",
+   "done": {
+    "zh": [
+     "相关的现有能力：应用里的统一设备适配层（Device Adapter）已把设备的摄像头、麦克风、头部姿态接入同一套互动流程，这是本节点的起点，不是本节点本身"
+    ],
+    "en": [
+     "Related existing capability: the app's unified Device Adapter already feeds a device's camera, microphone and head pose into one interaction pipeline. That is a starting point for this node, not the node itself"
+    ]
+   },
+   "remaining": {
+    "zh": [
+     "公开的 API 文档与 SDK 文档、SDK 本身、接入示例都还没有开始写"
+    ],
+    "en": [
+     "The public API docs, SDK docs, the SDKs themselves and integration examples haven't been started"
+    ]
+   },
+   "evidence": "app/backend/app/devices.py"
+  }
+ }
+}

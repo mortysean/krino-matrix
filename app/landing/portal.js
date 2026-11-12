@@ -1,25 +1,23 @@
-// krinomatrix.com 公司门户的小脚本：语言切换、Cookie 提示、像素字、像素图标、翻页。没有统计、没有第三方。
+// krinomatrix.com 官网的小脚本：地区选择、Cookie 提示、像素字、像素图标、翻页。没有统计、没有第三方。
 (() => {
-  const store = {  // 只存这两样：语言、Cookie 提示关没关。无痕模式拿不到也照常显示
+  const store = {  // 本地存储只记一样：Cookie 提示关没关。无痕模式拿不到也照常显示
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* 无痕模式 */ } },
   };
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const lang = document.documentElement.dataset.lang || "en";  // 每个地区站只有一种语言，生成时写在 <html> 上
 
-  // ---------- 语言 ----------
-  const saved = store.get("km_lang");
-  let lang = saved || ((navigator.language || "").toLowerCase().startsWith("zh") ? "zh" : "en");
-  function setLang(l) {
-    lang = l;
-    document.documentElement.dataset.lang = l;
-    document.documentElement.lang = l === "zh" ? "zh-CN" : "en";
-    const t = document.querySelector(`meta[name="title-${l}"]`);
-    if (t) document.title = t.content;
-    document.querySelectorAll(".lang").forEach((b) => (b.innerHTML = l === "zh" ? "<b>中</b> / EN" : "中 / <b>EN</b>"));
-    document.querySelectorAll("canvas[data-pixel]").forEach(drawPixelText);
+  // ---------- 地区：点了入口或“切换地区”就记住（Cookie km_region，整站 Path=/，一年） ----------
+  // 用 Cookie 不用本地存储，是为了让服务器也能看到：根目录和不带地区的地址据此直接跳到对应地区
+  const REGIONS = ["cn", "global"];
+  function saveRegion(r) {
+    if (!REGIONS.includes(r)) return;
+    const secure = location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `km_region=${r}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
   }
   document.addEventListener("click", (e) => {
-    if (e.target.closest(".lang")) { setLang(lang === "zh" ? "en" : "zh"); store.set("km_lang", lang); }
+    const a = e.target.closest("a[data-region]");
+    if (a) saveRegion(a.dataset.region);
   });
 
   // ---------- Cookie 提示：本站不用追踪 Cookie，告诉一声就行 ----------
@@ -100,6 +98,7 @@
     chip: [".#.##.#.", "########", "#......#", "#.####.#", "#.####.#", "#......#", "########", ".#.##.#."],
     memory: ["########", "#......#", "#.#..#.#", "#......#", "#.####.#", "#......#", "########", "..#..#.."],
     wave: ["........", "...#....", "...#..#.", ".#.#..#.", ".#.##.#.", "##.####.", "########", "........"],
+    glasses: ["........", "#......#", "########", "#.#..#.#", "#.#..#.#", "###..###", "........", "........"],
   };
   document.querySelectorAll("canvas[data-icon]").forEach((cv) => {
     const rows = ICONS[cv.dataset.icon], c = 5;
@@ -112,7 +111,7 @@
     }));
   });
 
-  setLang(lang);
+  document.querySelectorAll("canvas[data-pixel]").forEach(drawPixelText);
   let wide = innerWidth > 760;
   addEventListener("resize", () => {  // 跨过宽窄分界才重画像素字
     if ((innerWidth > 760) !== wide) { wide = !wide; document.querySelectorAll("canvas[data-pixel]").forEach(drawPixelText); }

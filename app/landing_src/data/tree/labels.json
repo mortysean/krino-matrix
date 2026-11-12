@@ -1,0 +1,327 @@
+{
+ "_note": "Krino Tree / 宣言页的界面文字（中英）。四个阶段是对外的展示分组，名称和说明在这里改；节点内容在 v3.zh.json / v3.en.json，进度在 status.json。",
+ "en": {
+  "page_title": "Krino Tree",
+  "page_desc": "How Krino Matrix plans to get there (the Krino Tree, our interactive roadmap), and what exists today.",
+  "tab_tree": "Krino Tree",
+  "tab_progress": "Where we are",
+  "tree_title": "Krino Tree",
+  "tree_sub": "The Evolution of Our Vision",
+  "tree_lead": "From what we ship today to our long-term vision, with honest status at every step.",
+  "tree_honesty": "",
+  "explore": "Explore",
+  "nodes": "nodes",
+  "fit": "Fit to width",
+  "canvas_hint": "Scroll the page to move through the tree · Hover a node to trace its path · Click for details",
+  "list_hint": "",
+  "status_h": "Progress",
+  "nature_h": "Type",
+  "status": {
+   "completed": "Completed",
+   "in_progress": "In Progress",
+   "planned": "Planned",
+   "vision": "Vision"
+  },
+  "status_desc": {
+   "completed": "",
+   "in_progress": "",
+   "planned": "",
+   "vision": ""
+  },
+  "nature": {
+   "product": "Product",
+   "research": "Research",
+   "external": "External dependency",
+   "milestone": "Milestone / Gateway"
+  },
+  "nature_desc": {
+   "product": "",
+   "research": "",
+   "external": "",
+   "milestone": ""
+  },
+  "phases": {
+   "seed": {
+    "title": "The Seed",
+    "sub": "AI companion platform, AI glasses & the Open Matrix",
+    "blurb": "Where we are today: a platform that remembers, the glasses that will be its first body, and an open interface so other hardware can become its body too."
+   },
+   "embodiment": {
+    "title": "Embodiment",
+    "sub": "Context awareness, lifelong memory & persistent persona",
+    "blurb": "The companion moves into daily life: it notices context, keeps a lifetime of memory and stays the same person across devices."
+   },
+   "neural": {
+    "title": "Neural Connection",
+    "sub": "Neural interfaces & human–AI integration",
+    "blurb": "Every branch here starts at an external breakthrough we don't control. We build the software and the persona on top, never the implants."
+   },
+   "ascension": {
+    "title": "Ascension",
+    "sub": "Far-future forms of existence & continuity of consciousness",
+    "blurb": "A research vision, not an engineering commitment. It depends on science that does not exist yet."
+   }
+  },
+  "columns": {
+   "树干": "Trunk",
+   "感知与静默交互": "Perception & silent interaction",
+   "一生记忆": "Lifelong memory",
+   "人格与行为孪生": "Persona & behavioral twin",
+   "微创接口": "Minimally invasive interfaces",
+   "高通道接口": "High-channel interfaces",
+   "记忆假体与记忆桥": "Memory prosthesis & memory bridge",
+   "感觉写回": "Sensory write-back",
+   "仿真与孪生汇合": "Emulation & twin convergence",
+   "飞升机制与连续性": "Ascension mechanisms & continuity",
+   "保存与时间": "Preservation & time",
+   "第一个身体": "First body",
+   "开放矩阵": "Open Matrix"
+  },
+  "gates_row": "Convergence gates",
+  "what": "What",
+  "why": "Why it matters",
+  "deps": "Depends on",
+  "outcome": "Outcome",
+  "evidence": "How we'll know (validation)",
+  "progress": "What exists today",
+  "remaining": "Still to do",
+  "code_evidence": "Checked against",
+  "related": "Related product",
+  "enter": "Enter",
+  "product_page": "Product page",
+  "technical": "Technical details",
+  "t_when": "Timing",
+  "t_dur": "Duration",
+  "t_mode": "How we do it",
+  "t_sci": "Scientific basis",
+  "t_open": "Open questions",
+  "t_unlock": "Unlocks",
+  "t_man": "Manifesto basis",
+  "t_pre": "Prerequisites (as written)",
+  "t_tags": "Tags",
+  "t_translated": "Translated from the Chinese original.",
+  "no_deps": "None. This is a starting point.",
+  "gate_note": "Stage order: this section only opens after {gate}.",
+  "anyof": "Any one of these is enough:",
+  "all_required": "All required:",
+  "external_callout": "Hypothesis. This depends on breakthroughs outside our control: {list}. Nothing here is proven feasible or promised on a timeline.",
+  "external_self": "This is a breakthrough in other people's hands (academia, industry, clinics). We track it; we don't do it.",
+  "milestone_calc": "Computed from its prerequisites: it lights up only when all of them are Completed.",
+  "milestone_calc_any": "Computed: it lights up when any one of the convergence gates is Completed.",
+  "in_phase": "Phase",
+  "close": "Close",
+  "open_node": "Open details",
+  "prog_title": "Where we are now",
+  "prog_lead": "",
+  "prog_live": "Live today",
+  "prog_building": "In development",
+  "prog_next": "Next",
+  "prog_long": "Long-term",
+  "prog_none_done": "No node is fully Completed yet.",
+  "prog_next_text": "Embodiment begins once the Seed stage is complete.",
+  "prog_long_text": "Neural Connection and Ascension are long-term exploration, mostly dependent on outside scientific breakthroughs we can't schedule.",
+  "updated": "Status checked",
+  "read_full": "Read the full Manifesto",
+  "back": "Back to Apocalypse & Fulfillment",
+  "full_note": "Original text",
+  "toc": "Contents",
+  "loading": "Loading…",
+  "load_failed": "Couldn't load the tree data. Please refresh.",
+  "world_showcase": {
+   "lead": "A world that remembers you. Its AI characters have their own memories, voices and friends.",
+   "features": [
+    [
+     "MEMORY",
+     "Keeps what matters and lets the small stuff fade, the way people do. If it gets something wrong, one click corrects it."
+    ],
+    [
+     "SOUL",
+     "One sentence makes a character: an original, or one from a book, anime or game you love, written to canon."
+    ],
+    [
+     "VOICE",
+     "Every character gets a voice designed from a description. They speak as they think, and you can cut in anytime."
+    ],
+    [
+     "CIRCLE",
+     "Characters befriend each other, message, post moments and form their own impressions."
+    ]
+   ],
+   "stats": [
+    [
+     "~0.1s",
+     "to the first sound of streamed speech"
+    ],
+    [
+     "~2s",
+     "to design a new voice from one sentence"
+    ],
+    [
+     "0.16s",
+     "to transcribe a sentence"
+    ]
+   ],
+   "beta": "Closed beta: public sign-up isn't open yet."
+  },
+  "followups": "Next improvements",
+  "tree_tag": "KRINO TREE",
+  "jump": "Jump to",
+  "zoom_in": "Zoom in",
+  "zoom_out": "Zoom out"
+ },
+ "zh": {
+  "page_title": "战略",
+  "page_desc": "决策矩阵打算怎么走到那里（战略，我们的交互式路线图），以及今天已经有什么。",
+  "tab_tree": "战略",
+  "tab_progress": "当前进度",
+  "tree_title": "战略",
+  "tree_sub": "愿景的演进",
+  "tree_lead": "从今天的产品走向长期愿景，每一步做到哪里都如实标出。",
+  "tree_honesty": "",
+  "explore": "展开",
+  "nodes": "个节点",
+  "fit": "适应宽度",
+  "canvas_hint": "滚动页面浏览整棵树 · 悬停节点看它的整条路径 · 点击看详情",
+  "list_hint": "",
+  "status_h": "进度",
+  "nature_h": "性质",
+  "status": {
+   "completed": "已完成",
+   "in_progress": "研发中",
+   "planned": "已规划",
+   "vision": "远期探索"
+  },
+  "status_desc": {
+   "completed": "",
+   "in_progress": "",
+   "planned": "",
+   "vision": ""
+  },
+  "nature": {
+   "product": "我们的产品",
+   "research": "我们的研究",
+   "external": "依赖外部突破",
+   "milestone": "阶段终点 · 汇合"
+  },
+  "nature_desc": {
+   "product": "",
+   "research": "",
+   "external": "",
+   "milestone": ""
+  },
+  "phases": {
+   "seed": {
+    "title": "The Seed · 种子",
+    "sub": "AI 陪伴平台、AI 眼镜与开放矩阵",
+    "blurb": "我们今天所在的位置：一个会记得的平台，将成为它第一个身体的眼镜，以及让别家硬件也能成为它身体的开放接口。"
+   },
+   "embodiment": {
+    "title": "Embodiment · 具身",
+    "sub": "情境感知、长期记忆与持续人格",
+    "blurb": "伴侣走进日常：能感知情境、记住一生，换了设备也还是同一个人。"
+   },
+   "neural": {
+    "title": "Neural Connection · 神经连接",
+    "sub": "神经接口与人机融合",
+    "blurb": "这里每条枝干都从一个我们无法掌控的外部突破开始。我们只做其上的软件与人格，从不做植入物。"
+   },
+   "ascension": {
+    "title": "Ascension · 飞升",
+    "sub": "远期存在形态与意识连续性探索",
+    "blurb": "这是研究愿景，不是工程承诺。它依赖今天还不存在的科学。"
+   }
+  },
+  "columns": {},
+  "gates_row": "汇合门",
+  "what": "这是什么",
+  "why": "为什么重要",
+  "deps": "依赖什么",
+  "outcome": "完成后能实现什么",
+  "evidence": "怎样算成立（验证标准）",
+  "progress": "今天已经有的",
+  "remaining": "还差什么",
+  "code_evidence": "核实依据",
+  "related": "相关产品",
+  "enter": "进入",
+  "product_page": "产品介绍",
+  "technical": "技术细节",
+  "t_when": "时间位置",
+  "t_dur": "耗时",
+  "t_mode": "怎么做",
+  "t_sci": "科学依据",
+  "t_open": "未决问题",
+  "t_unlock": "解锁",
+  "t_man": "宣言依据",
+  "t_pre": "前置条件（原文）",
+  "t_tags": "标签",
+  "t_translated": "",
+  "no_deps": "无，这是起点。",
+  "gate_note": "阶段顺序：本段在「{gate}」点亮之后才开始。",
+  "anyof": "满足其一即可：",
+  "all_required": "须全部完成：",
+  "external_callout": "这是待验证的假设。它依赖我们无法掌控的外部突破：{list}。这里没有任何内容被证明可行，也不承诺时间表。",
+  "external_self": "这是掌握在别人手里（学界、产业、临床）的突破。我们只跟踪，不自己做。",
+  "milestone_calc": "由前置自动计算：全部前置都“已完成”时才点亮。",
+  "milestone_calc_any": "由前置自动计算：四道汇合门任意一道“已完成”时点亮。",
+  "in_phase": "阶段",
+  "close": "关闭",
+  "open_node": "查看详情",
+  "prog_title": "当前进度",
+  "prog_lead": "",
+  "prog_live": "今天已上线",
+  "prog_building": "研发中",
+  "prog_next": "接下来",
+  "prog_long": "长期",
+  "prog_none_done": "目前还没有任何节点完全达成。",
+  "prog_next_text": "种子阶段完成后，进入具身阶段。",
+  "prog_long_text": "神经连接与飞升是长期探索，大多取决于我们无法排期的外部科学突破。",
+  "updated": "进度核实于",
+  "read_full": "阅读宣言全文（英文原文）",
+  "back": "回到启示与应验",
+  "full_note": "英文原文",
+  "toc": "目录",
+  "loading": "加载中…",
+  "load_failed": "战略数据加载失败，请刷新重试。",
+  "world_showcase": {
+   "lead": "一个会记得你的世界。这里的 AI 角色有自己的记忆、声音和朋友。",
+   "features": [
+    [
+     "MEMORY",
+     "重要的事一直记得，琐碎的会慢慢淡忘——像人一样。记错了，你点一下就能纠正。"
+    ],
+    [
+     "SOUL",
+     "一句话写出一个角色：原创的，或者你喜欢的书、动漫、游戏里的——会先去查原作设定。"
+    ],
+    [
+     "VOICE",
+     "每个角色都有按描述设计出来的专属声音，边想边说，你也可以随时打断。"
+    ],
+    [
+     "CIRCLE",
+     "角色之间也会加好友、私聊、发动态，对彼此有自己的印象。"
+    ]
+   ],
+   "stats": [
+    [
+     "~0.1s",
+     "流式语音的第一个声音"
+    ],
+    [
+     "~2s",
+     "按一句描述设计一个新声音"
+    ],
+    [
+     "0.16s",
+     "识别一句话"
+    ]
+   ],
+   "beta": "内测中：暂未开放公开注册。"
+  },
+  "followups": "后续加强",
+  "tree_tag": "STRATEGY",
+  "jump": "跳到",
+  "zoom_in": "放大",
+  "zoom_out": "缩小"
+ }
+}

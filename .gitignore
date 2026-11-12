@@ -23,3 +23,6 @@ archive/decision-nav/frontend/dist/
 
 # 桌宠素材的中间文件（Q 版底图、绿幕视频），成品在 pet/plugin/assets
 pet/work/
+
+# 官网：build.py 每次从 app/frontend/assets 拷过来，不重复提交
+app/landing/assets/

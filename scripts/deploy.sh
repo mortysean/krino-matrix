@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # 把 KRINO WORLD 部署到一台 Ubuntu 22.04 服务器（可重复运行：第一次装好，之后就是更新）。
 #
-#   scripts/deploy.sh global ubuntu@43.153.189.97     海外版：app.krinomatrix.com、api.krinomatrix.com，加品牌首页 krinomatrix.com
-#   scripts/deploy.sh cn     sean@111.229.152.63      国内版：cn.krinomatrix.com、api-cn.krinomatrix.com
+#   scripts/deploy.sh global ubuntu@43.153.189.97     国际站 krinomatrix.com/global/ 的源站，应用在 /global/products/world/
+#   scripts/deploy.sh cn     sean@111.229.152.63      中国大陆站 krinomatrix.com/cn/ 的源站，应用在 /cn/products/world/
+# 应用不再有自己的子域名（app.、cn.、api.、api-cn. 的 DNS 已删除），全部在 krinomatrix.com 下。
 #
 # 做的事：同步代码和素材 → 装 PostgreSQL / Python 3.11 / Caddy → 建库、迁移 → systemd 服务 krino-world → Caddy 自动 HTTPS。
 # 装在服务器用户的主目录下：~/krino-world。配置在 ~/krino-world/.env（第一次从本机的 .env 和模板生成，之后不覆盖，改了要手动同步）。
 # 需要：本机能免密 SSH 登录，服务器用户能 sudo。sudo 要密码时用环境变量传进来（从标准输入交给 sudo，不落盘）：
 #   SUDO_PASS=... scripts/deploy.sh cn sean@111.229.152.63
-# 只改 Caddy（不重装）：  SUDO_PASS=... scripts/deploy.sh cn sean@... caddy
+# 只改 Caddy 或只更新官网（不重装应用）：  SUDO_PASS=... scripts/deploy.sh cn sean@... caddy
+# 官网两台都要更新；第一次上线先部署海外服务器（它替国内服务器转发证书验证），再部署国内服务器。
 # 国内版自动用国内镜像（腾讯云 PyPI、阿里云 PyTorch、hf-mirror）和系统自带的 Python 3.10，国外源在境内太慢。
 set -euo pipefail
 EDITION="${1:?用法：$0 cn|global user@host}"
@@ -19,13 +21,16 @@ DEST="$("${SSH[@]}" 'echo $HOME')/krino-world"
 log() { echo "[deploy:$EDITION] $*" >&2; }
 
 case "$EDITION" in
-  global) SITES="app.krinomatrix.com, api.krinomatrix.com"; LANDING=1; OTHER=https://cn.krinomatrix.com
-          CADDY="WWW_TO=https://krinomatrix.com PEER_ACME=${CN_IP:-111.229.152.63}:80"; MIRRORS="" ;;
-  cn)     SITES="cn.krinomatrix.com, api-cn.krinomatrix.com"; LANDING=0; OTHER=https://app.krinomatrix.com
-          CADDY="WWW_TO=https://krinomatrix.com"
+  global) SITES=""; LANDING=1; OTHER=https://krinomatrix.com/cn/products/world/
+          CADDY="WWW_TO=https://krinomatrix.com SITE_REGION=global PEER_ORIGIN=${CN_IP:-111.229.152.63} PEER_ACME=${CN_IP:-111.229.152.63}:80"; MIRRORS="" ;;
+  cn)     SITES=""; LANDING=1; OTHER=https://krinomatrix.com/global/products/world/
+          CADDY="WWW_TO=https://krinomatrix.com SITE_REGION=cn PEER_ORIGIN=${GLOBAL_IP:-43.153.189.97}"
           MIRRORS="PYTHON=python3.10 PIP_INDEX=https://mirrors.cloud.tencent.com/pypi/simple TORCH_FIND=https://mirrors.aliyun.com/pytorch-wheels/cpu/ HF_ENDPOINT=https://hf-mirror.com MODEL_SOURCE=modelscope NO_SPACY=1" ;;
   *) echo "版本只能是 cn 或 global"; exit 1 ;;
 esac
+
+log "生成官网（app/landing_src/build.py）"
+"${LANDING_PY:-$(command -v ~/anaconda3/envs/krino_matrix/bin/python || command -v python3)}" "$ROOT/app/landing_src/build.py" >&2
 
 log "同步代码到 $TARGET:$DEST"
 "${SSH[@]}" "mkdir -p $DEST"
@@ -91,4 +96,4 @@ log "安装与配置（服务器上执行 scripts/server_setup.sh）"
 STEP="server_setup"; [ "${3:-}" = caddy ] && STEP="caddy_setup"
 RUN="cd $DEST && sudo -S -p '' env DEST='$DEST' SITES='$SITES' LANDING=$LANDING APP_USER=\$(whoami) $CADDY $MIRRORS ${SKIP_ASSETS:+SKIP_ASSETS=1} bash scripts/$STEP.sh"
 printf '%s\n' "${SUDO_PASS:-}" | "${SSH[@]}" "$RUN"
-log "完成。站点：$SITES$( [ "$LANDING" = 1 ] && echo '，krinomatrix.com')"
+log "完成：krinomatrix.com/$EDITION/（应用在 /$EDITION/products/world/）"

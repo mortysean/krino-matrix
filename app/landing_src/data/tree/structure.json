@@ -1,0 +1,57 @@
+{
+ "_note": "Krino Tree 的结构：公开的四个阶段 → V3 原有的分段、枝干（列）和节点顺序，以及逐条前置依赖。依赖逐条对应 v3.zh.json 里各节点的 pre 文本（多重前置与 MULTI_EDGES 一致），不增不减。四个阶段只是对外展示的分组，不改变 V3 的前置关系。gate = V3 里段与段之间的大箭头（上一段的阶段终点），单独记，不混进 requires。anyOf = 满足其一即可（只有 ASCENSION：四道汇合门至少一道）。root = 阶段顶上居中的起点节点（第一阶段的种子），下面的枝干都从它长出来。V3 之外新增的节点（additions.json，如“开放矩阵”枝干）也在这里放位置、写依赖；开放矩阵不是 MVP 阶段终点的前置。",
+ "phases": [
+  {"id": "seed", "n": 1, "key": "THE SEED", "v3": "树干 · 第一个种子与第一个身体",
+   "root": ["seed"],
+   "columns": [{"v3": "第一个身体", "nodes": ["glasses"]}, {"v3": "开放矩阵", "nodes": ["openApi", "openSource", "thirdParty"]}], "end": "mvpEnd"},
+  {"id": "embodiment", "n": 2, "key": "EMBODIMENT", "v3": "第一段 · 感知、一生记忆、人格", "gate": "mvpEnd",
+   "columns": [
+    {"v3": "感知与静默交互", "nodes": ["wearable", "neurodecode", "silent", "contextual"]},
+    {"v3": "一生记忆", "nodes": ["extmem", "memstruct", "lifearchive", "memprovenance", "memexport"]},
+    {"v3": "人格与行为孪生", "nodes": ["twin", "personaEval", "agentTwin", "drift", "oneSoul"]}
+   ], "end": "stageEnd1"},
+  {"id": "neural", "n": 3, "key": "NEURAL CONNECTION", "v3": "第二段 · 神经接口", "gate": "stageEnd1",
+   "columns": [
+    {"v3": "微创接口", "nodes": ["microExt", "bciProtocol", "lowBandSem", "micro", "brainSelect"]},
+    {"v3": "高通道接口", "nodes": ["implant", "speechAdapt", "driftCorrect", "bidirCompanion", "brainControl"]},
+    {"v3": "记忆假体与记忆桥", "nodes": ["prosthExt", "memEncode", "memAlign", "prosth", "bridgeProd"]},
+    {"v3": "感觉写回", "nodes": ["bidir", "sensorySem", "sensoryProd"]}
+   ], "end": "stageEnd2"},
+  {"id": "ascension", "n": 4, "key": "ASCENSION", "v3": "第三段 · 仿真、飞升机制、保存", "gate": "stageEnd2",
+   "columns": [
+    {"v3": "仿真与孪生汇合", "nodes": ["fly", "mouse", "twinValidate", "translate", "merge", "neuroTwinProd"]},
+    {"v3": "飞升机制与连续性", "nodes": ["replace", "scan", "continuity"]},
+    {"v3": "保存与时间", "nodes": ["longevityExt", "preserveSci", "preserve", "archiveAssess", "readout"]}
+   ], "gates": ["gReplace", "gScan", "gBridge", "gPreserve"], "end": "ascension"}
+ ],
+ "requires": {
+  "seed": [], "glasses": ["seed"], "mvpEnd": ["seed", "glasses"],
+  "openApi": ["seed"], "openSource": ["openApi"], "thirdParty": ["openSource"],
+  "wearable": ["glasses"], "neurodecode": ["wearable"], "silent": ["neurodecode", "glasses"],
+  "contextual": ["silent", "extmem", "seed"],
+  "extmem": ["seed", "glasses"], "memstruct": ["extmem"], "lifearchive": ["memstruct"],
+  "memprovenance": ["lifearchive"], "memexport": ["memprovenance", "seed"],
+  "twin": ["seed", "extmem"], "personaEval": ["twin", "lifearchive"], "agentTwin": ["personaEval"],
+  "drift": ["agentTwin", "personaEval"], "oneSoul": ["drift", "seed"],
+  "stageEnd1": ["contextual", "memexport", "oneSoul"],
+  "microExt": [], "bciProtocol": ["microExt", "oneSoul"], "lowBandSem": ["bciProtocol", "extmem", "contextual"],
+  "micro": ["bciProtocol", "lowBandSem"], "brainSelect": ["micro"],
+  "implant": [], "speechAdapt": ["implant", "twin"], "driftCorrect": ["speechAdapt"],
+  "bidirCompanion": ["driftCorrect", "oneSoul"], "brainControl": ["bidirCompanion", "brainSelect"],
+  "prosthExt": [], "memEncode": ["prosthExt", "extmem"], "memAlign": ["memEncode", "memstruct"],
+  "prosth": ["memAlign"], "bridgeProd": ["prosth", "bidir"],
+  "bidir": [], "sensorySem": ["bidir", "lowBandSem"], "sensoryProd": ["sensorySem"],
+  "stageEnd2": ["brainSelect", "brainControl", "bridgeProd", "sensoryProd"],
+  "fly": [], "mouse": [], "twinValidate": ["mouse", "personaEval"], "translate": ["twinValidate", "fly"],
+  "merge": ["bidirCompanion", "twin", "translate"], "neuroTwinProd": ["merge"],
+  "replace": ["bidir", "translate", "continuity"], "scan": ["mouse", "merge", "readout"],
+  "continuity": ["bridgeProd", "bidir", "memprovenance", "drift"],
+  "longevityExt": [], "preserveSci": [], "preserve": ["preserveSci", "memexport"],
+  "archiveAssess": ["preserve", "memprovenance"], "readout": ["preserve", "mouse"],
+  "gReplace": ["replace", "continuity"], "gBridge": ["bridgeProd", "continuity"],
+  "gScan": ["scan", "readout"], "gPreserve": ["readout"],
+  "ascension": []
+ },
+ "anyOf": {"ascension": ["gReplace", "gBridge", "gScan", "gPreserve"]},
+ "milestones": ["mvpEnd", "stageEnd1", "stageEnd2", "gReplace", "gBridge", "gScan", "gPreserve", "ascension"]
+}
