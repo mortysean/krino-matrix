@@ -3,6 +3,7 @@
 
 数据全在 data/ 下，和界面分开：
   manifesto/en.json          宣言原文（官网版，逐段；tools/extract_manifesto.py 从 docx 抽取）
+  manifesto/zh.json          中文译文（逐段对应英文，国内站显示）
   apocalypse/entries.json    “启示与应验”栏目的条目（宣言是第一条）
   tree/v3.zh.json            科技树 V3 母版（原样抽取）  tree/v3.en.json         英文译文
   tree/additions.json        V3 之外新增的节点（开放矩阵），载入时合并
@@ -33,7 +34,9 @@ EN = _load("tree/v3.en.json")
 ST = _load("tree/structure.json")
 STATUS = _load("tree/status.json")
 LABELS = _load("tree/labels.json")
-MANIFESTO = _load("manifesto/en.json")
+MANIFESTO = {"en": _load("manifesto/en.json"), "zh": _load("manifesto/zh.json")}
+assert [len(x["paragraphs"]) for x in MANIFESTO["zh"]["sections"]] == [len(x["paragraphs"]) for x in MANIFESTO["en"]["sections"]], \
+    "manifesto/zh.json 要和 en.json 逐段对应：英文改了，中文同步改"
 APOCALYPSE = _load("apocalypse/entries.json")
 for _nid, _a in _load("tree/additions.json")["nodes"].items():  # V3 之外新增的节点并进母版（只在内存里）
     _z = dict(_a["zh"])
@@ -307,13 +310,13 @@ def vision_page(region_cfg):
 def manifesto_page(region_cfg):
     lang = lang_of(region_cfg["lang"])
     L = LABELS[lang]
-    M = MANIFESTO
+    M = MANIFESTO[lang]
     toc = "".join(f'<a href="#s{i + 1}">{esc(s["title"])}</a>' for i, s in enumerate(M["sections"]))
     secs = "".join(f'<h2 id="s{i + 1}"><i>{i + 1:02d}</i>{esc(s["title"])}</h2>' + "".join(f"<p>{esc(p)}</p>" for p in s["paragraphs"])
                    for i, s in enumerate(M["sections"]))
     body = f"""<p class="tag">// APOCALYPSE &amp; FULFILLMENT · MANIFESTO</p>
     <p class="meta">{esc(L["full_note"])} · <a href="{{base}}apocalypse/">{L["back"]}</a></p>
-    <article lang="en">
+    <article lang="{M["lang"]}">
     <p class="latin">{esc(M.get("latin", ""))}</p>
     <h1>{esc(M["title"])}</h1>
     <blockquote class="epigraph">{esc(M["epigraph"])}</blockquote>
@@ -321,7 +324,7 @@ def manifesto_page(region_cfg):
     {secs}
     </article>
     <p class="meta"><a href="{{base}}vision/#tree">{L["tab_tree"]} →</a></p>"""
-    desc = {"zh": '决策矩阵宣言全文（英文原文）：我们为什么存在、相信什么、要去哪里。',
+    desc = {"zh": '决策矩阵宣言全文：我们为什么存在、相信什么、要去哪里。',
             "en": 'The full Krino Matrix Manifesto: why we exist, what we believe and where we are going.'}[lang]
     return {"title": M["title"], "description": desc}, body
 

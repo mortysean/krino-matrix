@@ -100,19 +100,34 @@ async def translated_errors(request: Request, exc: HTTPException):
 
 @app.middleware("http")
 async def timing(request: Request, call_next):
-    """记录每个接口的延迟和 5xx；前端文件不带哈希，让浏览器每次先问一下有没有新版本（304 很便宜）。"""
+    """记录每个接口的延迟和 5xx；前端代码不带哈希，让浏览器每次先问一下有没有新版本（304 很便宜）。
+    图片和动作视频改动很少、体积大，让浏览器缓存一周；/media/ 的文件名随机或按内容命名，永不变，缓存一年。
+    /static/assets/ 下的 PNG 立绘有同名 WebP 时直接给 WebP（小 5~10 倍；数据库里存的地址还是 .png，不用改）。"""
     t0 = time.perf_counter()
+    path = request.url.path
+    webp = path.startswith("/static/assets/") and path.endswith(".png") and "image/webp" in request.headers.get("accept", "") \
+        and (settings.frontend_dir / path[len("/static/"):-4]).with_suffix(".webp").is_file()
+    if webp:
+        request.scope["path"] = path[:-4] + ".webp"
+        request.scope["raw_path"] = request.scope["path"].encode()
     try:
         resp = await call_next(request)
     except Exception as e:  # noqa: BLE001
         log.exception("未处理的错误：%s %s", request.method, request.url.path)
         events.error(request.url.path, f"{type(e).__name__}: {e}")
         resp = JSONResponse({"detail": tr("服务器出错了，请稍后再试")}, status_code=500)
-    path = request.url.path
     if path.startswith("/api/"):
         route = request.scope.get("route")
         events.observe(f"{request.method} {getattr(route, 'path', path)}", (time.perf_counter() - t0) * 1000,
                        resp.status_code)
+    elif resp.status_code >= 400:
+        pass  # 出错的不缓存（/media/ 本机 404 时 Caddy 会去另一台取）
+    elif path.startswith("/media/"):
+        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif path.startswith(("/static/assets/", "/static/chibi/")) and not path.endswith(".json"):
+        resp.headers["Cache-Control"] = "public, max-age=604800"
+        if path.endswith(".png"):
+            resp.headers["Vary"] = "Accept"
     elif path == "/" or path.startswith("/static/"):
         resp.headers["Cache-Control"] = "no-cache"
     return resp

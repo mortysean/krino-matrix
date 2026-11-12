@@ -588,3 +588,4 @@ html[data-lang="en"] .title { max-width: 18ch; }
   .phase, .tn { transition: none; }
   .tn.s-in_progress .pl { animation: none; }
 }
+html[data-lang="zh"] .epigraph { font-style: normal; }

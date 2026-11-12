@@ -173,3 +173,14 @@ def test_prompt_uses_the_characters_pronoun():
     assert "你就是他，用他的口吻" in rules_for(c("他"))
     assert "你就是它" in rules_for(c("它")) and "你就是TA" in rules_for(c("TA"))
     assert "{who}" not in rules_for(c("乱写"))
+
+
+def test_static_portraits_served_as_cached_webp(client):
+    """PNG 立绘地址不变，支持 WebP 的浏览器拿到小得多的 WebP；图片缓存一周，前端代码每次验证。"""
+    r = client.get("/static/assets/krino.png", headers={"Accept": "image/avif,image/webp,*/*"})
+    assert r.status_code == 200 and r.headers["content-type"] == "image/webp" and len(r.content) < 300_000
+    assert "max-age=604800" in r.headers["cache-control"] and r.headers["vary"] == "Accept"
+    r = client.get("/static/assets/krino.png", headers={"Accept": "image/png"})
+    assert r.headers["content-type"] == "image/png"
+    assert client.get("/static/index.html").headers["cache-control"] == "no-cache"
+    assert "cache-control" not in client.get("/media/c/missing.webp").headers
