@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import mimetypes
 import time
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
@@ -15,6 +16,8 @@ from . import auth, chat, credits, devices, events, memory, personas, policy, so
 from .config import ROOT_DIR, locale, settings
 from .i18n import tr
 from .db import SessionLocal, migrate
+
+mimetypes.add_type("image/webp", ".webp")  # 服务器上的 Python 3.10 不认识 .webp，会当成 application/octet-stream
 
 
 def _setup_logging() -> None:
