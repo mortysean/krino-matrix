@@ -31,7 +31,7 @@ from .auth import current_user, user_settings
 from .config import chat_model_for, locale, settings
 from .db import SessionLocal, get_db
 from .i18n import tr
-from .llm import LLMError, get_hear_llm, get_llm, transcribe_for_record
+from .llm import LLMError, get_chat_llm, get_hear_llm, get_llm, transcribe_for_record
 from .models import Character, ChatSession, MemoryJob, Message, User, now
 from .personas import ANIMATIONS, EXPRESSIONS, get_owned, lore_hits
 from .prompt import StreamFilter, build_system, parse_reply, prompt_heard, web_section
@@ -400,7 +400,7 @@ def run_turn(db: Session, p: Plan) -> dict:
         return finalize(db, p, raw)
     if p.mode:
         t0 = time.perf_counter()
-        r = get_llm().complete(system=p.system, messages=p.history, context=p.llm_context)
+        r = get_chat_llm(p.llm_context).complete(system=p.system, messages=p.history, context=p.llm_context)
         raw = r.text if not r.refused else event_text("refused")
         events.record("llm", "complete", user_id=p.user_id, character_id=p.character_id,
                       latency_ms=(time.perf_counter() - t0) * 1000, payload={"model": r.model})
@@ -418,7 +418,7 @@ def stream_turn(p: Plan) -> Iterator[str]:
         route_heard(p)
         if p.mode:
             f = StreamFilter(p.recent_leads)
-            llm = (get_hear_llm() or get_llm()) if "audio" in p.llm_context else get_llm()
+            llm = (get_hear_llm() or get_llm()) if "audio" in p.llm_context else get_chat_llm(p.llm_context)
             for chunk in llm.stream(system=p.system, messages=p.history, context=p.llm_context):
                 raw += chunk
                 if out := f.feed(chunk):

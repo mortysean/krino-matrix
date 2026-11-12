@@ -170,3 +170,28 @@ def test_registration_can_be_closed(client, monkeypatch):
     assert client.post("/api/auth/login", json={"username": "reg_before_close", "password": "secret123"}).status_code == 200
     monkeypatch.setattr(settings, "registration", "open")
     assert client.get("/api/site").json()["registration"] is True
+
+
+def test_chat_provider_self_routes_only_chat(monkeypatch):
+    """CHAT_PROVIDER=self：平时的聊天回复走自建的 Qwen3-Omni；要上网查的那一轮仍走 OpenRouter。默认不变。"""
+    from app import llm
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "llm_provider", "openrouter")
+    monkeypatch.setattr(settings, "llm_api_key", "k")
+    monkeypatch.setattr(llm, "_llm", None)
+    assert isinstance(llm.get_chat_llm({}), llm.OpenRouterLLM)            # 默认：OpenRouter
+    monkeypatch.setattr(settings, "chat_provider", "self")
+    monkeypatch.setattr(llm, "_self_chat", None)
+    c = llm.get_chat_llm({})
+    assert isinstance(c, llm.OmniLLM) and c.self_hosted                    # 平时：自建
+    assert isinstance(llm.get_chat_llm({"web": True}), llm.OpenRouterLLM)  # 要查网：OpenRouter
+    monkeypatch.setattr(llm, "_llm", None)
+    monkeypatch.setattr(llm, "_self_chat", None)
+
+
+def test_omni_text_only_output_price():
+    from app import credits
+    from app.config import settings
+    assert credits.omni_cny(0, 1_000_000) == settings.hear_price_text_out / 1  # 纯文字：输出 6.9 元 / 百万
+    assert credits.omni_cny(0, 1_000_000, audio_tokens=1) > credits.omni_cny(0, 1_000_000)

@@ -106,6 +106,10 @@ class Settings:
     hear_asr_price: float = field(default_factory=lambda: _float("HEAR_ASR_PRICE", 0.00022))  # 元 / 秒
     # 价格（元 / 百万 token，百炼北京 qwen3-omni-flash 原价；用来记积分）。自建的 Qwen3-Omni（听、看图）按同一张价目表收
     hear_price_text_in: float = field(default_factory=lambda: _float("HEAR_PRICE_TEXT_IN", 1.8))
+    hear_price_text_out: float = field(default_factory=lambda: _float("HEAR_PRICE_TEXT_OUT", 6.9))  # 只有文字输入时的输出价
+    # 聊天回复用谁：openrouter（默认）| self = 自建的 Qwen3-Omni（国内站：不出境，首字约 0.1 秒）。
+    # self 时只有聊天回复走自建；要上网查的那一轮、记忆整理、生成角色还走 OpenRouter。自建出错就报错，不退回。
+    chat_provider: str = field(default_factory=lambda: _env("CHAT_PROVIDER", "openrouter"))
     hear_price_image_in: float = field(default_factory=lambda: _float("HEAR_PRICE_IMAGE_IN", 3.3))
     hear_price_audio_in: float = field(default_factory=lambda: _float("HEAR_PRICE_AUDIO_IN", 15.8))
     hear_price_out: float = field(default_factory=lambda: _float("HEAR_PRICE_OUT", 12.7))

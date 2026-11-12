@@ -121,7 +121,7 @@ async def timing(request: Request, call_next):
 if settings.models_dir.exists():  # 下载的 Live2D 模型等素材（scripts/fetch_assets.py），只读
     app.mount("/models", StaticFiles(directory=settings.models_dir), name="models")
 app.mount("/media", StaticFiles(directory=workbench.media_root()), name="media")  # 工作台生成的立绘（文件名随机）
-LANDING_DIR = ROOT_DIR / "app" / "landing"  # krinomatrix.com 品牌首页（Caddy 把整站改写到 /landing/）
+LANDING_DIR = ROOT_DIR / "app" / "landing"  # 官网 krinomatrix.com：线上由 Caddy 直接出静态文件，这里只供本地在 /landing/ 预览
 if LANDING_DIR.exists():
     app.mount("/landing", StaticFiles(directory=LANDING_DIR, html=True), name="landing")
 if settings.frontend_dir.exists():

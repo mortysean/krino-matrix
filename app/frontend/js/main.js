@@ -1,5 +1,5 @@
 // 入口：登录、侧边栏的角色列表、页面切换。每个页面的逻辑在各自的模块里。
-import { $, $$, S, api, avaHTML, bus, esc, fail, storeGet, storeSet, t, toast, tr } from "./core.js";
+import { $, $$, S, api, avaHTML, bus, esc, fail, storeGet, storeSet, t, toast, tr, url } from "./core.js";
 import { applyDom, setLocale } from "./i18n.js";
 import { initChat } from "./chat.js";
 import { initMemory, refreshAsks } from "./memory.js";
@@ -112,7 +112,7 @@ async function boot() {
 
 // 站点版本：决定商标（国内版中文商标，海外版英文）、界面语言、页脚备案号
 async function loadSite() {
-  S.site = await fetch("/api/site").then((r) => r.json()).catch(() => S.site);
+  S.site = await fetch(url("/api/site")).then((r) => r.json()).catch(() => S.site);
   document.documentElement.dataset.edition = S.site.edition;
   await setLocale(S.site.locale);
   applyDom();

@@ -5,8 +5,14 @@ export const $ = (s, root = document) => root.querySelector(s);
 export const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-export function storeGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
-export function storeSet(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* 无痕模式 */ } }
+// 应用挂在官网的 /cn/products/world/（国内）和 /global/products/world/（国际）下，也兼容直接挂在根目录（本地开发）。
+// 接口地址要带上这个前缀，Caddy 才知道该转给哪个地区的后端；/static/、/media/ 两边都在根目录，不用改。
+export const BASE = (location.pathname.match(/^\/(?:cn|global)\/products\/world\//) || ["/"])[0];
+export const url = (p) => (typeof p === "string" && p.startsWith("/api/") ? BASE + p.slice(1) : p);
+// 两个地区的应用在同一个域名下，浏览器存储按地区分开，免得国内版和国际版的登录互相覆盖
+const NS = BASE === "/" ? "" : BASE.split("/")[1] + ".";
+export function storeGet(k) { try { return localStorage.getItem(NS + k); } catch { return null; } }
+export function storeSet(k, v) { try { v == null ? localStorage.removeItem(NS + k) : localStorage.setItem(NS + k, v); } catch { /* 无痕模式 */ } }
 
 // 全局状态：只放跨页面共享的东西
 export const S = {
@@ -44,7 +50,7 @@ export async function api(path, opts = {}) {
   if (body && !(body instanceof FormData)) { headers["Content-Type"] = "application/json"; body = JSON.stringify(body); }
   let res;
   try {
-    res = await fetch(path, { method: opts.method || (body ? "POST" : "GET"), headers, body, signal: opts.signal });
+    res = await fetch(url(path), { method: opts.method || (body ? "POST" : "GET"), headers, body, signal: opts.signal });
   } catch (e) {
     if (e.name === "AbortError") throw e;
     setOnline(false, t("连不上服务器，正在重试…"));
@@ -73,10 +79,10 @@ function errDetail(d) {
 // 健康检查：断网后每 5 秒探一次，恢复时自动隐藏提示
 setInterval(async () => {
   if (S.online) return;
-  try { const r = await fetch("/api/health"); if (r.ok) setOnline(true); } catch { /* 还没恢复 */ }
+  try { const r = await fetch(url("/api/health")); if (r.ok) setOnline(true); } catch { /* 还没恢复 */ }
 }, 5000);
 window.addEventListener("offline", () => setOnline(false, t("网络已断开")));
-window.addEventListener("online", () => fetch("/api/health").then(() => setOnline(true)).catch(() => {}));
+window.addEventListener("online", () => fetch(url("/api/health")).then(() => setOnline(true)).catch(() => {}));
 
 // 提示：消息先过一遍 tr()，中文原文和后端拼好的句子都能在海外版翻成英文
 export function toast(msg, ms = 2400) {

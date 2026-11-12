@@ -85,10 +85,11 @@ def audio_seconds(b64_or_bytes, fmt: str = "wav") -> float:
 
 
 def omni_cny(prompt_tokens: int, completion_tokens: int, audio_tokens: int = 0, image: bool = False) -> float:
-    """Qwen3-Omni 按百炼 qwen3-omni-flash 的价目表：文字 / 图片 / 音频输入分开算，输入里有多模态时的输出价。"""
+    """Qwen3-Omni 按百炼 qwen3-omni-flash 的价目表：文字 / 图片 / 音频输入分开算；输出价看输入里有没有多模态。"""
     rest = max(0, prompt_tokens - audio_tokens)
+    out_price = settings.hear_price_out if (audio_tokens or image) else settings.hear_price_text_out
     return (rest * (settings.hear_price_image_in if image else settings.hear_price_text_in)
-            + audio_tokens * settings.hear_price_audio_in + completion_tokens * settings.hear_price_out) / 1_000_000
+            + audio_tokens * settings.hear_price_audio_in + completion_tokens * out_price) / 1_000_000
 
 
 def is_self_hosted(url: str | None) -> bool:

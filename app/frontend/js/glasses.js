@@ -2,7 +2,7 @@
 //   输入  camera.frame（摄像头一帧）/ mic.text（说的话）/ imu.pose（头部姿态，这里用滑杆或鼠标拖动模拟）/ heartbeat
 //   输出  ar.avatar / ar.subtitle / ar.panel / ar.clear —— 结构化事件，画在“镜片”叠加层上
 // 摄像头和麦克风只在你点了按钮、浏览器授权后才打开；离开这个页面或断开时立即关闭。
-import { $, $$, S, api, curChar, esc, fail, t, toast, tr } from "./core.js";
+import { $, $$, S, api, curChar, esc, fail, t, toast, tr, url } from "./core.js";
 import { canHear, listen, record, sttAvailable } from "./voice.js";
 import { createStage } from "./stage.js";
 import { getLocale } from "./i18n.js";
@@ -31,7 +31,7 @@ function send(msg) {
 function connect() {
   if (G.ws) return;
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  const ws = new WebSocket(`${proto}://${location.host}/api/devices/ws?token=${encodeURIComponent(S.token)}&kind=glasses-sim`);
+  const ws = new WebSocket(`${proto}://${location.host}${url("/api/devices/ws")}?token=${encodeURIComponent(S.token)}&kind=glasses-sim`);
   G.ws = ws; G.state = "connecting"; renderState();
   ws.onopen = () => ws.send(JSON.stringify({ type: "hello", character_id: S.charId }));
   ws.onmessage = (e) => onMessage(JSON.parse(e.data));

@@ -249,6 +249,27 @@ class OmniLLM:
                            tokens=prompt_t + (usage.get("completion_tokens") or 0), self_hosted=self.self_hosted)
 
 
+def _omni_complete(self, *, system: str, messages: list[dict], max_tokens: int | None = None,
+                   context: dict | None = None) -> LLMResult:
+    text = "".join(self.stream(system=system, messages=messages, max_tokens=max_tokens, context=context))
+    return LLMResult(text=text, refused=not text, model=self.model)
+
+
+OmniLLM.complete = _omni_complete
+
+
+_self_chat = None
+
+
+def get_chat_llm(context: dict | None = None):
+    """聊天回复用的模型。CHAT_PROVIDER=self 时用自建的 Qwen3-Omni（不出境）；要上网查的那一轮仍走 OpenRouter（自建的不能上网）。"""
+    global _self_chat
+    if settings.chat_provider != "self" or settings.llm_provider == "mock" or (context or {}).get("web"):
+        return get_llm()
+    _self_chat = _self_chat or OmniLLM(self_hosted=True)
+    return _self_chat
+
+
 def transcribe_for_record(audio_b64: str, payer: str | None = None, fmt: str = "wav") -> str:
     """记下你说的原话（只用来存对话记录和整理记忆；她的回答是直接听录音得出的，不靠这个）。失败返回空字符串。"""
     if settings.hear_provider == "mock" or settings.llm_provider == "mock":

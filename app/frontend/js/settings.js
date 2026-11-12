@@ -1,5 +1,5 @@
 // 04 设置：常用的只有几个开关，改了立刻生效（不用点保存）。技术细节都收在“高级”里。
-import { $, $$, S, api, esc, fail, modal, t, toast, tr } from "./core.js";
+import { $, $$, S, api, esc, fail, modal, storeSet, t, toast, tr } from "./core.js";
 import { glassesPanel } from "./glasses.js";
 
 async function save(patch) {
@@ -73,7 +73,7 @@ async function advanced() {
     ${status.errors.length ? `<div class="ev-log">${status.errors.map((e) => `<div class="err">${esc(e.at)} ${esc(e.where)} ${esc(e.message)}</div>`).join("")}</div>` : `<p class="muted small">${t("最近没有服务错误。")}</p>`}
     <label class="switch"><input type="checkbox" id="s-dev" ${S.me.dev ? "checked" : ""}><span>${t("开发者视图")}<small>${t("每条回复下显示策略打分")}</small></span></label>`;
   $("#s-pol").onchange = (e) => save({ evaluator: { mode: e.target.value || null } });
-  $("#s-dev").onchange = (e) => { S.me.dev = e.target.checked; try { localStorage.setItem("krino_dev", e.target.checked ? "1" : ""); } catch { /* */ } };
+  $("#s-dev").onchange = (e) => { S.me.dev = e.target.checked; storeSet("krino_dev", e.target.checked ? "1" : ""); };
   $("#s-test").onclick = async () => {
     $("#s-test-out").innerHTML = `<p class="muted small">${t("测试中…")}</p>`;
     try {
