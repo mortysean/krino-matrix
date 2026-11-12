@@ -1,0 +1,5 @@
+# KRINO Matrix inference framework (model/, krino/). The SDK has its own: sdk/python/pyproject.toml
+torch>=2
+transformers>=4.40
+huggingface_hub>=0.20
+pydantic>=2

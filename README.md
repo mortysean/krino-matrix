@@ -29,15 +29,28 @@ The UI follows one rule: save the user's attention. If one click can do it, don'
 | Workshop | Official picks and shared characters, adopted with one click. Also search, categories, votes, comments, reports, and admin review |
 | Settings | Toggles that save instantly. "Advanced" holds model service status, the interaction policy, the KRINO GLASSES simulator, and run status |
 
-- **Voice:** speech is synthesized locally by default with [Kokoro-82M Chinese](https://huggingface.co/hexgrad/Kokoro-82M-v1.1-zh) (Apache-2.0). It's free, offline, and has 100 voices; each character picks one. If the model is missing, the browser's own speech is used instead.
+- **Voice:** for local development, speech is synthesized with [Kokoro-82M Chinese](https://huggingface.co/hexgrad/Kokoro-82M-v1.1-zh) (Apache-2.0). It's free, offline, and has 100 voices; each character picks one. The production servers use the self-hosted voice service (`TTS_PROVIDER=qwen`). When it fails, the page shows the error instead of falling back to the browser's voice.
 - **2D characters:** pixi-live2d-display (MIT) with Live2D's Cubism Core runtime. That runtime is free for individuals and small businesses; larger companies need a Live2D release license. Art credits are in [`app/frontend/assets/CREDITS.md`](app/frontend/assets/CREDITS.md).
-- **KRINO Evaluator:** the evaluator now runs only as the internal interaction policy. It is rule-based by default. `KRINO_POLICY=matrix` runs the 3-Head Matrix model, which is labelled experimental because it wasn't trained on interaction behaviour. Hard constraints are enforced in code.
+- **KRINO Evaluator:** the evaluator now runs only as the internal interaction policy. It is rule-based by default. `KRINO_POLICY=matrix` runs the 3-Head Matrix model, which is labelled experimental because it wasn't trained on interaction behaviour. Hard constraints are enforced in code. The weights are open source on [Hugging Face](https://huggingface.co/yuxiaohuang2004/krino_matrix) (`matrix-mmbert/`, the same as the local `model/checkpoints/mmbert-uncertainty`).
 
 Architecture and data model: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Website and deployment
+
+The company site [krinomatrix.com](https://krinomatrix.com) is generated from `app/landing_src/` (`python app/landing_src/build.py`). It has a mainland China site `/cn/` and an international site `/global/`, and the app runs under each at `/<region>/products/world/`. The two regions are separate deployments: `/cn/` is served from the Hangzhou server and `/global/` from the Tokyo server. `scripts/deploy.sh cn|global user@host [caddy]` deploys one of them; see [docs/DEPLOY.md](docs/DEPLOY.md). Site-only changes have to be deployed to both servers.
+
+## Repositories
+
+| Repository | Contents |
+| --- | --- |
+| [krino-matrix-private](https://github.com/mortysean/krino-matrix-private) (remote `private`) | All of the code: this repository |
+| [krino-matrix](https://github.com/mortysean/krino-matrix) (remote `origin`) | The public part: client SDK, API docs, inference framework of the Matrix model |
+
+The public repository is assembled by `scripts/publish_public.sh`; don't edit it directly. Its README and requirements are in `public/`. To update it, commit here first, then run `scripts/publish_public.sh` to preview the change and `scripts/publish_public.sh --push` to publish. The script scans for keys before it pushes. Secrets (`.env*`, keys, server passwords) never go into either repository.
+
 ## Layout
 
-`app/` holds backend, frontend and e2e. `data/` is local only: the database, downloaded models and datasets. `model/` and `krino/` contain the Matrix model. `scripts/`, `docs/`, and `archive/` hold scripts, documentation, and the retired decision-navigation app.
+`app/` holds backend, frontend, e2e and the website (`landing_src/` is the source, `landing/` the generated pages). `sdk/python/` is the KRINO WORLD Python client and `docs/api/` the API guide and OpenAPI schema. `data/` is local only: the database, downloaded models and datasets. `model/` and `krino/` contain the Matrix model. `scripts/`, `docs/`, and `archive/` hold scripts, documentation, and the retired decision-navigation app.
 
 ## License
 

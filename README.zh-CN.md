@@ -43,7 +43,7 @@ scripts/world.sh start | stop | status | logs
 
 ### 语音
 
-默认用本地的 [Kokoro-82M 中文版](https://huggingface.co/hexgrad/Kokoro-82M-v1.1-zh)（Apache-2.0）合成语音：免费、不用密钥、不联网，有 100 个中文音色，每个角色可以选自己的音色。没有模型时自动改用浏览器朗读。语音识别默认用浏览器自带的，Chrome / Edge 支持。
+本地开发时用 [Kokoro-82M 中文版](https://huggingface.co/hexgrad/Kokoro-82M-v1.1-zh)（Apache-2.0）合成语音：免费、不用密钥、不联网，有 100 个中文音色，每个角色可以选自己的音色。线上服务器用自建的语音服务（`TTS_PROVIDER=qwen`），出错时页面如实报错，不改用浏览器朗读。语音识别默认用浏览器自带的，Chrome / Edge 支持。
 
 ### 2D 形象
 
@@ -59,6 +59,20 @@ scripts/world.sh start | stop | status | logs
 - 默认是规则策略。
 - `KRINO_POLICY=matrix` 时用 KRINO Matrix 3-Head 模型。它的权重没有针对互动行为训练，所以输出标为实验。
 - 硬约束（比如你要求安静就什么都不做）在代码里强制，不依赖任何策略。
+- 模型权重已在 [Hugging Face](https://huggingface.co/yuxiaohuang2004/krino_matrix) 开源（`matrix-mmbert/`，和本地的 `model/checkpoints/mmbert-uncertainty` 是同一份）。
+
+## 官网与部署
+
+公司官网 [krinomatrix.com](https://krinomatrix.com) 由 `app/landing_src/` 生成（`python app/landing_src/build.py`），分中国大陆站 `/cn/` 和国际站 `/global/`，应用分别在 `/<地区>/products/world/`。两个地区是两套独立部署：`/cn/` 由杭州服务器提供，`/global/` 由东京服务器提供。部署用 `scripts/deploy.sh cn|global user@host [caddy]`，详见 [docs/DEPLOY.md](docs/DEPLOY.md)。只改官网时，两台服务器都要部署。
+
+## 仓库
+
+| 仓库 | 内容 |
+| --- | --- |
+| [krino-matrix-private](https://github.com/mortysean/krino-matrix-private)（远程 `private`） | 全部代码，就是这个仓库 |
+| [krino-matrix](https://github.com/mortysean/krino-matrix)（远程 `origin`） | 开源部分：客户端 SDK、接口文档、Matrix 模型推理框架 |
+
+公开库由 `scripts/publish_public.sh` 组装，不要在公开库里直接改。它的 README 和 requirements 在 `public/`。更新时先在这里提交，再运行 `scripts/publish_public.sh` 预览改动，确认后用 `scripts/publish_public.sh --push` 发布。推送前脚本会扫描密钥。密钥（`.env*`、各种 key、服务器密码）不进任何一个仓库。
 
 ## 目录
 
@@ -66,6 +80,10 @@ scripts/world.sh start | stop | status | logs
 app/backend    后端（FastAPI + PostgreSQL + alembic）
 app/frontend   前端（原生 ES 模块，无构建）
 app/e2e        浏览器端到端测试
+app/landing_src  官网源码；生成到 app/landing/
+sdk/python     KRINO WORLD Python 客户端
+docs/api       接口说明和 OpenAPI 规范
+public/        公开库的 README 和 requirements
 data/          数据：sources/（数据源代码，进 git）；pgdata/（数据库）、models/（语音、Live2D）、训练数据只在本地
 model/ krino/  KRINO Matrix 模型与评估接口
 scripts/       world.sh、fetch_assets.py、训练与评测
