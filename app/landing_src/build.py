@@ -135,8 +135,7 @@ def footer(region, pages, rel=""):
     R, t = REGIONS[region], REGIONS[region]["t"]
     have = pages[region]
     icp = f'<br><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">{R["icp"]}</a>' if R["icp"] else ""
-    prods = (f'<a href="{{base}}products/">{t["all_products"]}</a>' if "products/" in have else "") + \
-        "".join(f'<a href="{p["app"]}">{esc(PRODUCTS[p["slug"]]["name"])}</a>' for p in R["products"])
+    prods = "".join(f'<a href="{p["app"]}">{esc(PRODUCTS[p["slug"]]["name"])}</a>' for p in R["products"])
     comp = "".join(f'<a href="{{base}}{href}">{t[k]}</a>' for k, href, page in
                    (("apocalypse", "apocalypse/", "apocalypse/"), ("tree", "vision/#tree", "vision/"), ("about", "about/", "about/"),
                     ("developers", "developers/", "developers/"), ("contact", "contact/", "contact/")) if page in have)
