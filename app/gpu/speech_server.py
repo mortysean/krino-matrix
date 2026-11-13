@@ -175,8 +175,17 @@ def list_voices():
     return [{"id": k, "language": v.get("language")} for k, v in voices().items() if k in _registered]
 
 
+def _language(text: str) -> str:
+    """按文字认语言（角色可以设成说日语、韩语）：有假名是日语（日语里也有汉字，要先看），有谚文是韩语，有汉字是中文。"""
+    if re.search(r"[\u3040-\u30ff]", text):
+        return "Japanese"
+    if re.search(r"[\uac00-\ud7af]", text):
+        return "Korean"
+    return "Chinese" if re.search(r"[一-鿿]", text) else "English"
+
+
 def _omni_body(text: str, voice: str, speed: float, stream: bool) -> dict:
-    body = {"input": text, "voice": voice, "task_type": "Base", "language": "Chinese" if re.search(r"[一-鿿]", text) else "English",
+    body = {"input": text, "voice": voice, "task_type": "Base", "language": _language(text),
             "speed": speed, "response_format": "pcm" if stream else "wav",
             "non_streaming_mode": True}  # 整句话一次交给模型（声音照样边合成边发）：看得到后面的字，断句和语调更连贯
     if stream:

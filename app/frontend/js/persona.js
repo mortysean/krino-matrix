@@ -4,7 +4,7 @@
 // “导出”得到一个文件（灵魂 + 肉体，图片内嵌），可以直接上传工坊；不常用的（历史版本、还原、告别）收进“更多”。
 import { $, $$, S, api, avaHTML, bus, confirmBox, curChar, download, esc, fail, fmtTime, modal, t, toast, tr } from "./core.js";
 import { speak, voiceConfig } from "./voice.js";
-import { bodyDirty, bodyForget, bodyPanel, bodyPortrait, bodyPrompt } from "./workbench.js";
+import { bodyDirty, bodyForget, bodyLooks, bodyPanel, bodyPortrait, bodyPrompt } from "./workbench.js";
 import { soulGraph } from "./soulgraph.js";
 import { askNotify, charStarted, soulFinished, soulStarted } from "./creating.js";
 
@@ -51,10 +51,14 @@ export async function personaPage() {
           </div>
           ${vc.tts.design ? `<div class="voice-design">
             <textarea data-v="style" rows="2" placeholder="${t("描述想要的声音：性别年龄、音色、语速、情绪……例如：低沉沙哑的老年巫师，慢条斯理")}">${esc(b.voice.style || "")}</textarea>
+            <div class="voice-tune">${t("微调：")}${VOICE_TUNES.map((x) => `<button type="button" class="tune" data-tune="${esc(t(x))}">${esc(t(x))}</button>`).join("")}</div>
             <button class="ghost small" id="voice-redesign">${t("按描述设计新声音")}</button>
           </div>` : ""}
           <div class="slider-row"><span>${t("语速")}</span><input type="range" min="0.6" max="1.6" step="0.05" data-v="rate" value="${b.voice.rate}"><span>${b.voice.rate}</span></div>
           <p class="muted small">${voiceNote(vc.tts)}</p>
+          <div class="section-title mono">${t("LANGUAGE · 说话的语言")}</div>
+          <div class="row"><select data-v="language" style="flex:1">${LANGS.map(([v, l]) => `<option value="${v}" ${v === (b.language || "") ? "selected" : ""}>${esc(t(l))}</option>`).join("")}</select></div>
+          <p class="muted small">${t("她回复和朗读用的语言。不管你用什么语言跟她说，她都用这个语言回答。")}</p>
         </div>
         <div class="studio-soul">
           <div class="section-title mono">${t("SOUL · 灵魂")}</div>
@@ -67,6 +71,11 @@ export async function personaPage() {
   $$("[data-edit]", root).forEach((el) => (el.onclick = () => bus.emit("select", { id: el.dataset.edit, view: "persona" })));
   $("#c-add").onclick = addCharacter;
   $$("input[type=range]", root).forEach((el) => (el.oninput = () => { el.nextElementSibling.textContent = el.value; markDirty(true); }));
+  $$("[data-tune]", root).forEach((el) => (el.onclick = () => {  // 在声音描述后面加一句微调，再点“按描述设计新声音”
+    const ta = $("[data-v=style]", root), add = el.dataset.tune, cur = ta.value.trim().replace(TRAIL, "");
+    if (!cur.includes(add)) ta.value = (cur + (cur ? "，" : "") + add).slice(0, 300);
+    ta.focus(); markDirty(true);
+  }));
   soulGraph($("#soul-host", root), c, { onNew: addCharacter });
   root.oninput = (e) => { if (!e.target.closest("#body-host")) markDirty(true); };  // 每次重画都覆盖，不会越绑越多
   bodyPanel($("#body-host", root), c, { onChange: markDirty }).then(() => markDirty()).catch(fail);
@@ -103,6 +112,10 @@ function collect(root, c) {  // 只有肉体：形象和声音。灵魂不在这
   const st = $("[data-v=style]", root);
   if (st) behavior.voice.style = st.value.trim();
   behavior.portrait = bodyPortrait(c);
+  const looks = bodyLooks(c);
+  if (looks) behavior.looks = looks; else delete behavior.looks;
+  const lang = $("[data-v=language]", root)?.value;
+  if (lang) behavior.language = lang; else delete behavior.language;
   return { behavior };
 }
 
@@ -129,6 +142,9 @@ const D = { draft: null, prompt: "", voice: null };  // voice：试听时设计�
 const DRAFT_FIELDS = [["name", "名字", 1], ["tagline", "简介", 1], ["greeting", "开场白", 2], ["personality", "性格", 3], ["speech", "说话方式（口头禅写在这里）", 3],
   ["examples", "对话示例（一行一句：“用户：……”“角色名：……”）", 5]];
 const PRONOUNS = [["她", "她"], ["他", "他"], ["它", "它（非人类）"], ["TA", "TA（不确定 / 不区分）"]];
+const LANGS = [["", "跟着网站的语言"], ["zh", "中文"], ["en", "English"], ["ja", "日本語"], ["ko", "한국어"]];
+const VOICE_TUNES = ["低沉一点", "清亮一点", "更温柔", "更有活力", "更成熟", "更稚气", "语速慢一点", "带点气声"];
+const TRAIL = /[。，,.\s]+$/;
 
 export async function addCharacter() {
   if (S.chars.length >= (S.me?.companion_limit || 8)) return toast(t("最多 {n} 位角色，先和一位告别吧", { n: S.me.companion_limit }));
@@ -156,8 +172,8 @@ const writingHTML = () => `<div class="gen-wait"><div class="cd-anim" aria-hidde
 async function draftForm(d) {
   const sc = await schema();
   const labels = Object.fromEntries(sc.fields.map((x) => [x.key, x.label]));
-  const vc = await voiceConfig().catch(() => ({ tts: {} }));
-  D.draft = d; D.voice = null; D.design = !!vc.tts?.design;
+  const [vc, wb] = await Promise.all([voiceConfig().catch(() => ({ tts: {} })), api("/api/workbench").catch(() => ({}))]);
+  D.draft = d; D.voice = null; D.design = !!vc.tts?.design; D.motion = wb.motion;
   const p = d.persona || {};
   const pron = p.pronoun || "TA";
   $("#gen-out").innerHTML = `
@@ -175,7 +191,8 @@ async function draftForm(d) {
         ${MORE_FIELDS.map((k) => `<label>${esc(tr(labels[k]))}<textarea data-d="${k}" rows="2">${esc(p[k] || "")}</textarea></label>`).join("")}
         <label>${t("风格")}<select data-d-style>${Object.keys(sc.styles).map((x) => `<option value="${esc(x)}" ${x === (d.behavior?.style || "温柔") ? "selected" : ""}>${esc(tr(x))}</option>`).join("")}</select></label>
       </details>
-      <div class="row"><button id="draft-go">${t("创建角色")}</button><span class="muted small">${t("还要画形象、设计声音，大约一分钟。可以关掉窗口，全部做好了会通知你")}</span></div>
+      ${D.motion?.ready ? `<label class="check"><input type="checkbox" id="draft-motion"> ${t("同时做动图：会做挥手、点头、害羞等动作的 Q 版小人（多约 {p} 积分，多等 {m} 分钟）", { p: Math.round(D.motion.points), m: D.motion.minutes })}</label>` : ""}
+      <div class="row"><button id="draft-go">${t("创建角色")}</button><span class="muted small">${t("还要画立绘、设计声音，大约一分钟。可以关掉窗口，全部做好了会通知你")}</span></div>
     </div>`;
 }
 
@@ -222,14 +239,15 @@ document.addEventListener("click", async (e) => {  // 弹窗里的按钮（弹�
     behavior.voice = { ...(behavior.voice || {}), style: vstyle };
     if (D.voice && D.voice.style === vstyle) behavior.voice.voice = D.voice.id;  // 试听过、描述没改：就用这个声音，不再设计一次
     else if (vstyle && D.design) behavior.voice.voice = "";  // 描述改过：创建时按新描述设计
-    const body = { draft: { persona, behavior, lore: d.lore || [], appearance: $("[data-d=appearance]").value.trim() }, prompt: D.prompt || "" };
+    const body = { draft: { persona, behavior, lore: d.lore || [], appearance: $("[data-d=appearance]").value.trim() }, prompt: D.prompt || "",
+      motion: !!$("#draft-motion")?.checked };
     e.target.disabled = true; e.target.textContent = t("创建中…");
     askNotify();
     try {  // 灵魂马上存好、窗口马上关；形象和声音在后台做（大约一分钟），右下角显示进度，全部做好了才通知、才能进去聊
       const { character: c } = await api("/api/workbench/character", { body });
       D.saved = null;
       $("#modal").classList.add("hidden");
-      if (c.pending) { charStarted(c); await reloadChars(); }
+      if (c.pending) { charStarted(c, { motion: body.motion }); await reloadChars(); }
       else { toast(t("欢迎 {name}！", { name: c.name }), 5000); await reloadChars(c.id); bus.emit("select", { id: c.id, view: "chat" }); }
     } catch (err) { fail(err); e.target.disabled = false; e.target.textContent = t("创建角色"); }
   }

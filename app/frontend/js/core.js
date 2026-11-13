@@ -126,7 +126,8 @@ const HEADS = { "/static/assets/whale-girl.png": "/static/assets/whale-girl-head
   "/static/chibi/whale/chibi.json": "/static/assets/whale-girl-head.png", "/static/chibi/krino/chibi.json": "/static/assets/krino-head.png" };
 export function avaHTML(c, cls = "") {
   if (!c) return "";
-  const src = c.portrait?.kind === "image" ? HEADS[c.portrait.src] || c.portrait.src : c.portrait?.kind === "chibi" ? HEADS[c.portrait.src] || null : null;
+  // 自己创建的角色换成动图后，头像用动图的静态封面（官方角色有专门的头像图）
+  const src = c.portrait?.kind === "image" ? HEADS[c.portrait.src] || c.portrait.src : c.portrait?.kind === "chibi" ? HEADS[c.portrait.src] || c.portrait.still || null : null;
   const inner = src ? `<img src="${esc(src)}" alt="" class="${HEADS[c.portrait.src] ? "" : "top"}">` : esc([...(c.name || "?")][0]);
   return `<span class="ava ${cls}" style="--c:${esc(c.color)}">${inner}</span>`;
 }

@@ -3,13 +3,16 @@
 dashscope：百炼千问图像（IMAGE_MODEL，默认 qwen-image-3.0），文生图和“参考图 + 修改说明”都走同一个接口。
 self：自建生图服务（app/gpu/image_server.py，IMAGE_BASE_URL），接口和百炼一样；出错时有百炼密钥就退回百炼。
 mock：测试用，生成纯色块，不调外部服务。
-生成的图片去掉白底、缩到 768×1152 以内，存成 WebP 放在 data/media/u/<用户>/，通过 /media/... 访问（文件名随机，不可猜）。
+新画的形象都参考两位官方角色的立绘（只学画风，不照搬长相），画风和官方统一。
+生成的图片用二次元抠图模型（anime-seg / isnetis，data/models/anime-seg/）去掉背景，没有模型时退回“去掉和边缘连通的白底”；
+缩到 768×1152 以内，存成 WebP 放在 data/media/u/<用户>/，通过 /media/... 访问（文件名随机，不可猜）。
 每人每天最多生成 IMAGE_DAILY_LIMIT 张，按 world_events 里的记录数。
 """
 from __future__ import annotations
 
 import base64
 import io
+import json
 import logging
 import random
 import time
@@ -60,6 +63,33 @@ PROMPTS = {
            "expression": "Keep the exact same character (face, hair, outfit, pose, art style), the pure white background and the "
                          "composition unchanged; only change the facial expression to: {prompt}"},
 }
+
+
+# 画新形象时一起发给模型的官方立绘：只用来统一画风
+STYLE_REFS = ("krino.png", "whale-girl.png")
+STYLE_NOTE = {
+    "zh": "前两张图是本作品官方角色的立绘，只用来统一画风：照着它们的线条、上色、光影、头身比例、精致程度和构图来画，"
+          "但不要照搬她们的长相、发型、发色、服装和配饰，画一个全新的角色。",
+    "en": "The first two images are official character art from this product, given only as a style guide: match their line work, "
+          "coloring, lighting, proportions, level of detail and composition, but do not copy their faces, hair, colors, outfits "
+          "or accessories. Draw a brand-new character. ",
+}
+_style_refs: list[str] | None = None
+
+
+def style_content(lang: str, prompt: str) -> list[dict]:
+    """画一个新角色：官方立绘当画风参考 + 设定。参考图读不到（比如测试环境）就只发文字。"""
+    global _style_refs
+    if _style_refs is None:
+        from PIL import Image
+        try:
+            _style_refs = [_as_reference(Image.open(settings.frontend_dir / "assets" / n))[0] for n in STYLE_REFS]
+        except OSError:
+            _style_refs = []
+    text = PROMPTS[lang]["design"].format(prompt=prompt)
+    if not _style_refs:
+        return [{"text": text}]
+    return [*({"image": r} for r in _style_refs), {"text": STYLE_NOTE[lang] + text}]
 
 
 RETRY_WAITS = (3, 6, 12)  # 限流时依次等几秒再试
@@ -164,6 +194,56 @@ def cut_background(img):
     return out
 
 
+SEG_MODEL = "anime-seg/isnetis.onnx"
+SEG_SIZE = 1024
+_seg = None  # onnxruntime 会话；None = 还没试着加载，False = 加载不了（没装 onnxruntime 或没有模型）
+
+
+def _segmenter():
+    global _seg
+    if _seg is None:
+        path = settings.models_dir / SEG_MODEL
+        try:
+            import onnxruntime as ort
+            opts = ort.SessionOptions()
+            opts.intra_op_num_threads = 2  # 网站服务器只有 4 核：抠图时别把对话都卡住
+            _seg = ort.InferenceSession(str(path), opts, providers=["CPUExecutionProvider"]) if path.is_file() else False
+        except Exception as e:  # noqa: BLE001
+            log.warning("抠图模型加载不了，退回去白底：%s", e)
+            _seg = False
+        if _seg is False:
+            log.warning("没有抠图模型（%s）：用 scripts/fetch_assets.py 下载；先退回去白底", path)
+    return _seg or None
+
+
+def matte(img):
+    """二次元抠图：模型给出人物的透明度，再把半透明边缘里混进来的白底颜色去掉（不然头发、尾巴边上一圈白边）。
+    一张 768×1152 在网站服务器上约 1~2 秒。模型用不了时退回 cut_background。"""
+    import numpy as np
+    from PIL import Image
+
+    sess = _segmenter()
+    if sess is None:
+        return cut_background(img)
+    rgb = img.convert("RGB")
+    w, h = rgb.size
+    k = SEG_SIZE / max(w, h)
+    nw, nh = int(w * k), int(h * k)
+    x = np.zeros((SEG_SIZE, SEG_SIZE, 3), np.float32)
+    top, left = (SEG_SIZE - nh) // 2, (SEG_SIZE - nw) // 2
+    x[top:top + nh, left:left + nw] = np.asarray(rgb.resize((nw, nh), Image.BILINEAR), np.float32) / 255
+    m = sess.run(None, {sess.get_inputs()[0].name: x.transpose(2, 0, 1)[None]})[0][0, 0][top:top + nh, left:left + nw]
+    a = np.asarray(Image.fromarray((np.clip(m, 0, 1) * 255).astype(np.uint8)).resize((w, h), Image.BILINEAR), np.float32) / 255
+    a[a < 0.04] = 0  # 背景上零星的一点点不透明
+    c = np.asarray(rgb, np.float32)
+    bg = np.median(np.concatenate([c[0], c[-1], c[:, 0], c[:, -1]]), axis=0)  # 背景色（一般是白的）：取四条边的中位数
+    edge = (a > 0) & (a < 0.98)
+    fg = c.copy()
+    fg[edge] = (c[edge] - (1 - a[edge, None]) * bg) / np.maximum(a[edge, None], 0.05)  # 去掉混进来的背景色
+    out = np.dstack([np.clip(fg, 0, 255), a * 255]).astype(np.uint8)
+    return Image.fromarray(out, "RGBA")
+
+
 def _process(data: bytes):
     from PIL import Image, UnidentifiedImageError
 
@@ -173,7 +253,7 @@ def _process(data: bytes):
     except (UnidentifiedImageError, OSError) as e:
         raise ImageError("生成的图片打不开") from e
     img.thumbnail((MAX_W, MAX_H))
-    return cut_background(img)
+    return matte(img)
 
 
 def _save(user_id: str, img) -> str:
@@ -260,8 +340,11 @@ def _run(user: User, name: str, content: list[dict], n: int, size: str) -> list[
 def info(user: User = Depends(current_user), db: Session = Depends(get_db)):
     p = settings.image_provider
     ready = p == "mock" or (p == "dashscope" and bool(settings.dashscope_api_key)) or (p == "self" and bool(settings.image_base_url))
+    from .motion import cost_cny
     return {"ready": ready, "provider": settings.image_provider, "model": settings.image_model,
             "limit": daily_limit(user), "used": _used_today(db, user.id), "expressions": list(EXPRESSIONS),
+            "motion": {"ready": settings.image_provider == "mock" or bool(settings.dashscope_api_key),
+                       "points": credits.points(cost_cny()), "minutes": "10"},
             "credit_limited": bool(credits.daily_limit(user))}  # 由积分来管的账号，工作台不显示张数
 
 
@@ -288,7 +371,7 @@ def design(body: DesignIn, user: User = Depends(current_user), db: Session = Dep
         content = [{"image": ref}, {"text": PROMPTS[lang]["edit"].format(prompt=body.prompt)}]
         return {"images": _run(user, "edit", content, n, size), "used": _used_today(db, user.id)}
     _check_quota(db, user, body.n)
-    content = [{"text": PROMPTS[lang]["design"].format(prompt=body.prompt)}]
+    content = style_content(lang, body.prompt)
     return {"images": _run(user, "design", content, body.n, f"{MAX_W}*{MAX_H}"), "used": _used_today(db, user.id)}
 
 
@@ -350,11 +433,74 @@ class CharacterIn(BaseModel):
     draft: dict | None = None                              # 新角色窗口里写好 / 改好的灵魂：{persona, behavior, lore, appearance}
     character_id: str | None = Field(default=None, max_length=32)  # 在哪个角色的工作台上点的（只用来记来源，不会改她）
     wait: bool = False  # True = 画完形象、设计完声音再返回（测试用）；默认马上返回，后台补上
+    motion: bool = False  # 同时做动图（会做动作的 Q 版小人）：多花约 8 元、多等 10 分钟左右
 
 
-def _finish_character(cid: str, user_id: str, look_prompt: str, voice: dict, greeting: str) -> None:
-    """后台给新角色补上形象和声音：两件事同时做（画图约一分钟，设计声音几秒），做完写回角色、去掉“正在创建”。
-    用自己的数据库会话；失败了也要把“正在创建”去掉，角色照样能聊（没有形象时显示名字首字的铭牌）。"""
+def _check_motion(db: Session, user: User) -> None:
+    from . import motion
+
+    if settings.image_provider == "mock":
+        return
+    if not settings.dashscope_api_key:
+        raise HTTPException(400, "服务器没有配置视频生成（DASHSCOPE_API_KEY），做不了动图")
+    credits.check(db, user, credits.points(motion.cost_cny()))
+
+
+def _set_origin(cid: str, **kw) -> None:
+    """后台任务做到哪了，写在角色的 origin 上（页面上的进度卡片读它）。用自己的数据库会话。"""
+    from .db import SessionLocal
+    from .models import Character
+
+    with SessionLocal() as db:
+        c = db.get(Character, cid)
+        if c is not None:
+            o = dict(c.origin or {})
+            for k, v in kw.items():
+                if v is None:
+                    o.pop(k, None)
+                else:
+                    o[k] = v
+            c.origin = o
+            db.commit()
+
+
+def _make_motion(cid: str, user_id: str, image_src: str, key: str) -> dict | None:
+    """做动图（app/motion.py），进度写在 origin[key]；做成了按实际片段数扣钱。失败返回 None（角色照样用立绘）。"""
+    from . import motion
+
+    total = len(motion.clip_names())
+    _set_origin(cid, **{key: {"done": 0, "total": total, "started": int(time.time())}})
+    try:
+        out = motion.make(user_id, settings.media_dir / image_src[len("/media/"):],
+                          progress=lambda d, t: _set_origin(cid, **{key: {"done": d, "total": t, "started": int(time.time())}}))
+    except Exception as e:  # noqa: BLE001
+        log.warning("角色 %s 的动图没做出来：%s", cid, e)
+        events.error("motion", f"{type(e).__name__}: {e}")
+        _set_origin(cid, **{key: None, "motion_error": str(e)[:120]})
+        return None
+    credits.charge(user_id, "motion", settings.image_price_cny + out["clips"] * settings.motion_clip_price_cny, clips=out["clips"])
+    _set_origin(cid, **{key: None, "motion_error": None})
+    return out["portrait"]
+
+
+def _with_motion(b: dict, chibi: dict) -> dict:
+    """动图做好了：换上它，立绘留在“自己的形象”里随时换回来；动作白名单换成这套动图会的。"""
+    from .motion import MOVES
+
+    looks = [x for x in (b.get("looks") or []) if x.get("kind") != "chibi"]
+    cur = b.get("portrait")
+    if cur and cur.get("kind") == "image" and not any(x["src"] == cur["src"] for x in looks):
+        looks.insert(0, {"kind": "image", "src": cur["src"]})
+    spec = json.loads((settings.media_dir / chibi["src"][len("/media/"):]).read_text(encoding="utf-8"))
+    anims = [a for a in MOVES if a in spec.get("moves", {})]
+    return {**b, "portrait": chibi, "looks": [chibi, *looks][:8], **({"animations": anims} if anims else {})}
+
+
+def _finish_character(cid: str, user_id: str, look_prompt: str, voice: dict, greeting: str, motion: bool = False,
+                      lang: str = "zh") -> None:
+    """后台给新角色补上形象和声音：两件事同时做（画图约一分钟，设计声音几秒）；勾了动图的，立绘画好再做动图（10 分钟左右）。
+    全部做完写回角色、去掉“正在创建”。用自己的数据库会话；失败了也要把“正在创建”去掉，角色照样能聊
+    （没有形象时显示名字首字的铭牌；动图没做成就用立绘）。"""
     from .db import SessionLocal
     from .models import Character
 
@@ -366,20 +512,17 @@ def _finish_character(cid: str, user_id: str, look_prompt: str, voice: dict, gre
             return
 
         def draw():
-            return _run(user, "design", [{"text": look_prompt}], 1, f"{MAX_W}*{MAX_H}")[0]
+            return _run(user, "design", style_content(lang, look_prompt), 1, f"{MAX_W}*{MAX_H}")[0]
 
         def speak():
             with SessionLocal() as vdb:
                 return _own_voice(vdb, db.get(User, user_id), dict(voice), greeting)
 
-        def mark(step: str) -> None:  # 哪一步先做完就先记下来（页面上的“创建中”卡片按它打勾）
-            with SessionLocal() as pdb:
-                c = pdb.get(Character, cid)
-                if c is not None:
-                    o = dict(c.origin or {})
-                    o["done"] = sorted({*o.get("done", []), step})
-                    c.origin = o
-                    pdb.commit()
+        done: list[str] = []
+
+        def mark(step: str) -> None:  # 哪一步做完就记下来（页面上的“创建中”卡片按它打勾）
+            done.append(step)
+            _set_origin(cid, done=sorted(done))
 
         new_voice = voice
         with ThreadPoolExecutor(2) as pool:
@@ -391,32 +534,32 @@ def _finish_character(cid: str, user_id: str, look_prompt: str, voice: dict, gre
                     except Exception as e:  # noqa: BLE001
                         error = getattr(e, "detail", str(e))
                         log.warning("新角色 %s 的形象没画出来：%s", cid, error)
-                    if fv.done():
-                        break  # 两件都做完了：最后一起写回，不用单独打勾
                     mark("portrait")
                 else:
                     try:
                         new_voice = fv.result()
                     except Exception:  # noqa: BLE001
                         log.exception("新角色 %s 的声音没设计出来", cid)
-                    if fi.done():
-                        break
                     mark("voice")
-        db.expire_all()  # mark() 用别的会话改过 origin
+        chibi = _make_motion(cid, user_id, image, "motion") if motion and image else None
+        db.expire_all()  # 进度用别的会话改过 origin
         c = db.get(Character, cid)
         if c is None:  # 等的时候被删了
             return
         b = dict(c.behavior or {})
         if image:
             b["portrait"] = {"kind": "image", "src": image}
+            b["looks"] = [{"kind": "image", "src": image}]
+        if chibi:
+            b = _with_motion(b, chibi)
         b["voice"] = {**(b.get("voice") or {}), **new_voice}
         c.behavior = b
-        o = {k: v for k, v in (c.origin or {}).items() if k not in ("pending", "done")}
+        o = {k: v for k, v in (c.origin or {}).items() if k not in ("pending", "done", "motion")}
         if error:
             o["portrait_error"] = str(error)[:120]
         c.origin = o
         db.commit()
-    log.info("新角色 %s 补完形象和声音（%.0fs）%s", cid, time.perf_counter() - t0, "，形象失败" if error else "")
+    log.info("新角色 %s 补完形象和声音%s（%.0fs）%s", cid, "、动图" if chibi else "", time.perf_counter() - t0, "，形象失败" if error else "")
 
 
 def _own_voice(db: Session, user: User, voice: dict, greeting: str) -> dict:
@@ -451,6 +594,8 @@ def character(body: CharacterIn, user: User = Depends(current_user), db: Session
     except PersonaError as e:
         raise HTTPException(400, str(e)) from e
     _check_quota(db, user, 1)
+    if body.motion:
+        _check_motion(db, user)
     try:
         if body.draft:
             raw = body.draft
@@ -469,7 +614,7 @@ def character(body: CharacterIn, user: User = Depends(current_user), db: Session
     p = d["persona"]
     who = body.prompt.strip() or f"{p.get('name', '')}，{p.get('tagline', '')}"
     look = f"{who}。{d.get('appearance') or ''}" if lang == "zh" else f"{who}. {d.get('appearance') or ''}"
-    look_prompt = PROMPTS[lang]["design"].format(prompt=look[:800])
+    look_prompt = look[:800]  # draw() 里再套上画风参考和设计模板
     behavior = {k: v for k, v in d["behavior"].items() if k != "portrait"}  # 先没有形象：显示名字铭牌，画好了再换上
     try:  # 角色马上建好（灵魂已经定了），形象和声音在后台补；关掉窗口、刷新页面都不影响
         new = personas.create(db, user, persona=p, behavior=behavior, lore=d["lore"],
@@ -477,7 +622,7 @@ def character(body: CharacterIn, user: User = Depends(current_user), db: Session
     except PersonaError as e:
         raise HTTPException(400, str(e)) from e
     db.commit()
-    job = (new.id, user.id, look_prompt, dict(behavior.get("voice") or {}), p.get("greeting", ""))
+    job = (new.id, user.id, look_prompt, dict(behavior.get("voice") or {}), p.get("greeting", ""), body.motion, lang)
     if body.wait:
         _finish_character(*job)
         db.expire_all()
@@ -487,3 +632,46 @@ def character(body: CharacterIn, user: User = Depends(current_user), db: Session
 
         threading.Thread(target=_finish_character, args=job, name=f"char-{new.id[:8]}", daemon=True).start()
     return {"character": personas.full(new), "created": True, "used": _used_today(db, user.id)}
+
+
+class MotionIn(BaseModel):
+    character_id: str = Field(max_length=32)
+
+
+@router.post("/motion")
+def make_motion(body: MotionIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """给自己创建的角色补做动图（用她现在的立绘）。后台做，10 分钟左右；做的时候照常能聊，做好了自动换上。"""
+    import threading
+
+    from . import motion, personas
+
+    c = personas.get_owned(db, user, body.character_id)
+    if personas.template_of(c) is not None:
+        raise HTTPException(400, "官方角色已经有自己的动图了")
+    p = (c.behavior or {}).get("portrait") or {}
+    img = p if p.get("kind") == "image" else next((x for x in (c.behavior or {}).get("looks") or [] if x.get("kind") == "image"), None)
+    if not img or not str(img.get("src", "")).startswith("/media/"):
+        raise HTTPException(400, "先给她画一张立绘（或上传一张），再做动图")
+    if (c.origin or {}).get("motion_job"):
+        raise HTTPException(409, "动图已经在做了")
+    _check_motion(db, user)
+    _set_origin(c.id, motion_job={"done": 0, "total": 0, "started": int(time.time())})
+
+    def run():
+        from .db import SessionLocal
+        from .models import Character
+
+        chibi = _make_motion(c.id, user.id, img["src"], "motion_job") if settings.image_provider != "mock" else None
+        with SessionLocal() as db2:
+            x = db2.get(Character, c.id)
+            if x is not None:
+                if chibi:
+                    x.behavior = _with_motion(dict(x.behavior or {}), chibi)
+                    x.version += 1
+                o = {k: v for k, v in (x.origin or {}).items() if k != "motion_job"}
+                x.origin = o
+                db2.commit()
+
+    threading.Thread(target=run, name=f"motion-{c.id[:8]}", daemon=True).start()
+    return {"ok": True, "cost": credits.points(motion.cost_cny())}
+

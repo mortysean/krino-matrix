@@ -285,3 +285,38 @@ def test_new_character_is_created_at_once_and_finished_in_background(user):
         time.sleep(0.1)
     assert c["pending"] is False and c["behavior"]["portrait"]["src"].startswith("/media/")
     assert "progress" not in c and "done" not in (c.get("origin") or {})
+
+
+def test_looks_are_only_her_own(user):
+    """工作台里只在她自己的形象里挑：官方角色是自己的动图和立绘，不混进另一位的；自己创建的是创建时画的立绘。"""
+    import time
+
+    k = user.krino
+    assert [x["src"] for x in k["looks"]] == ["/static/chibi/krino/chibi.json", "/static/assets/krino.png"]
+    r = user.ok("post", "/api/workbench/character", json={"draft": {"persona": {"name": "形象小獭"}, "appearance": "小水獭"}})
+    cid = r["character"]["id"]
+    for _ in range(50):
+        c = user.ok("get", f"/api/characters/{cid}")
+        if not c["pending"]:
+            break
+        time.sleep(0.1)
+    assert [x["kind"] for x in c["looks"]] == ["image"] and c["looks"][0]["src"] == c["behavior"]["portrait"]["src"]
+    assert not any("krino" in x["src"] or "whale" in x["src"] for x in c["looks"])
+    # 补做动图：官方角色不行；自己的角色（有立绘）可以，后台做（测试里是模拟，不真做）
+    assert user.post("/api/workbench/motion", json={"character_id": k["id"]}).status_code == 400
+    assert user.ok("post", "/api/workbench/motion", json={"character_id": cid})["ok"] is True
+
+
+def test_language_goes_into_prompt(user):
+    """工作台里给她选了别的语言：提示词最后写上“一律用这个语言”；不认识的语言拒绝。"""
+    from app.models import Character
+    from app.prompt import build_system
+
+    k = user.krino
+    full = user.ok("get", f"/api/characters/{k['id']}")
+    user.ok("put", f"/api/characters/{k['id']}", json={"behavior": {**full["behavior"], "language": "ja"}})
+    c = Character(persona=full["persona"], behavior={**full["behavior"], "language": "ja"}, slug="x")
+    sys_text = build_system(c, user_name=None, memories=[], summary=None, lore=[], bond=None, current=None).system
+    assert sys_text.rstrip().endswith("（<state> 标签里的值照旧用英文）。") and "日本語" in sys_text
+    bad = user.put(f"/api/characters/{k['id']}", json={"behavior": {**full["behavior"], "language": "xx"}})
+    assert bad.status_code == 400

@@ -36,6 +36,7 @@ TEXT = {
                "上映时间、某个具体事实）时再查；闲聊、谈心、讲故事不要查。查到后用你自己的口吻挑重点说，不要贴网址、不要写来源链接、"
                "不要念出“根据搜索结果”这类话。查不到或拿不准就直说。",
         "weekdays": ("周一", "周二", "周三", "周四", "周五", "周六", "周日"),
+        "language": "## 说话的语言\n不管上面的设定和对方用什么语言，你说出口的话一律用{lang}（<state> 标签里的值照旧用英文）。",
         "lore": "## 世界设定", "perception": "## 你看到的（视觉理解的结果，可能不准确）", "gesture": "对方的互动动作：{g}",
         "examples": "## 你说话的样子（示例，不是真实发生过的对话）",
         "types": {"fact": "事实", "preference": "偏好", "event": "经历", "commitment": "约定"}, "type_other": "记忆",
@@ -82,6 +83,7 @@ animation 选一个最贴合这句话内容和情绪的动作，让形象鲜活�
                "feelings or stories. Say what you found in your own voice, briefly. No URLs, no source links, no \"according to search "
                "results\". If you can't find it or aren't sure, say so.",
         "weekdays": ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
+        "language": "## Language\nWhatever the language of the notes above or of the other person, everything you say out loud is in {lang} (values in the <state> tag stay in English).",
         "lore": "## World notes", "perception": "## What you see (from image understanding, may be wrong)", "gesture": "What they just did: {g}",
         "examples": "## How you talk (examples, not real past conversations)",
         "types": {"fact": "fact", "preference": "preference", "event": "experience", "commitment": "promise"}, "type_other": "memory",
@@ -239,6 +241,10 @@ def build_system(char: Character, *, user_name: str | None, memories: list[dict]
     if examples:  # 放在最后，离对话最近：模型主要照着这里的语气说话
         parts.append(f"{T()['examples']}\n{compact_lines(examples, 1500)}")
     parts += [rules_for(char), output_protocol(char)]
+    lang = (char.behavior or {}).get("language")
+    if lang and lang != ("en" if locale() == "en" else "zh"):  # 工作台里给她选了别的语言：放在最后，压过上面的中文 / 英文
+        from .personas import LANGUAGES
+        parts.append(T()["language"].format(lang=LANGUAGES[lang]))
     ctx.system = "\n\n".join(parts)
     return ctx
 

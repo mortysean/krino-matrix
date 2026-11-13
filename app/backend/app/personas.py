@@ -74,7 +74,7 @@ def validate_behavior(data: dict | None) -> dict:
     data = data or {}
     if not isinstance(data, dict):
         raise PersonaError("行为参数必须是 JSON 对象")
-    unknown = set(data) - {"style", *NUMERIC, "default_expression", "expressions", "animations", "voice", "portrait"}
+    unknown = set(data) - {"style", *NUMERIC, "default_expression", "expressions", "animations", "voice", "portrait", "looks", "language"}
     if unknown:
         raise PersonaError(f"行为参数里有不认识的项：{', '.join(sorted(unknown))}")
     style = data.get("style") or "温柔"
@@ -113,11 +113,24 @@ def validate_behavior(data: dict | None) -> dict:
             out["voice"]["style"] = str(v["style"])[:300]
     if data.get("portrait") is not None:
         out["portrait"] = validate_portrait(data["portrait"])
+    if data.get("looks"):  # 这个角色自己的形象（立绘、动图）：工作台里只在这几个里挑，不混进别的角色的
+        if not isinstance(data["looks"], list) or len(data["looks"]) > MAX_LOOKS:
+            raise PersonaError(f"looks 最多 {MAX_LOOKS} 个")
+        out["looks"] = [validate_portrait(x) for x in data["looks"]]
+    if data.get("language"):  # 她用什么语言说话；不设 = 跟着网站的语言
+        if data["language"] not in LANGUAGES:
+            raise PersonaError(f"language 只能是 {', '.join(LANGUAGES)}")
+        out["language"] = data["language"]
     return out
 
 
+MAX_LOOKS = 8
+# 角色说话用的语言（工作台里选）。名字用来写进提示词：“请用日语回答”
+LANGUAGES = {"zh": "简体中文", "en": "English", "ja": "日本語", "ko": "한국어"}
+
+
 PORTRAIT_SRC = re.compile(r"^(/static/assets/[\w\-./]+\.(png|jpe?g|webp)|/media/[\w\-/]+\.(png|webp)|/models/[\w\-./]+\.model3\.json"
-                          r"|/static/chibi/[\w\-]+/chibi\.json"
+                          r"|/static/chibi/[\w\-]+/chibi\.json|/media/u/[\w\-]+/[\w\-]+/chibi\.json"
                           r"|data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)$")
 MAX_PORTRAIT_DATA = 2 * 1024 * 1024
 
@@ -137,6 +150,8 @@ def validate_portrait(p) -> dict:
     if (p["kind"] == "live2d") != src.endswith(".model3.json") or (p["kind"] == "chibi") != src.endswith("/chibi.json"):
         raise PersonaError("portrait.kind 和 src 对不上")
     out = {"kind": p["kind"], "src": src}
+    if p["kind"] == "chibi" and p.get("still"):  # 动图的静态封面（列表、头像里用）
+        out["still"] = _check_src(str(p["still"]))
     ex = p.get("expressions")
     if ex and p["kind"] == "image":
         if not isinstance(ex, dict) or any(k not in EXPRESSIONS for k in ex):
@@ -337,10 +352,40 @@ def summary(c: Character) -> dict:
             "edited": c.version > 1, "workshop": (c.origin or {}).get("workshop"), "portrait": (c.behavior or {}).get("portrait"),
             "voice": (c.behavior or {}).get("voice"), "greeting": p.get("greeting", ""),
             "default_expression": (c.behavior or {}).get("default_expression"),
-            "model": c.model, "ai": True, "pending": _pending(c), **_progress(c)}
+            "model": c.model, "ai": True, "pending": _pending(c), "looks": looks(c), **_progress(c), **_motion_job(c)}
 
 
-PENDING_MAX_S = 600  # 后台补形象 / 声音最多等这么久；超过（比如中途重启了服务）就不再显示“正在创建”
+def _motion_job(c: Character) -> dict:
+    """已有角色正在补做动图（workbench.make_motion）：做了几段。做的时候照常能聊。"""
+    import time
+
+    j = (c.origin or {}).get("motion_job")
+    if not j or time.time() - float(j.get("started", 0)) > PENDING_MAX_S:
+        return {}
+    return {"motion_job": {"done": int(j.get("done", 0)), "total": int(j.get("total", 0))}}
+
+
+# 两位官方角色各自的形象：会动的 Q 版和立绘。工作台里她们只能在自己的这两个里换
+OFFICIAL_LOOKS = {
+    KRINO_SLUG: [{"kind": "chibi", "src": "/static/chibi/krino/chibi.json", "still": "/static/chibi/krino/still.webp"},
+              {"kind": "image", "src": "/static/assets/krino.png"}],
+    OFFICIAL_SLUG: [{"kind": "chibi", "src": "/static/chibi/whale/chibi.json", "still": "/static/chibi/whale/still.webp"},
+                    {"kind": "image", "src": "/static/assets/whale-girl.png"}],
+}
+
+
+def looks(c: Character) -> list[dict]:
+    """这个角色自己的形象：官方角色是固定的那两个；其他角色是创建时生成的立绘、动图，加上后来换过、上传过的。
+    现在用着的那个总在里面。"""
+    b = c.behavior or {}
+    out = [dict(x) for x in OFFICIAL_LOOKS.get(template_of(c) or "", None) or b.get("looks") or []]  # 按模板认，不按 slug（会带后缀）
+    cur = b.get("portrait")
+    if cur and not any(x["src"] == cur.get("src") for x in out):
+        out.insert(0, {k: v for k, v in cur.items() if k != "expressions"})
+    return out
+
+
+PENDING_MAX_S = 1800  # 后台补形象 / 声音 / 动图最多等这么久；超过（比如中途重启了服务）就不再显示“正在创建”
 
 
 def _pending(c: Character) -> bool:
@@ -357,7 +402,10 @@ def _progress(c: Character) -> dict:
         return {}
     o = c.origin or {}
     done = set(o.get("done") or [])
-    return {"progress": {"soul": True, "portrait": "portrait" in done, "voice": "voice" in done, "started": int(o["pending"])}}
+    prog = {"soul": True, "portrait": "portrait" in done, "voice": "voice" in done, "started": int(o["pending"])}
+    if o.get("motion"):  # 勾了“生成动图”：动作片段做了几段
+        prog["motion"] = {"done": int(o["motion"].get("done", 0)), "total": int(o["motion"].get("total", 0))}
+    return {"progress": prog}
 
 
 def full(c: Character) -> dict:

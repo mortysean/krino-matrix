@@ -10,6 +10,10 @@ python-multipart>=0.0.9
 pyyaml>=6
 jieba>=0.42
 pillow>=10
+# 工作台：生成的立绘抠图（二次元抠图模型，scripts/fetch_assets.py 下载）、做动图时处理视频（带 libvpx 的 ffmpeg）
+onnxruntime>=1.17
+imageio-ffmpeg>=0.5
+numpy>=1.26
 pytest>=8
 # 本地语音（TTS_PROVIDER=local，默认）：Kokoro-82M 中文版，模型用 scripts/fetch_assets.py 下载
 kokoro>=0.9.4

@@ -52,6 +52,7 @@ data/media/
 data/models/qwen3-tts/
 data/models/voices/
 data/models/kokoro-zh/
+data/models/anime-seg/
 model/__pycache__/
 data/krino_matrix/
 data/benchmark/

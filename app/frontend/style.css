@@ -832,7 +832,14 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 @media (max-width: 700px) { .sc-auto { margin-left: 0; width: 100%; } .sc-char { flex: 1; } }
 
 /* 角色的专属声音：按描述设计 */
-.voice-design { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0 4px; }
+.voice-design { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; margin: 10px 0 4px; }
+/* 声音微调：点一下在描述后面加一句，再按描述重新设计 */
+.voice-tune { order: 3; flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.voice-tune .tune { padding: 3px 9px; font-size: 12px; background: none; color: var(--text); border: 1px solid var(--line-2); cursor: pointer; }
+.voice-tune .tune:hover { border-color: var(--char); color: var(--silver-hi); }
+label.check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text); margin: 6px 0 2px; cursor: pointer; }
+label.check input { margin-top: 3px; }
+.wb-motion { align-items: center; margin-top: 4px; }
 .voice-design textarea { flex: 1; min-height: 2.8em; }
 .voice-design button { flex: none; }
 @media (max-width: 760px) { .voice-design { flex-direction: column; align-items: stretch; } }

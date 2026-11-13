@@ -94,8 +94,18 @@ def _file(src: str):
 
 
 def embed(behavior: dict | None) -> dict | None:
-    """把本站 /media/ 图片内嵌成 data URI（导出用）。找不到的文件去掉（表情）或改成没有立绘（主图）。"""
+    """把本站 /media/ 图片内嵌成 data URI（导出用）。找不到的文件去掉（表情）或改成没有立绘（主图）。
+    自己做的动图（/media/ 下的一套视频）带不走：导出成她的立绘。looks（她自己的形象列表）也不导出，导入后从这张重新开始。"""
+    looks = (behavior or {}).get("looks") or []
+    behavior = {k: v for k, v in (behavior or {}).items() if k != "looks"} if behavior is not None else None
     p = (behavior or {}).get("portrait")
+    if isinstance(p, dict) and p.get("kind") == "chibi" and str(p.get("src", "")).startswith("/media/"):
+        img = next((x for x in looks if isinstance(x, dict) and x.get("kind") == "image"), None)
+        p = {"kind": "image", "src": img["src"]} if img else None
+        behavior = {**behavior, "portrait": p}
+        if p is None:
+            behavior.pop("portrait")
+            return behavior
     if not isinstance(p, dict):
         return behavior
 

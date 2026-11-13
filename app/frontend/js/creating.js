@@ -3,7 +3,7 @@
 // 创建中的角色在侧边栏里显示“创建中”，点不进去；刷新页面也会接着等（后端在角色上记着 pending 和做到哪一步）。
 import { $, S, api, bus, esc, t } from "./core.js";
 
-const jobs = new Map();  // key → { kind: "soul" | "char", name, started, steps, done, ok, id }
+const jobs = new Map();  // key → { kind: "soul" | "char" | "motion", name, started, steps, done, ok, id, motion: {done, total} }
 let timer = null;
 
 const dock = document.createElement("div");
@@ -12,20 +12,22 @@ dock.setAttribute("aria-live", "polite");
 document.body.appendChild(dock);
 
 const secs = (j) => Math.max(0, Math.round((Date.now() - j.started) / 1000));
-const STEP_LABELS = { soul: "灵魂", portrait: "形象", voice: "声音" };
+const STEP_LABELS = { soul: "灵魂", portrait: "立绘", voice: "声音", motion: "动图" };
 
 function render() {
   dock.innerHTML = [...jobs.entries()].map(([key, j]) => {
     if (j.done) {
-      const msg = j.kind === "soul" ? t("{name} 的灵魂写好了", { name: j.name }) : t("{name} 创建好了", { name: j.name });
+      const msg = j.kind === "soul" ? t("{name} 的灵魂写好了", { name: j.name }) : j.kind === "motion"
+        ? (j.ok ? t("{name} 的动图做好了", { name: j.name }) : t("{name} 的动图没做成", { name: j.name })) : t("{name} 创建好了", { name: j.name });
       const go = j.kind === "soul" ? t("接着看") : t("去聊天");
       return `<div class="cd-card done" data-key="${esc(key)}"><span class="cd-ok">✓</span>
-        <div class="cd-body"><b>${esc(msg)}</b>${j.kind === "char" && !j.ok ? `<span class="muted small">${esc(t("形象没画出来，可以在工作台里再画一次"))}</span>` : ""}</div>
+        <div class="cd-body"><b>${esc(msg)}</b>${j.kind === "char" && !j.ok ? `<span class="muted small">${esc(t("形象没画出来，可以在工作台里再画一次"))}</span>` : ""}${j.kind === "motion" && !j.ok ? `<span class="muted small">${esc(t("没扣积分，可以在工作台里再试一次"))}</span>` : ""}</div>
         <button class="small" data-cd-go="${esc(key)}">${esc(go)}</button><button class="link small cd-x" data-cd-x="${esc(key)}" aria-label="${esc(t("关闭"))}">✕</button></div>`;
     }
-    const steps = Object.entries(j.steps).map(([k, ok]) => `<li class="${ok ? "ok" : "run"}">${ok ? "✓" : "<i></i>"} ${esc(t(STEP_LABELS[k]))}</li>`).join("");
-    const title = j.kind === "soul" ? t("正在写灵魂") : t("正在创建 {name}", { name: j.name });
-    const hint = j.kind === "soul" ? t("十几秒到半分钟") : t("大约一分钟");
+    const steps = Object.entries(j.steps).map(([k, ok]) => `<li class="${ok ? "ok" : "run"}">${ok ? "✓" : "<i></i>"} ${esc(t(STEP_LABELS[k]))}${
+      k === "motion" && !ok && j.motion?.total ? ` ${j.motion.done}/${j.motion.total}` : ""}</li>`).join("");
+    const title = j.kind === "soul" ? t("正在写灵魂") : j.kind === "motion" ? t("正在给 {name} 做动图", { name: j.name }) : t("正在创建 {name}", { name: j.name });
+    const hint = j.kind === "soul" ? t("十几秒到半分钟") : "motion" in j.steps ? t("大约 10 分钟") : t("大约一分钟");
     return `<div class="cd-card" data-key="${esc(key)}"><div class="cd-anim" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
       <div class="cd-body"><b>${esc(title)}</b><ul class="cd-steps">${steps}</ul>
       <span class="muted small">${esc(t("已用 {s} 秒 · {hint} · 可以先做别的，好了会通知你", { s: secs(j), hint }))}</span></div></div>`;
@@ -43,6 +45,7 @@ dock.addEventListener("click", (e) => {
   jobs.delete(key); render();
   if (go && j?.kind === "soul") bus.emit("newchar:open");
   if (go && j?.kind === "char") bus.emit("select", { id: j.id, view: "chat" });
+  if (go && j?.kind === "motion") bus.emit("select", { id: j.id, view: "persona" });
 });
 
 function tick() {  // 每秒更新计时；每 3 秒问一次后台做到哪了
@@ -55,15 +58,17 @@ const run = () => { render(); timer ||= setInterval(tick, 1000); };
 
 async function poll() {
   for (const [key, j] of jobs) {
-    if (j.kind !== "char" || j.done) continue;
+    if (j.kind === "soul" || j.done) continue;
     const c = await api("/api/characters/" + j.id).catch((e) => (e.status === 404 ? { gone: true } : null));
     if (!c) continue;
     if (c.gone) { jobs.delete(key); continue; }
-    if (c.pending) { j.steps = { soul: true, portrait: !!c.progress?.portrait, voice: !!c.progress?.voice }; continue; }
-    j.done = true; j.ok = !!c.behavior?.portrait;
+    if (j.kind === "char" && c.pending) { j.steps = steps(c.progress); j.motion = c.progress?.motion; continue; }
+    if (j.kind === "motion" && c.motion_job) { j.motion = c.motion_job; continue; }
+    j.done = true;
+    j.ok = j.kind === "motion" ? c.behavior?.portrait?.kind === "chibi" : !!c.behavior?.portrait;
     S.chars = await api("/api/characters").catch(() => S.chars);
     bus.emit("chars"); bus.emit("creating:done", c.id);
-    notify(t("{name} 创建好了", { name: c.name }));
+    notify(j.kind === "motion" ? t("{name} 的动图做好了", { name: c.name }) : t("{name} 创建好了", { name: c.name }));
   }
   render();
 }
@@ -84,16 +89,31 @@ export function soulFinished(name, { show = true, ok = true } = {}) {
   notify(t("{name} 的灵魂写好了", { name })); render();
 }
 
-// 角色建好、开始在后台做形象和声音
-export function charStarted(c) {
+const steps = (p = {}) => ({ soul: true, portrait: !!p.portrait, voice: !!p.voice, ...(p.motion ? { motion: false } : {}) });
+
+// 角色建好、开始在后台做形象和声音（勾了动图的还有动图）
+export function charStarted(c, { motion = false } = {}) {
   const p = c.progress || {};
-  jobs.set(c.id, { kind: "char", id: c.id, name: c.name, started: p.started ? p.started * 1000 : Date.now(),
-    steps: { soul: true, portrait: !!p.portrait, voice: !!p.voice } });
+  const st = steps(p);
+  if (motion) st.motion = false;
+  jobs.set(c.id, { kind: "char", id: c.id, name: c.name, started: p.started ? p.started * 1000 : Date.now(), steps: st, motion: p.motion });
   run();
 }
 
-// 刷新页面、换设备登录：把还在创建的角色接着显示出来
-function resume() { for (const c of S.chars || []) if (c.pending && !jobs.has(c.id)) charStarted(c); }
+// 已有的角色补做动图（工作台里点的）：做的时候照常能聊
+export function motionStarted(c) {
+  jobs.set("m:" + c.id, { kind: "motion", id: c.id, name: c.name, started: Date.now(), steps: { motion: false }, motion: c.motion_job });
+  run();
+}
+
+// 刷新页面、换设备登录：把还在做的接着显示出来
+function resume() {
+  for (const c of S.chars || []) {
+    if (c.pending && !jobs.has(c.id)) charStarted(c);
+    if (c.motion_job && !jobs.has("m:" + c.id)) jobs.set("m:" + c.id, { kind: "motion", id: c.id, name: c.name, started: Date.now(), steps: { motion: false }, motion: c.motion_job });
+  }
+  if (jobs.size) run();
+}
 bus.on("chars:loaded", resume);
 bus.on("chars", resume);
 bus.on("logout", () => { jobs.clear(); render(); });

@@ -94,9 +94,21 @@ def fetch_live2d() -> None:
     print(f"\nLive2D 示例模型就绪：{out}")
 
 
+SEG_REPO = "skytnt/anime-seg"  # 二次元抠图模型（Apache-2.0）：工作台生成的立绘用它去背景
+
+
+def fetch_seg() -> None:
+    dest = MODELS / "anime-seg" / "isnetis.onnx"
+    if not dest.exists():
+        print("抠图模型（约 170 MB）下载中…", flush=True)
+        save(f"{hf_endpoint()}/{SEG_REPO}/resolve/main/isnetis.onnx", dest)
+    (dest.parent / "SOURCE.md").write_text(f"来源：https://huggingface.co/{SEG_REPO}\n许可：Apache-2.0\n", encoding="utf-8")
+    print(f"抠图模型就绪：{dest}")
+
+
 if __name__ == "__main__":
-    which = set(sys.argv[1:]) or {"tts", "live2d"}
-    for name, fn in (("tts", fetch_tts), ("live2d", fetch_live2d)):
+    which = set(sys.argv[1:]) or {"tts", "live2d", "seg"}
+    for name, fn in (("tts", fetch_tts), ("live2d", fetch_live2d), ("seg", fetch_seg)):
         if name in which:
             try:
                 fn()

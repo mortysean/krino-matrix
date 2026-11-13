@@ -174,6 +174,9 @@ class Settings:
     llm_price_in: float = field(default_factory=lambda: _float("LLM_PRICE_IN", 2))     # 元 / 百万输入 token（OpenRouter 没返回花费时用）
     llm_price_out: float = field(default_factory=lambda: _float("LLM_PRICE_OUT", 8))   # 元 / 百万输出 token
     image_price_cny: float = field(default_factory=lambda: _float("IMAGE_PRICE_CNY", 0.25))  # 元 / 张
+    # 动图（会做动作的 Q 版小人，app/motion.py）：做几段动作、每段多少钱（万相首尾帧 720P 5 秒约 1 元）
+    motion_clips: int = field(default_factory=lambda: int(_env("MOTION_CLIPS", "8")))
+    motion_clip_price_cny: float = field(default_factory=lambda: _float("MOTION_CLIP_PRICE_CNY", 1.0))
     tts_price_cny: float = field(default_factory=lambda: _float("TTS_PRICE_CNY", 1))   # 元 / 万字
     # 圈子：角色自己发动态、点赞评论、找朋友私信（离线模型时不跑）。每隔 SOCIAL_TICK_S 秒看一轮
     social_autonomy: bool = field(default_factory=lambda: _env("SOCIAL_AUTONOMY", "1") == "1")
