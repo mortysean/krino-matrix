@@ -49,7 +49,22 @@ def test_stream_filter_hides_state_tag_split_across_chunks():
     out = "".join(f.feed(x) for x in ["你好", "呀<st", "ate>{\"expression\":", "\"happy\"}</state>"])
     assert out == "你好呀"
     f = StreamFilter()
-    assert "".join(f.feed(x) for x in ["a<b", "c"]) == "a<bc"
+    assert "".join(f.feed(x) for x in ["a<b", "c d"]) == "a<bc d"  # 不是标签：一出现空格就放行
+
+
+def test_state_block_with_wrong_tag_or_no_tag_is_hidden():
+    """模型把 <state> 写成别的标签（<system>）或只写 JSON 时，照样取出状态、不显示、不读出来（流式和最终文字都一样）。"""
+    c = Character(persona={"name": "x"}, behavior=default_behavior(), slug="x")
+    for raw, mood in [('（头也不回）激将法，对我没用。\n\n<system>{"mood":"不屑"}</system>', "不屑"),
+                      ('嗯。\n<status>{"expression":"sad","mood":"低落"}', "低落"),
+                      ('知道了\n{"expression": "neutral", "animation": "none", "mood": "平静"}', "平静")]:
+        p = parse_reply(raw, c)
+        assert "{" not in p.text and "<" not in p.text and p.mood == mood, p.text
+        f = StreamFilter()
+        out = "".join(f.feed(raw[i:i + 3]) for i in range(0, len(raw), 3))
+        assert "{" not in out and "<" not in out, out
+    p = parse_reply("我爱你<3，还有 {不是状态} 的花括号", c)
+    assert p.text == "我爱你<3，还有 {不是状态} 的花括号"
 
 
 def test_markdown_json_roundtrip_official():

@@ -289,7 +289,7 @@ def progress_module(region_cfg):
       <h2 class="title" id="p-h">{L["prog_title"]}</h2>
       {f'<p class="lead">{esc(L["prog_lead"])}</p>' if L["prog_lead"] else ""}
       <div class="pgrid4">
-        <div class="pcol c-live"><h3>{L["prog_live"]}</h3><ul>{live}</ul>{live_extra}<a class="btn" href="{app}">Enter Krino</a></div>
+        <div class="pcol c-live"><h3>{L["prog_live"]}</h3><ul>{live}</ul>{live_extra}<a class="btn" href="{app}">{region_cfg["t"]["enter"]}</a></div>
         <div class="pcol c-building"><h3>{L["prog_building"]}</h3><ul>{"".join(link(n) for n in building)}</ul></div>
         <div class="pcol c-next"><h3>{L["prog_next"]}</h3><p>{L["prog_next_text"]}</p></div>
         <div class="pcol c-long"><h3>{L["prog_long"]}</h3><p>{L["prog_long_text"]}</p></div>

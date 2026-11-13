@@ -264,6 +264,21 @@ def strip_links(text: str) -> str:
 
 
 _STATE_RE = re.compile(r"<state>\s*(\{.*?\})\s*</state>", re.S)
+# 模型偶尔不按要求写 <state>，而是换个标签名（<system>、<status>、<State>……）或者干脆只写一个 JSON。
+# 只要是一个带 expression / animation / mood 的 JSON 对象，不管包在什么标签里、标签有没有闭合，都当成状态块：
+# 取出来用，正文里去掉，不显示也不读出来
+_KEYS = r'"(?:expression|animation|mood)"'
+_LOOSE_STATE_RE = re.compile(r"(?:<([A-Za-z_][\w-]{0,19})>\s*)?(\{[^{}]*" + _KEYS + r"[^{}]*\})(?:\s*</\1>)?", re.S)
+_STATE_START_RE = re.compile(r"<[A-Za-z_][\w-]{0,19}>\s*\{|\{\s*" + _KEYS)  # 流式：状态块从这里开始
+
+
+def _state_blocks(raw: str):
+    """[(整段的起止, JSON 文本)]：标准的 <state> 和上面那种不规范的写法都算。"""
+    out = [(m.span(), m.group(1)) for m in _STATE_RE.finditer(raw)]  # 标签没闭合的也算（多半是写到一半就结束了）
+    for m in _LOOSE_STATE_RE.finditer(raw):
+        if not any(a <= m.start() < b for (a, b), _ in out):
+            out.append((m.span(), m.group(2)))
+    return sorted(out)
 
 
 def parse_reply(raw: str, char: Character) -> ParsedReply:
@@ -271,10 +286,10 @@ def parse_reply(raw: str, char: Character) -> ParsedReply:
     exprs, anims = set(b.get("expressions") or EXPRESSIONS), set(b.get("animations") or ANIMATIONS)
     expression = animation = None
     mood = ""
-    m = _STATE_RE.search(raw or "")
-    if m:
+    blocks = _state_blocks(raw or "")
+    if blocks:
         try:
-            data = json.loads(m.group(1))
+            data = json.loads(blocks[-1][1])
             if isinstance(data, dict):
                 expression = data.get("expression") if data.get("expression") in exprs else None
                 animation = data.get("animation") if data.get("animation") in anims else None
@@ -283,7 +298,10 @@ def parse_reply(raw: str, char: Character) -> ParsedReply:
             pass
     hm = _HEARD_RE.search(raw or "")
     heard = re.sub(r"\s+", " ", hm.group(1)).strip()[:2000] if hm else ""
-    text = re.sub(r"</?(state|memory|heard)>", "", _HEARD_RE.sub("", _STATE_RE.sub("", raw or ""))).strip()
+    body = raw or ""
+    for (start, end), _ in reversed(blocks):
+        body = body[:start] + body[end:]
+    text = re.sub(r"</?(state|memory|heard|system|status)>", "", _HEARD_RE.sub("", body), flags=re.I).strip()
     text, found = cues.convert(strip_links(text).strip())
     return ParsedReply(text=text, expression=expression, animation=animation, mood=mood, cues=found, heard=heard)
 
@@ -303,6 +321,11 @@ def _open_link_at(seg: str) -> int:
     return -1
 
 
+# 正文末尾可能是状态块开头的那一截："<"、"<sys"、"<system>"、"<system>\n{"、"{"、'{"mo'……
+# 标签名后面没跟 ">" 就出现空格、标点，说明不是标签，马上放行（最终气泡以 done 里的完整文字为准）
+_PARTIAL_TAIL_RE = re.compile(r'(?:<[A-Za-z_]?[\w-]{0,19}(?:>\s*\{?\s*"?[a-z]{0,10})?|\{\s*"?[a-z]{0,10})$')
+
+
 class StreamFilter:
     """流式输出时把 <state>…</state> 挡在外面：只把对白部分实时推给前端。
     括号动作等闭合了再发，发出去之前换成颜文字（和最终保存的文字一致）。"""
@@ -317,14 +340,16 @@ class StreamFilter:
         self.raw += chunk
         # 已经写完的 <heard>…</heard>（语音输入时模型写下的原话）不管在前在后都整段跳过；没写完的先挡住
         raw = re.sub(r"<heard>.*?</heard>\s*", "", self.raw, flags=re.S)
-        cuts = [i for i in (raw.find("<state>"), raw.find("<heard>")) if i >= 0]
+        st = _STATE_START_RE.search(raw)
+        cuts = [i for i in (raw.find("<state>"), raw.find("<heard>"), st.start() if st else -1) if i >= 0]
         cut = min(cuts) if cuts else -1
         if cut >= 0:
             safe = cut
-        else:  # 末尾可能是半个 "<state>" / "<heard>"：先留着不发
-            tail = raw.rfind("<")
-            partial = tail >= 0 and ("<state>".startswith(raw[tail:]) or "<heard>".startswith(raw[tail:]))
-            safe = tail if partial else len(raw)
+        else:  # 末尾可能是状态块的开头（半个 "<state>"、"<system>" 后面还没写 "{"、"{" 后面还没写键名）：先留着不发
+            safe = len(raw)
+            for m in _PARTIAL_TAIL_RE.finditer(raw):
+                safe = m.start()
+                break
         if safe > self.sent:
             ob = cues.open_bracket_at(raw[self.sent:safe])
             if ob >= 0:
