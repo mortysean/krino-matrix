@@ -20,7 +20,7 @@ import time
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -78,11 +78,14 @@ class Plan:
 
 # 需要最新信息的说法：天气、新闻、价格、比分、日期、“查一下”……（宁可多带几次，也别漏掉明显该查的）
 _WEB_HINT = re.compile(
-    r"天气|气温|下雨|下雪|台风|新闻|头条|热搜|最新|最近.{0,6}(?:消息|情况|发布|上映|比赛)|现在.{0,4}(?:多少|几点|什么情况)|"
-    r"价格|多少钱|股价|汇率|比特币|币价|油价|金价|比分|赛况|谁赢|排名|上映|发布会|发售|开售|票房|航班|路况|限行|"
-    r"查一下|查查|帮我查|搜一下|搜搜|上网|网上|百度|谷歌|几号|星期几|周几|"
-    r"weather|forecast|\bnews\b|headline|latest|price|how much|stock|"
-    r"exchange rate|bitcoin|score|who won|ranking|release|launch|flight|traffic|look up|search|google|what day|what date",
+    r"天气|气温|温度|下雨|下雪|带伞|台风|空气质量|雾霾|新闻|头条|热搜|热点|八卦|最新|最近.{0,8}(?:消息|情况|发布|上映|比赛|怎么样|干什么|干嘛|在做|出了|发生)|"
+    r"现在.{0,6}(?:多少|几点|什么情况)|今天.{0,4}(?:几号|发生了|有什么新)|明天.{0,8}(?:天气|下雨|冷不冷|热不热)|"
+    r"价格|多少钱|股价|股市|大盘|汇率|比特币|币价|油价|金价|房价|比分|赛况|赛程|谁赢|输了|赢了|排名|排行|上映|发布会|发售|开售|票房|"
+    r"航班|高铁|火车票|路况|限行|营业|开门|几点关门|地址|在哪里|怎么去|附近|"
+    r"查一下|查查|帮我查|查一查|搜一下|搜搜|搜一搜|上网|联网|网上|百度|谷歌|几号|星期几|周几|礼拜几|"
+    r"weather|forecast|temperature|\brain\b|umbrella|\bnews\b|headline|trending|latest|"
+    r"price|how much|stock|market|exchange rate|bitcoin|crypto|score|who won|ranking|release|launch|box office|"
+    r"flight|train ticket|traffic|open now|opening hours|near me|nearby|look up|search|google|what day|what date|what time is it",
     re.I)
 
 
@@ -347,7 +350,8 @@ def record_said(wav_b64: str, compact_b64: str, fmt: str, payer: str | None) -> 
         return ""
 
 
-HEAR_PEEK_S = 1.2  # 语音时最多等识别结果这么久，看是不是要查网的问题
+HEAR_PEEK_S = 3.0  # 语音时最多等识别结果这么久，看是不是要查网的问题。识别平时不到 1 秒；
+# 原来只等 1.2 秒：识别要经隧道到算力服务器（海外站还跨境），偶尔慢一点就当成“不用查”，该联网的问题也没联网
 
 
 def route_heard(p: Plan) -> None:
@@ -440,6 +444,29 @@ def stream_turn(p: Plan) -> Iterator[str]:
         events.error("stream", f"{type(e).__name__}: {e}")
         _rollback_user_message(p)
         yield sse("error", {"message": tr("回复失败了，请稍后再试")})
+
+
+async def _until_disconnect(p: Plan, request: Request):
+    """流式回复；前端中途断开（语音对话里你还没说完又接着说了，前端撤回这一轮、把两段合成一句重新发）时，
+    停下不再生成，并撤掉刚存的这半句，免得对话记录里多一句没有回答的话、多一条没人看的回复。
+    服务器不会因为断开就自动停下（写给已断开的连接不报错），所以每发一段之前看一眼连接还在不在。"""
+    from starlette.concurrency import iterate_in_threadpool
+
+    ended = False
+    gen = stream_turn(p)
+    try:
+        async for chunk in iterate_in_threadpool(gen):
+            if await request.is_disconnected():
+                break
+            ended = ended or chunk.startswith(("event: done", "event: error"))
+            yield chunk
+    finally:
+        if not ended:  # 这里不能 await：连接断开时整个任务正被取消，await 会直接被打断，撤回就没做
+            _rollback_user_message(p)
+            try:
+                gen.close()
+            except ValueError:  # 还在另一个线程里生成：下一段出来时就没人要了，自己会结束
+                pass
 
 
 def _rollback_user_message(p: Plan) -> None:
@@ -597,7 +624,7 @@ def send(sid: str, body: MessageIn, user: User = Depends(current_user), db: Sess
 
 
 @router.post("/{sid}/stream")
-def send_stream(sid: str, body: MessageIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+def send_stream(sid: str, body: MessageIn, request: Request, user: User = Depends(current_user), db: Session = Depends(get_db)):
     credits.check(db, user)
     s = _open(db, user, sid)
     _same_character(s, body.character_id)
@@ -609,7 +636,7 @@ def send_stream(sid: str, body: MessageIn, user: User = Depends(current_user), d
     if audio:  # 让她直接听这段录音
         hear_turn(p, audio)
     db.commit()  # 用户消息先落库，流式生成在另一个数据库会话里收尾
-    return StreamingResponse(stream_turn(p), media_type="text/event-stream",
+    return StreamingResponse(_until_disconnect(p, request), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 

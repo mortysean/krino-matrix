@@ -221,7 +221,7 @@ async function watchJob(jobId, replyId) {
 
 // ---------- 发送（流式） ----------
 // 返回 { ok, reply, speaking }：speaking 是她念完这句的 promise（不念就没有），语音对话靠它决定什么时候接着听
-async function send(text, { source = "app", audio = null } = {}) {
+async function send(text, { source = "app", audio = null, signal = null } = {}) {
   if (C.pending) return { ok: false };
   text = (text || "").trim();
   if (!text && !C.image && !audio) return { ok: false };
@@ -240,7 +240,7 @@ async function send(text, { source = "app", audio = null } = {}) {
     if ($("#chat-input").value.trim() === text) $("#chat-input").value = "";
     composer();
     C.stage?.play("think").catch(() => {});
-    const res = await api(`/api/sessions/${sid}/stream`, { body: { text: audio ? "" : text, audio, image, source: source === "voice" ? "voice" : "app", character_id: cid }, raw: true });
+    const res = await api(`/api/sessions/${sid}/stream`, { body: { text: audio ? "" : text, audio, image, source: source === "voice" ? "voice" : "app", character_id: cid }, raw: true, signal });
     let live = null, done = null, error = null, typer = null;
     for await (const [ev, data] of sse(res)) {
       if (ev === "delta" && here()) {
@@ -273,7 +273,9 @@ async function send(text, { source = "app", audio = null } = {}) {
     C.pending = false;
     if (e.status === 409) loadSession().catch(() => {});  // 后端发现会话和角色对不上：重新加载当前角色的会话
     if (C.session?.messages?.at(-1)?.id === "tmp") C.session.messages.pop();
+    $("#messages .msg.assistant.enter:last-child:not([data-id])")?.remove();  // 已经开始打字的半句回复
     renderMessages();
+    if (e.name === "AbortError") { composer(); C.stage?.play("idle").catch(() => {}); return { ok: false, aborted: true }; }  // 语音对话里你接着说了：这一轮撤回，不算出错
     if (!audio) $("#chat-input").value = text;
     composer();
     C.stage?.setExpression("worried");
@@ -456,7 +458,7 @@ export function initChat() {
   $("#img-btn").innerHTML = ICON.image; micIdle();
   VM = createVoiceMode({
     host: $(".chat-col"),
-    submit: ({ text, audio }) => send(text || "", { source: "voice", audio }),
+    submit: ({ text, audio, signal }) => send(text || "", { source: "voice", audio, signal }),
     onExit: () => { C.stage?.speaking(false); composer(); },
   });
   $("#vm-btn").innerHTML = `${WAVE}<span>${t("语音对话")}</span>`;

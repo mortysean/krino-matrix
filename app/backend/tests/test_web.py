@@ -90,9 +90,11 @@ def test_she_hears_voice_directly(user):
 def test_web_tool_only_when_needed():
     """带着搜索工具每句都会慢 0.7~1.3 秒：只在像是需要最新信息的话里带。"""
     from app.chat import needs_web
-    for q in ("今天杭州天气怎么样", "帮我查一下新闻", "比特币多少钱", "今天几号", "What's the weather like?", "any news?"):
+    for q in ("今天杭州天气怎么样", "帮我查一下新闻", "比特币多少钱", "今天几号", "What's the weather like?", "any news?",
+              "明天去上海要带伞吗", "特朗普最近在干嘛", "附近有什么好吃的", "上网搜搜这个", "Will it rain tomorrow?"):
         assert needs_web(q), q
-    for q in ("你好呀", "今天有点累", "晚安", "给我讲个冷笑话", "I had a long day today", "What's new with you?"):
+    for q in ("你好呀", "今天有点累", "晚安", "给我讲个冷笑话", "I had a long day today", "What's new with you?",
+              "你好呀，今天过得怎么样", "你现在怎么样", "我今天心情不错"):
         assert not needs_web(q), q
 
 

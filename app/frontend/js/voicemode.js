@@ -1,5 +1,6 @@
 // 语音对话（边听边回）：参照 ChatGPT 的语音模式。点一下进来就能说，不用再按任何键：
-//   听你说 → 你停下约 0.9 秒就算说完 → 交给她 → 她边合成边念 → 念完自动接着听。
+//   听你说 → 你停下约 1.2 秒就算说完 → 交给她 → 她边合成边念 → 念完自动接着听。
+//   她在想的时候还接着听：你其实没说完、又开口了，就撤回这一轮，把前后两段合成一句重新交给她（不会漏掉后半句）。
 //   她说话时你一开口就打断她（或者点一下中间的光球）；“静音”只是暂时不听，“结束”回到打字。
 // 判断开口 / 说完用的是音量（自适应环境噪声），不依赖任何服务。能“直接听”的就把录音整段交给她，
 // 否则先在服务端识别成文字再发；两样都没有时退回浏览器自带识别（这种情况不能打断，只能点光球）。
@@ -8,7 +9,9 @@ import { ICON } from "./icons.js";
 import { pixelOrb } from "./pixelbg.js";
 import { canHear, framesToWav, listen, openMic, speakable, sttMode, stopSpeaking, transcribeWav } from "./voice.js";
 
-const SILENCE_MS = 900;    // 停这么久算说完
+const SILENCE_MS = 1200;   // 停这么久算说完（原来 0.9 秒：说话中间想一下就被当成说完了）
+const SHORT_SILENCE_MS = 1600; // 才说了一两个字就停下：多半是在想怎么说，多等一会儿
+const RESUME_MS = 250;     // 她在想的时候，你连续出声这么久，就算是接着说
 const MIN_SPEECH_MS = 350; // 比这短的声音（咳嗽、碰桌子）不算
 const MAX_TURN_S = 30;     // 一口气最多说这么久
 const PREROLL = 8;
@@ -18,12 +21,13 @@ export function createVoiceMode({ host, submit, onExit }) {
   let el = null, mic = null, state = "off", muted = false, how = "hear", ended = false;
   let frames = [], pre = [], loud = 0, quiet = 0, voiced = 0, floor = 0, echo = 0, level = 0;
   let speaking = null, sr = null, srTimer = 0, raf = 0, orb = null, smooth = 0;
+  let turn = null;  // 正在交给她的这一轮：{ frames, ctrl }。还没开始回答前你接着说，就撤回它
 
   // ---------- 界面 ----------
   const STATUS = {
     listening: () => t("在听……"),
-    hearing: () => t("在听……"),
-    thinking: () => t("在想……"),
+    hearing: () => t("在听……停一下我就开始回答"),
+    thinking: () => t("在想……还没说完可以接着说"),
     speaking: () => (how === "browser" ? t("在说话，点一下光球可以打断") : t("在说话，直接开口就能打断")),
     muted: () => t("麦克风已静音"),
   };
@@ -79,7 +83,7 @@ export function createVoiceMode({ host, submit, onExit }) {
     if (!on && state === "listening" && how === "browser") browserTurn();
     render();
   }
-  function resetTurn() { frames = []; loud = 0; quiet = 0; voiced = 0; if (state === "hearing") set("listening"); }
+  function resetTurn() { frames = []; loud = 0; quiet = 0; voiced = 0; turn = null; if (state === "hearing") set("listening"); }
 
   function tapOrb() {
     if (state === "speaking") return interrupt();
@@ -112,6 +116,11 @@ export function createVoiceMode({ host, submit, onExit }) {
       return;
     }
     if (muted || how === "browser") return;
+    if (state === "thinking" && turn) {  // 她还没开口：你又说话了，就是还没说完
+      if (rms > on) { loud += ms; if (loud >= RESUME_MS) resume(); }
+      else loud = 0;
+      return;
+    }
     if (state === "listening") {
       if (rms > on) { loud += ms; if (loud >= 130) { frames = [...pre]; voiced = loud; quiet = 0; set("hearing"); } }
       else loud = 0;
@@ -121,33 +130,47 @@ export function createVoiceMode({ host, submit, onExit }) {
       frames.push(f);
       if (rms > off) { voiced += ms; quiet = 0; } else quiet += ms;
       const len = frames.length * ms;
-      if (quiet >= SILENCE_MS || len >= MAX_TURN_S * 1000) finishTurn();
+      if (quiet >= (voiced < 900 ? SHORT_SILENCE_MS : SILENCE_MS) || len >= MAX_TURN_S * 1000) finishTurn();
     }
   }
 
   async function finishTurn() {
     if (state !== "hearing") return;
     const got = frames; frames = []; loud = 0; quiet = 0;
-    if (voiced < MIN_SPEECH_MS) { voiced = 0; return set("listening"); }
+    if (voiced < MIN_SPEECH_MS && !turn?.prev) { voiced = 0; return set("listening"); }
     voiced = 0;
+    const all = [...(turn?.prev || []), ...got];  // 接着说的：前半句也带上
+    const mine = turn = { frames: all, ctrl: new AbortController() };
     set("thinking");
-    const wav = framesToWav(got, mic.rate);
+    const wav = framesToWav(all, mic.rate);
     try {
-      if (how === "hear") await reply({ audio: wav });
+      if (how === "hear") await reply({ audio: wav, signal: mine.ctrl.signal }, mine);
       else {
         const text = await transcribeWav(wav);
-        if (ended) return;
-        if (!text) { toast("没听清，再说一次？"); return set("listening"); }
+        if (ended || turn !== mine) return;
+        if (!text) { turn = null; toast("没听清，再说一次？"); return set("listening"); }
         caption(text, "you");
-        await reply({ text });
+        await reply({ text, signal: mine.ctrl.signal }, mine);
       }
-    } catch (e) { if (!ended) { fail(e); set("listening"); } }
+    } catch (e) { if (!ended && turn === mine) { turn = null; fail(e); set("listening"); } }
+  }
+
+  // 她在想的时候你又开口了：撤回这一轮，接着听，说完把两段合成一句重新交给她
+  function resume() {
+    const t0 = turn;
+    if (!t0) return;
+    t0.ctrl.abort();
+    turn = { prev: t0.frames };
+    frames = [...pre]; voiced = loud; quiet = 0; loud = 0;
+    caption("", "");
+    set("hearing");
   }
 
   // 交给她，等她念完再接着听
-  async function reply(payload) {
+  async function reply(payload, own) {
     const r = await submit(payload);
-    if (ended) return;
+    if (ended || (own && turn !== own)) return;  // 已经撤回（你接着说了）：新的一轮接手
+    turn = null;
     if (!r?.ok) return set("listening");
     caption(speakable(r.reply || ""), "her");  // 字幕跟她念的一样：不带动作描写和颜文字
     if (!r.speaking) return set("listening");
@@ -190,7 +213,7 @@ export function createVoiceMode({ host, submit, onExit }) {
   // ---------- 进出 ----------
   async function start() {
     if (el) return;
-    ended = false; muted = false; floor = 0; echo = 0;
+    ended = false; muted = false; floor = 0; echo = 0; turn = null;
     const mode = await sttMode();
     how = (await canHear()) ? "hear" : mode === "server" ? "stt" : mode === "browser" ? "browser" : "";
     if (!how) return toast("语音输入在设置里关闭了");
@@ -213,6 +236,7 @@ export function createVoiceMode({ host, submit, onExit }) {
     cancelAnimationFrame(raf);
     clearTimeout(srTimer);
     sr?.cancel(); sr = null;
+    turn?.ctrl?.abort(); turn = null;
     mic?.close(); mic = null;
     stopSpeaking(); speaking = null;
     const old = el; el = null; state = "off";
