@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .db import get_db
-from .models import DEFAULT_USER_SETTINGS, AuthToken, User
+from .models import DEFAULT_USER_SETTINGS, ApiKey, AuthToken, User
 
 router = APIRouter(prefix="/api", tags=["users"])
 
@@ -54,9 +54,22 @@ def issue_token(db: Session, user: User) -> str:
     return token
 
 
+API_KEY_PREFIX = "km_"
+MAX_API_KEYS = 10
+
+
 def user_from_token(db: Session, token: str | None) -> User | None:
     if not token:
         return None
+    if token.startswith(API_KEY_PREFIX):  # 开发者 API 密钥：长期有效，删掉才失效
+        key = db.scalar(select(ApiKey).where(ApiKey.key_hash == _token_hash(token)))
+        if key is None:
+            return None
+        t = datetime.now(timezone.utc)
+        if key.last_used_at is None or t - key.last_used_at > timedelta(minutes=5):  # 不必每个请求都写一次库
+            key.last_used_at = t
+            db.commit()
+        return db.get(User, key.user_id)
     row = db.get(AuthToken, _token_hash(token))
     if row is None or row.expires_at < datetime.now(timezone.utc):
         return None
@@ -74,6 +87,13 @@ def current_user(token: str | None = Depends(bearer), db: Session = Depends(get_
     if user is None:
         raise HTTPException(401, "请先登录")
     return user
+
+
+def session_user(token: str | None = Depends(bearer), db: Session = Depends(get_db)) -> User:
+    """只认登录的会话，不认 API 密钥：管理密钥、注销账号这类事，密钥泄露了也做不了。"""
+    if token and token.startswith(API_KEY_PREFIX):
+        raise HTTPException(403, "API 密钥不能做这件事，请在网页上登录后操作")
+    return current_user(token, db)
 
 
 # ---------- 设置 ----------
@@ -208,10 +228,50 @@ class DeleteIn(BaseModel):
 
 
 @router.delete("/me")
-def delete_account(body: DeleteIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+def delete_account(body: DeleteIn, user: User = Depends(session_user), db: Session = Depends(get_db)):
     """注销账号：角色、记忆、聊天、关系、上传的模型、发布的作品全部删除，不能恢复。"""
     if not verify_password(body.password, user.password_hash):
         raise HTTPException(403, "密码不对")
     db.delete(user)
+    db.commit()
+    return {"ok": True}
+
+
+# ---------- 开发者 API 密钥（设置 → 开发者） ----------
+
+class ApiKeyIn(BaseModel):
+    name: str = Field(default="", max_length=40)
+
+
+def _key_out(k: ApiKey) -> dict:
+    return {"id": k.id, "name": k.name, "prefix": k.prefix, "created_at": k.created_at.isoformat(),
+            "last_used_at": k.last_used_at.isoformat() if k.last_used_at else None}
+
+
+@router.get("/keys")
+def list_keys(user: User = Depends(session_user), db: Session = Depends(get_db)):
+    rows = db.scalars(select(ApiKey).where(ApiKey.user_id == user.id).order_by(ApiKey.created_at.desc())).all()
+    return [_key_out(k) for k in rows]
+
+
+@router.post("/keys")
+def create_key(body: ApiKeyIn, user: User = Depends(session_user), db: Session = Depends(get_db)):
+    """新建一把密钥。原文只在这次返回里出现，服务器只存哈希，丢了就删掉重建。"""
+    n = len(db.scalars(select(ApiKey.id).where(ApiKey.user_id == user.id)).all())
+    if n >= MAX_API_KEYS:
+        raise HTTPException(400, f"最多 {MAX_API_KEYS} 把密钥，先删掉不用的")
+    raw = API_KEY_PREFIX + secrets.token_urlsafe(32)
+    k = ApiKey(user_id=user.id, name=body.name.strip() or "API key", key_hash=_token_hash(raw), prefix=raw[:10])
+    db.add(k)
+    db.commit()
+    return {**_key_out(k), "key": raw}
+
+
+@router.delete("/keys/{key_id}")
+def delete_key(key_id: str, user: User = Depends(session_user), db: Session = Depends(get_db)):
+    k = db.get(ApiKey, key_id)
+    if k is None or k.user_id != user.id:
+        raise HTTPException(404, "没有这把密钥")
+    db.delete(k)
     db.commit()
     return {"ok": True}

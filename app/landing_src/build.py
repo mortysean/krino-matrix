@@ -8,6 +8,7 @@
   /privacy/ 等      旧地址，按记住的地区跳到 /cn/ 或 /global/ 下的同名页面
   /<地区>/products/  产品介绍：软件（KRINO WORLD）、硬件（眼镜，以后更多）、开放平台；应用本身在 /<地区>/products/world/（后端提供）
   /<地区>/apocalypse/ 启示与应验：预言与产品、研究的更新通报，宣言是第一条；/<地区>/manifesto/ 宣言全文
+                   （地区可以在 regions.py 的 hidden 里暂时下线某些栏目：国内站现在没有启示与应验和宣言）
   /<地区>/developers/ 开发者中心：概览和快速开始、api/（API 参考）、sdk/（Python SDK），由 devdocs.py 生成
   /<地区>/vision/    Krino Tree + 当前进度（宣言在“启示与应验”栏目下，是它的第一则）（这三个由 vision.py 按 data/ 下的数据生成）
 地区、产品、外壳文字在 regions.py；样式和脚本 app/landing/portal.css、portal.js 是手写的，这里不碰。
@@ -72,6 +73,8 @@ def region_pages(region: str):
     pages["vision/"] = (None, "page")      # 由 vision.py 按数据生成
     pages["apocalypse/"] = (None, "page")
     pages["manifesto/"] = (None, "doc")
+    for rel in REGIONS[region].get("hidden", ()):  # 这个地区暂时下线的栏目
+        pages.pop(rel, None)
     return pages
 
 
@@ -328,6 +331,29 @@ location.replace("../"+r+"/{key}/"+location.hash);}})();</script>
 """, encoding="utf-8")
 
 
+def build_hidden():
+    """下线栏目的旧地址：跳回本地区首页（不给 404，收藏过、分享过的链接也能进来）；不进站点地图，也不让搜索引擎收录。"""
+    for region, R in REGIONS.items():
+        for rel in R.get("hidden", ()):
+            out = OUT / region / rel / "index.html"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            back = up(f"{region}/{rel}") + f"{region}/"
+            out.write_text(f"""<!doctype html>
+<!-- 由 app/landing_src/build.py 生成：这个栏目在本地区暂时下线，跳回首页 -->
+<html lang="{R["lang"]}">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="refresh" content="0; url={back}">
+  <link rel="canonical" href="{SITE}/{region}/">
+  <title>{esc(R["site_name"])}</title>
+  <script>location.replace("{back}");</script>
+</head>
+<body><p><a href="{back}">{esc(R["site_name"])}</a></p></body>
+</html>
+""", encoding="utf-8")
+
+
 def build_sitemap(pages):
     rows = []
     for r in REGIONS:
@@ -369,6 +395,7 @@ def main():
         build_region(r, pages)
     build_entry(pages)
     build_legacy()
+    build_hidden()
     build_sitemap(pages)
     n = sum(len(p) for p in pages.values())
     print(f"wrote {n} region pages ({', '.join(f'{r}: {len(p)}' for r, p in pages.items())}), entry, legacy redirects, sitemap")

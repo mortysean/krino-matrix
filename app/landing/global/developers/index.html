@@ -120,16 +120,17 @@
 <section id="quickstart">
   <h2>Quick start</h2>
   <ol class="dev-steps">
-    <li><h3>Get an account</h3>
-      <p>Sign up in <a href="/global/products/world/">KRINO WORLD</a>, or call the <a href="../developers/api/#ep-post-auth-register">register endpoint</a>. Accounts belong to one region: an account here works only with this site’s API, not with the mainland China site.</p></li>
+    <li><h3>Create an API key</h3>
+      <p>Sign in to <a href="/global/products/world/">KRINO WORLD</a> and create one under <b>Settings → API keys</b>. It starts with <code>km_</code>, is shown only once and stays valid until you delete it. Keep it like a password; an environment variable is easiest:</p>
+      <div class="code"><div class="code-h"><span>Shell</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>export KRINO_API_KEY=km_...</code></pre></div>
+      <p class="note">Accounts and keys belong to one region: a key from this site works only with this site’s API, not with the mainland China site.</p></li>
     <li><h3>Install the SDK</h3>
       <div class="code"><div class="code-h"><span>Shell</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">pip</span> install krino-world</code></pre></div>
       <p>Python 3.10 or newer; its only dependency is httpx. No Python? Everything is a plain HTTP endpoint.</p></li>
     <li><h3>Say hello</h3>
       <div class="tabs"><div class="tab-h" role="tablist"><button type="button" role="tab" data-tab="py" aria-selected="true">Python</button><button type="button" role="tab" data-tab="curl" aria-selected="false">cURL</button></div><div role="tabpanel" data-tab="py"><div class="code"><div class="code-h"><span>Python</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">from</span> krino_world <span class="t-k">import</span> Client
 
-<span class="t-k">with</span> Client(region=<span class="t-s">&quot;global&quot;</span>) <span class="t-k">as</span> kw:
-    kw.login(<span class="t-s">&quot;me&quot;</span>, <span class="t-s">&quot;your-password&quot;</span>)         <span class="t-c"># or kw.register(...); the token is kept on the client</span>
+<span class="t-k">with</span> Client(region=<span class="t-s">&quot;global&quot;</span>) <span class="t-k">as</span> kw:     <span class="t-c"># reads the key from KRINO_API_KEY; or pass api_key=&#x27;km_...&#x27;</span>
     character = kw.characters()[<span class="t-n">0</span>]           <span class="t-c"># a new account already has the official characters</span>
     session = kw.start_session(character[<span class="t-s">&quot;id&quot;</span>])
     <span class="t-k">print</span>(session[<span class="t-s">&quot;greeting&quot;</span>])
@@ -137,17 +138,13 @@
     turn = kw.send(session[<span class="t-s">&quot;id&quot;</span>], <span class="t-s">&quot;How was your day?&quot;</span>)
     <span class="t-k">print</span>(turn[<span class="t-s">&quot;reply&quot;</span>][<span class="t-s">&quot;content&quot;</span>])</code></pre></div></div><div role="tabpanel" data-tab="curl" hidden><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>API=https://krinomatrix.com/global/products/world/api
 
-<span class="t-c"># 1. Log in and keep the token</span>
-TOKEN=$(<span class="t-k">curl</span> -s $API/auth/login -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
-  -d <span class="t-s">&#x27;{&quot;username&quot;: &quot;me&quot;, &quot;password&quot;: &quot;your-password&quot;}&#x27;</span> | <span class="t-k">jq</span> -r .token)
-
-<span class="t-c"># 2. Pick a character and start a session</span>
-CHARACTER_ID=$(<span class="t-k">curl</span> -s $API/characters -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> | <span class="t-k">jq</span> -r <span class="t-s">&#x27;.[0].id&#x27;</span>)
-SESSION_ID=$(<span class="t-k">curl</span> -s $API/sessions -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+<span class="t-c"># 1. Pick a character and start a session (KRINO_API_KEY is the key from Settings)</span>
+CHARACTER_ID=$(<span class="t-k">curl</span> -s $API/characters -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> | <span class="t-k">jq</span> -r <span class="t-s">&#x27;.[0].id&#x27;</span>)
+SESSION_ID=$(<span class="t-k">curl</span> -s $API/sessions -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&quot;{\&quot;character_id\&quot;: \&quot;$CHARACTER_ID\&quot;}&quot;</span> | <span class="t-k">jq</span> -r .id)
 
-<span class="t-c"># 3. Say something</span>
-<span class="t-k">curl</span> -s $API/sessions/$SESSION_ID/messages -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+<span class="t-c"># 2. Say something</span>
+<span class="t-k">curl</span> -s $API/sessions/$SESSION_ID/messages -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;How was your day?&quot;}&#x27;</span> | <span class="t-k">jq</span> -r .reply.content</code></pre></div></div></div>
       <p>To show the reply as it's written, stream it:</p>
       <div class="code"><div class="code-h"><span>Python</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">for</span> event <span class="t-k">in</span> kw.stream(session[<span class="t-s">&quot;id&quot;</span>], <span class="t-s">&quot;Tell me a story&quot;</span>):
@@ -159,7 +156,7 @@ SESSION_ID=$(<span class="t-k">curl</span> -s $API/sessions -H <span class="t-s"
 </section>
 <section id="basics">
   <h2>Basics</h2>
-  <div class="table-wrap"><table class="kv"><thead><tr><th>Item</th><th>Details</th></tr></thead><tbody><tr><td>Base URL</td><td><code>https://krinomatrix.com/global/products/world/api</code></td></tr><tr><td>Authentication</td><td>Log in for a token, then send <code>Authorization: Bearer &lt;token&gt;</code></td></tr><tr><td>Format</td><td>JSON (UTF-8) both ways; streamed replies are server-sent events; speech comes back as audio</td></tr><tr><td>Limits</td><td>Each account has a daily credit budget; when it runs out you get <code>429</code> until the next day</td></tr><tr><td>Errors</td><td><code>{"detail": "…"}</code> with a human-readable message. <a href="../developers/api/#errors">Error codes</a></td></tr><tr><td>Open source</td><td>The SDK and API definitions are Apache-2.0: <a href="https://github.com/mortysean/krino-matrix" target="_blank" rel="noopener">GitHub</a></td></tr></tbody></table></div>
+  <div class="table-wrap"><table class="kv"><thead><tr><th>Item</th><th>Details</th></tr></thead><tbody><tr><td>Base URL</td><td><code>https://krinomatrix.com/global/products/world/api</code></td></tr><tr><td>Authentication</td><td>Create an API key in Settings and send <code>Authorization: Bearer &lt;key&gt;</code></td></tr><tr><td>Format</td><td>JSON (UTF-8) both ways; streamed replies are server-sent events; speech comes back as audio</td></tr><tr><td>Limits</td><td>Each account has a daily credit budget; when it runs out you get <code>429</code> until the next day</td></tr><tr><td>Errors</td><td><code>{"detail": "…"}</code> with a human-readable message. <a href="../developers/api/#errors">Error codes</a></td></tr><tr><td>Open source</td><td>The SDK and API definitions are Apache-2.0: <a href="https://github.com/mortysean/krino-matrix" target="_blank" rel="noopener">GitHub</a></td></tr></tbody></table></div>
   <p class="note">Questions, higher limits or a test account: write to <a href="mailto:support@krinomatrix.com?subject=Developer">support@krinomatrix.com</a></p>
 </section>
 </article>

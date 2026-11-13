@@ -140,7 +140,11 @@ button:disabled::before { display: none; }
 
 /* ---------- 布局 ---------- */
 .app { position: relative; z-index: 1; display: flex; height: 100%; animation: fade .6s var(--ease); }
-.sidebar { width: 228px; flex-shrink: 0; display: flex; flex-direction: column; padding: 18px 14px; gap: 2px; overflow-y: auto; background: var(--ink); border-right: 1px solid var(--line); }
+.sidebar { width: 228px; flex-shrink: 0; display: flex; flex-direction: column; padding: 18px 14px; gap: 2px; overflow: hidden; background: var(--ink); border-right: 1px solid var(--line); }
+/* 左上角的标志和左下角的账号一直在原地，只有中间（角色列表、页面导航）在角色多的时候自己滚 */
+.sidebar .brand, .sidebar-foot { flex-shrink: 0; }
+.sidebar-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; margin: 0 -14px; padding: 0 14px 12px;
+  scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
 .brand { display: flex; gap: 12px; align-items: center; padding: 2px 4px 16px; }
 .brand-mark { width: 44px; height: 44px; flex-shrink: 0; background: var(--cobalt); overflow: hidden; }
 .brand-mark img { width: 100%; height: 100%; object-fit: cover; }
@@ -504,6 +508,7 @@ table.res th { font: 10px var(--mono); color: var(--muted); letter-spacing: .12e
   .app { flex-direction: column; }
   .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); }
   .sidebar .section-title, .sidebar .char-list, .sidebar-foot { display: none; }
+  .sidebar-scroll { display: contents; }
   .nav { flex-direction: row; flex-wrap: wrap; }
   .view { padding: 18px 16px; }
   .field-grid { grid-template-columns: 1fr; }
@@ -884,3 +889,10 @@ label.check input { margin-top: 3px; }
 /* 新角色：形象和声音还在后台做 */
 .pending-tag { font: normal 10px/1 var(--mono); letter-spacing: .08em; color: #3df5ff; border: 1px solid rgba(61, 245, 255, .5); padding: 2px 5px; margin-left: 6px;
   vertical-align: 2px; animation: pulse 1.4s steps(3) infinite; }
+
+/* 设置 → API 密钥 */
+.key-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.key-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border: 1px solid var(--line); background: var(--ink-2); }
+.key-row code, .key-show code { font: 12px var(--mono); color: var(--silver-hi); }
+.key-show { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--char); background: var(--ink-2); margin: 10px 0; }
+.key-show code { flex: 1; word-break: break-all; user-select: all; }

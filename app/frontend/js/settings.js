@@ -1,5 +1,5 @@
 // 04 设置：常用的只有几个开关，改了立刻生效（不用点保存）。技术细节都收在“高级”里。
-import { $, $$, S, api, esc, fail, modal, storeSet, t, toast, tr } from "./core.js";
+import { $, $$, S, api, confirmBox, esc, fail, fmtTime, modal, storeSet, t, toast, tr } from "./core.js";
 import { glassesPanel } from "./glasses.js";
 
 async function save(patch) {
@@ -37,14 +37,46 @@ export async function settingsPage() {
     ${sw("social", "share_life", "她可以模糊地提一句你的近况", "比如“我家那位最近在忙”；私密的事从来不说")}
     <div class="section-title mono">CREDITS · ${t("积分")}</div>
     <div class="credits-box" id="s-credits"><p class="muted small">${t("加载中…")}</p></div>
+    <div class="section-title mono">DEVELOPER · ${t("API 密钥")}</div>
+    <div id="s-keys"><p class="muted small">${t("加载中…")}</p></div>
     <details id="adv"><summary>${t("高级")}</summary><div id="adv-body"><p class="muted small">${t("加载中…")}</p></div></details>
     <div class="row"><button class="link small danger-link" id="s-delete">${t("注销账号")}</button></div></div>`;
   api("/api/credits").then(creditsBox).catch(() => $("#s-credits")?.remove());
+  keysBox();
   let timer; $("#s-name").oninput = (e) => { clearTimeout(timer); timer = setTimeout(() => save({ display_name: e.target.value }).then(() => ($("#me-name").textContent = S.me.display_name)), 600); };
   $$("[data-g]").forEach((el) => (el.onchange = () => save({ [el.dataset.g]: { [el.dataset.k]: el.checked } })));
   $("#s-sens").onchange = (e) => save({ save_sensitive: e.target.checked });
   $("#adv").ontoggle = (e) => e.target.open && advanced();
   $("#s-delete").onclick = deleteAccount;
+}
+
+// API 密钥：给自己写的程序用（Python SDK、curl……），和网页登录一样能用接口，但不会过期。原文只在创建时显示一次
+const docsUrl = () => `/${S.site.edition === "global" ? "global" : "cn"}/developers/`;
+async function keysBox() {
+  const box = $("#s-keys");
+  if (!box) return;
+  let keys;
+  try { keys = await api("/api/keys"); } catch (e) { box.innerHTML = `<p class="muted small">${esc(tr(e.message))}</p>`; return; }
+  box.innerHTML = `<p class="muted small">${t("在自己的程序里调用 KRINO WORLD 的接口（Python SDK、curl……）时用。像密码一样保管，不要发给别人。")}
+      <a href="${docsUrl()}" target="_blank" rel="noopener">${t("开发者文档")} ↗</a></p>
+    ${keys.length ? `<div class="key-list">${keys.map((k) => `<div class="key-row"><div><b>${esc(k.name)}</b> <code>${esc(k.prefix)}…</code>
+        <div class="muted small">${t("创建于 {t}", { t: fmtTime(k.created_at) })} · ${k.last_used_at ? t("最近使用 {t}", { t: fmtTime(k.last_used_at) }) : t("还没用过")}</div></div>
+        <button class="link small danger-link" data-del-key="${esc(k.id)}">${t("删除")}</button></div>`).join("")}</div>` : ""}
+    <div class="row"><input id="key-name" maxlength="40" placeholder="${esc(t("给它起个名字，比如：我的机器人"))}" style="flex:1"><button class="ghost small" id="key-new">${t("创建密钥")}</button></div>`;
+  $("#key-new").onclick = async () => {
+    try {
+      const k = await api("/api/keys", { body: { name: $("#key-name").value.trim() } });
+      modal("新的 API 密钥", `<p>${t("只显示这一次，关掉之后就看不到了。现在复制保存好；丢了就删掉重建一把。")}</p>
+        <div class="key-show"><code id="key-raw">${esc(k.key)}</code><button class="ghost small" id="key-copy">${t("复制")}</button></div>
+        <p class="muted small">${t("用法：请求头加上 Authorization: Bearer <密钥>；Python SDK 里写 Client(api_key=\"…\")。")}</p>`, null, { okText: "我已保存", cancel: false, wide: true });
+      $("#key-copy").onclick = () => navigator.clipboard?.writeText(k.key).then(() => toast("已复制"), () => toast("复制不了，请手动选中复制"));
+      keysBox();
+    } catch (e) { fail(e); }
+  };
+  $$("[data-del-key]", box).forEach((b) => (b.onclick = async () => {
+    if (!(await confirmBox("删除 API 密钥", `<p>${t("用这把密钥的程序会马上连不上。")}</p>`, "删除"))) return;
+    try { await api(`/api/keys/${b.dataset.delKey}`, { method: "DELETE" }); keysBox(); } catch (e) { fail(e); }
+  }));
 }
 
 async function advanced() {

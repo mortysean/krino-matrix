@@ -10,13 +10,20 @@ pip install krino-world
 
 Full reference and quick start: [krinomatrix.com/global/developers](https://krinomatrix.com/global/developers/) ([mainland China site](https://krinomatrix.com/cn/developers/)).
 
+## API key
+
+Sign in to KRINO WORLD and create a key under **Settings → API keys**. It starts with `km_`, is shown only once, and stays valid until you delete it. Keep it like a password; the easiest place is an environment variable:
+
+```bash
+export KRINO_API_KEY=km_...
+```
+
 ## Usage
 
 ```python
 from krino_world import Client, KrinoError
 
-with Client(region="global") as kw:          # "cn" for the mainland China site
-    kw.login("me", "secret")                  # or kw.register(...); the token is kept on the client
+with Client(region="global") as kw:          # reads KRINO_API_KEY; "cn" for the mainland China site
     character = kw.characters()[0]
     session = kw.start_session(character["id"])
     print(session["greeting"])
@@ -51,6 +58,7 @@ with Client(region="global") as kw:          # "cn" for the mainland China site
 | Anything else | `request(method, path, **httpx_kwargs)` calls any endpoint under `/api/` |
 
 - Your own server: `Client(base_url="http://127.0.0.1:8630")`.
-- Reuse a token: `Client(region="cn", token="…")`.
+- Pass the key directly: `Client(region="cn", api_key="km_…")`.
+- No key? `kw.login("me", "secret")` signs in with a password instead; that token expires after a week.
 - A refused request raises `KrinoError`, with `.status` (the HTTP status) and `.message` (the server's explanation).
 - The two regions have separate accounts. See [Base URLs](https://github.com/mortysean/krino-matrix/blob/main/docs/api/README.md#base-urls).

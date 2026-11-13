@@ -77,6 +77,20 @@ class AuthToken(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
+class ApiKey(Base):
+    """开发者 API 密钥：在设置里创建，长期有效，直到删掉。只存哈希，原文只在创建时显示一次。
+    和登录 token 一样放在 Authorization: Bearer 里用，但不能用来管理密钥、注销账号。"""
+    __tablename__ = "api_keys"
+
+    id: Mapped[str] = _id()
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(40))
+    key_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    prefix: Mapped[str] = mapped_column(String(16))  # km_ + 前几位，列表里认得出是哪一把
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 # ---------- 人设 ----------
 
 class Character(Base):

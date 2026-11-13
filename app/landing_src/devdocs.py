@@ -76,8 +76,8 @@ ENDPOINTS = [
     ("account", ("账号", "Account"), [
         ("POST", "/auth/register", ("注册", "Register"),
          ("新建账号并直接登录。新账号自带官方角色，可以马上开始对话。", "Create an account and sign in. A new account already has the official characters, so you can start talking right away."), "auth"),
-        ("POST", "/auth/login", ("登录", "Log in"), ("用户名和密码换一个 token。之后的请求都带上 <code>Authorization: Bearer &lt;token&gt;</code>。",
-                                                    "Trade a username and password for a token. Send it as <code>Authorization: Bearer &lt;token&gt;</code> on every other request."), "auth"),
+        ("POST", "/auth/login", ("登录", "Log in"), ("用户名和密码换一个登录 token（一周后过期），用法和 API 密钥一样。写程序推荐直接用 <a href=\"#auth\">API 密钥</a>。",
+                                                    "Trade a username and password for a login token (expires after a week), used like an API key. For programs, an <a href=\"#auth\">API key</a> is simpler."), "auth"),
         ("POST", "/auth/logout", ("退出登录", "Log out"), ("让当前 token 失效。", "Revoke the current token."), "ok"),
         ("GET", "/me", ("账号信息", "Your account"), ("账号和设置。", "Your account and settings."), "me"),
         ("PATCH", "/me", ("修改设置", "Update settings"), ("只传要改的字段。设置分组的结构和 <code>GET /me</code> 返回的 <code>settings</code> 一样，组内也只需传要改的项。",
@@ -404,7 +404,8 @@ data: {"reply": {…}, "user": {…}, "actions": […], "decision": {…}, "memo
 
 ERRORS = [
     ("400", ("请求不完整，比如消息是空的", "The request is incomplete, for example an empty message")),
-    ("401", ("没带 token 或 token 过期了，重新登录", "Missing or expired token; log in again")),
+    ("401", ("没带密钥、密钥已删除，或登录 token 过期了", "Missing or deleted API key, or an expired login token")),
+    ("403", ("API 密钥不能做这件事（管理密钥、注销账号要在网页上登录后操作）", "An API key can't do this (managing keys and deleting the account need a signed-in browser)")),
     ("404", ("不存在，或者不是你的", "It doesn't exist, or it isn't yours")),
     ("409", ("对话属于另一个角色", "The session belongs to a different character than the one you named")),
     ("413 / 415", ("上传的文件太大 / 格式不支持", "The upload is too large / in a format we don't take")),
@@ -502,7 +503,7 @@ SDK_DOC = {
     "request": ("调用 <code>/api/</code> 下的任意接口（上面没有专门方法的），返回解析好的 JSON。其余参数原样交给 httpx。",
                 "Call any endpoint under <code>/api/</code> that has no method of its own. Returns the decoded JSON; extra arguments go to httpx."),
     "register": ("注册并登录，token 存在客户端上。返回账号信息。", "Register and sign in; the token is kept on the client. Returns your account."),
-    "login": ("登录，token 存在客户端上。返回账号信息。", "Sign in; the token is kept on the client. Returns your account."),
+    "login": ("用密码登录（没有 API 密钥时用），token 存在客户端上，一周后过期。返回账号信息。", "Sign in with a password when you have no API key; the token is kept on the client and expires after a week. Returns your account."),
     "logout": ("退出登录，token 失效。", "Sign out and revoke the token."),
     "me": ("账号和设置。", "Your account and settings."),
     "health": ("服务是否在线。", "Whether the service is up."),
@@ -620,7 +621,7 @@ def curl(method, path, zh):
     url = f"$API{url_path}" + (f"?{q}" if q else "")
     lines = [f'curl{" -X " + method if method not in ("GET", "POST") or (method == "POST" and key not in REQ and path != "/voice/stt") else ""} "{url}"']
     if path not in ("/auth/register", "/auth/login", "/health"):
-        lines.append('-H "Authorization: Bearer $TOKEN"')
+        lines.append('-H "Authorization: Bearer $KRINO_API_KEY"')
     if path == "/voice/stt":
         lines.append("-F file=@speech.webm")
     elif key in REQ:
@@ -667,8 +668,7 @@ def endpoint(spec, method, path, title, desc, ex, zh):
 def py_quick(region, zh):
     return f'''from krino_world import Client
 
-with Client(region="{region}") as kw:
-    kw.login("me", "your-password")         # {"或者 kw.register(...)，token 自动存在客户端上" if zh else "or kw.register(...); the token is kept on the client"}
+with Client(region="{region}") as kw:     # {"密钥从环境变量 KRINO_API_KEY 读；也可以写 api_key='km_...'" if zh else "reads the key from KRINO_API_KEY; or pass api_key='km_...'"}
     character = kw.characters()[0]           # {"新账号自带官方角色" if zh else "a new account already has the official characters"}
     session = kw.start_session(character["id"])
     print(session["greeting"])
@@ -680,17 +680,13 @@ with Client(region="{region}") as kw:
 def curl_quick(R, zh):
     return f'''API={api_base(R)}
 
-# {"1. 登录，留下 token" if zh else "1. Log in and keep the token"}
-TOKEN=$(curl -s $API/auth/login -H 'Content-Type: application/json' \\
-  -d '{{"username": "me", "password": "your-password"}}' | jq -r .token)
-
-# {"2. 选一个角色，开始对话" if zh else "2. Pick a character and start a session"}
-CHARACTER_ID=$(curl -s $API/characters -H "Authorization: Bearer $TOKEN" | jq -r '.[0].id')
-SESSION_ID=$(curl -s $API/sessions -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \\
+# {"1. 选一个角色，开始对话（KRINO_API_KEY 是你在设置里建的密钥）" if zh else "1. Pick a character and start a session (KRINO_API_KEY is the key from Settings)"}
+CHARACTER_ID=$(curl -s $API/characters -H "Authorization: Bearer $KRINO_API_KEY" | jq -r '.[0].id')
+SESSION_ID=$(curl -s $API/sessions -H "Authorization: Bearer $KRINO_API_KEY" -H 'Content-Type: application/json' \\
   -d "{{\\"character_id\\": \\"$CHARACTER_ID\\"}}" | jq -r .id)
 
-# {"3. 说一句话" if zh else "3. Say something"}
-curl -s $API/sessions/$SESSION_ID/messages -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \\
+# {"2. 说一句话" if zh else "2. Say something"}
+curl -s $API/sessions/$SESSION_ID/messages -H "Authorization: Bearer $KRINO_API_KEY" -H 'Content-Type: application/json' \\
   -d '{{"text": "{"今天过得怎么样？" if zh else "How was your day?"}"}}' | jq -r .reply.content'''
 
 
@@ -721,9 +717,11 @@ def overview_page(region, R):
 <section id="quickstart">
   <h2>{T(("快速开始", "Quick start"))}</h2>
   <ol class="dev-steps">
-    <li><h3>{T(("准备账号", "Get an account"))}</h3>
-      <p>{T((f'在 <a href="{app}">KRINO WORLD</a> 注册一个账号，或者直接调用 <a href="{{base}}developers/api/#{ep_id("POST", "/auth/register")}">注册接口</a>。账号按地区分开：本站的账号只能用在本站的接口上，和{other}不通。',
-             f'Sign up in <a href="{app}">KRINO WORLD</a>, or call the <a href="{{base}}developers/api/#{ep_id("POST", "/auth/register")}">register endpoint</a>. Accounts belong to one region: an account here works only with this site’s API, not with {other}.'))}</p></li>
+    <li><h3>{T(("创建 API 密钥", "Create an API key"))}</h3>
+      <p>{T((f'登录 <a href="{app}">KRINO WORLD</a>，在 <b>设置 → API 密钥</b> 里创建一把。它以 <code>km_</code> 开头，只显示一次，删掉之前一直有效。像密码一样保管，放进环境变量最方便：',
+             f'Sign in to <a href="{app}">KRINO WORLD</a> and create one under <b>Settings → API keys</b>. It starts with <code>km_</code>, is shown only once and stays valid until you delete it. Keep it like a password; an environment variable is easiest:'))}</p>
+      {code("export KRINO_API_KEY=km_...", "bash", zh)}
+      <p class="note">{T((f"账号和密钥按地区分开：本站的密钥只能用在本站的接口上，和{other}不通。", f"Accounts and keys belong to one region: a key from this site works only with this site’s API, not with {other}."))}</p></li>
     <li><h3>{T(("安装 SDK", "Install the SDK"))}</h3>
       {code("pip install krino-world", "bash", zh)}
       <p>{T(("需要 Python 3.10 以上，唯一的依赖是 httpx。不用 Python 也行，所有功能都是普通的 HTTP 接口。", "Python 3.10 or newer; its only dependency is httpx. No Python? Everything is a plain HTTP endpoint."))}</p></li>
@@ -737,7 +735,7 @@ def overview_page(region, R):
   <h2>{T(("基本信息", "Basics"))}</h2>
   {table([T(("项目", "Item")), T(("说明", "Details"))], [
         (T(("接口地址", "Base URL")), f"<code>{api_base(R)}</code>"),
-        (T(("鉴权", "Authentication")), T(("登录拿到 token，请求头带 <code>Authorization: Bearer &lt;token&gt;</code>", "Log in for a token, then send <code>Authorization: Bearer &lt;token&gt;</code>"))),
+        (T(("鉴权", "Authentication")), T(("在设置里建一把 API 密钥，请求头带 <code>Authorization: Bearer &lt;密钥&gt;</code>", "Create an API key in Settings and send <code>Authorization: Bearer &lt;key&gt;</code>"))),
         (T(("数据格式", "Format")), T(("请求和返回都是 JSON（UTF-8）；流式回复是 server-sent events；语音合成返回音频", "JSON (UTF-8) both ways; streamed replies are server-sent events; speech comes back as audio"))),
         (T(("额度", "Limits")), T(("每个账号每天有额度，用完返回 <code>429</code>，第二天恢复", "Each account has a daily credit budget; when it runs out you get <code>429</code> until the next day"))),
         (T(("报错", "Errors")), T(('<code>{"detail": "…"}</code>，说明是给人看的。<a href="{base}developers/api/#errors">错误码</a>', '<code>{"detail": "…"}</code> with a human-readable message. <a href="{base}developers/api/#errors">Error codes</a>'))),
@@ -762,10 +760,9 @@ def api_page(region, R):
                       + "\n".join(endpoint(spec, *e, zh) for e in eps) + "</section>")
     stream_ex = EXAMPLES["stream"](zh)[1]
     auth_ex = f"""API={base}
-TOKEN=$(curl -s $API/auth/login -H 'Content-Type: application/json' \\
-  -d '{{"username": "me", "password": "your-password"}}' | jq -r .token)
+export KRINO_API_KEY=km_...   # {"设置 → API 密钥 里创建" if zh else "create one under Settings → API keys"}
 
-curl -s $API/characters -H "Authorization: Bearer $TOKEN\""""
+curl -s $API/characters -H "Authorization: Bearer $KRINO_API_KEY\""""
     body = f"""<header class="dev-head">
   <p class="tag">// API</p>
   <h1 class="title">{T(("API <em>参考</em>", "API <em>reference</em>"))}</h1>
@@ -781,8 +778,10 @@ curl -s $API/characters -H "Authorization: Bearer $TOKEN\""""
 </section>
 <section id="auth">
   <h2>{T(("鉴权", "Authentication"))}</h2>
-  <p>{T(("先注册或登录拿到 token，之后每个请求带上 <code>Authorization: Bearer &lt;token&gt;</code>。token 过一段时间会过期，过期后请求返回 <code>401</code>，重新登录即可。",
-         "Register or log in for a token, then send <code>Authorization: Bearer &lt;token&gt;</code> on every request. Tokens expire after a while; when one does you get <code>401</code> and log in again."))}</p>
+  <p>{T(("登录应用，在 <b>设置 → API 密钥</b> 里创建一把密钥（以 <code>km_</code> 开头，只显示一次），之后每个请求带上 <code>Authorization: Bearer &lt;密钥&gt;</code>。密钥删掉之前一直有效；泄露了就在设置里删掉，用它的程序马上失效。",
+         "Sign in to the app and create a key under <b>Settings → API keys</b> (it starts with <code>km_</code> and is shown only once), then send <code>Authorization: Bearer &lt;key&gt;</code> on every request. A key works until you delete it; if one leaks, delete it in Settings and it stops working at once."))}</p>
+  <p>{T(("密钥能做应用里能做的一切，只有管理密钥和注销账号不行（返回 <code>403</code>），这两件要在网页上登录后操作。也可以用 <a href='#" + ep_id("POST", "/auth/login") + "'>密码登录</a> 拿一个登录 token 代替密钥，它一周后过期。",
+         "A key can do everything the app does except manage keys and delete the account (those get <code>403</code> and need a signed-in browser). You can also <a href='#" + ep_id("POST", "/auth/login") + "'>log in with a password</a> for a login token instead; it expires after a week."))}</p>
   {code(auth_ex, "bash", zh)}
 </section>
 <section id="streaming">
@@ -836,15 +835,16 @@ def sdk_page(region, R):
 </section>
 <section id="client">
   <h2>Client</h2>
-  <div class="fn"><code class="sig">{hl(f'Client(region="global", base_url=None, token=None, timeout=120)', "python")}</code></div>
+  <div class="fn"><code class="sig">{hl(f'Client(region="global", base_url=None, api_key=None, token=None, timeout=120)', "python")}</code></div>
   {table([T(("参数", "Argument")), T(("说明", "Description"))], [
         ("<code>region</code>", T(('<code>"cn"</code> 中国大陆站，<code>"global"</code> 国际站。两边账号不通', '<code>"cn"</code> for the mainland China site, <code>"global"</code> for the international one. Their accounts are separate'))),
         ("<code>base_url</code>", T(("连自己部署的服务器，比如 <code>http://127.0.0.1:8630</code>（填了就不看 region）", "Your own server, such as <code>http://127.0.0.1:8630</code> (overrides region)"))),
-        ("<code>token</code>", T(("已有的 token，不用再登录", "A token you already have, so you needn't log in"))),
+        ("<code>api_key</code>", T(("设置 → API 密钥 里建的密钥（<code>km_</code> 开头）。不填就读环境变量 <code>KRINO_API_KEY</code>", "A key from Settings → API keys (starts with <code>km_</code>). If omitted, read from the <code>KRINO_API_KEY</code> environment variable"))),
+        ("<code>token</code>", T(("已有的登录 token（用密码登录时拿到的），不用再登录", "A login token you already have (from a password login), so you needn't log in again"))),
         ("<code>timeout</code>", T(("请求超时，秒", "Request timeout in seconds"))),
     ])}
-  <p>{T(("用 <code>with</code> 会在结束时关掉连接；不用 <code>with</code> 就自己调 <code>close()</code>。登录后 token 在 <code>kw.token</code> 上，可以存下来下次直接用。",
-         "<code>with</code> closes the connection when you're done; otherwise call <code>close()</code>. After you log in the token is on <code>kw.token</code>; save it to skip logging in next time."))}</p>
+  <p>{T(("用 <code>with</code> 会在结束时关掉连接；不用 <code>with</code> 就自己调 <code>close()</code>。没有 API 密钥时也可以 <code>kw.login(用户名, 密码)</code>，拿到的 token 一周后过期。",
+         "<code>with</code> closes the connection when you're done; otherwise call <code>close()</code>. Without an API key you can <code>kw.login(username, password)</code> instead; that token expires after a week."))}</p>
 </section>
 {"".join(sections)}
 <section id="event">

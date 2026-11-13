@@ -503,3 +503,21 @@ def test_existing_users_get_krino_once(user):
     personas.refresh_official(db)
     assert [c["name"] for c in user.ok("get", "/api/characters")] == ["KRINO", "大肥鱼"]
     db.close()
+
+
+def test_api_keys(client, user):
+    """设置里建的 API 密钥：当 Bearer 用，长期有效；删掉马上失效；密钥本身不能管理密钥、不能注销账号。"""
+    k = user.ok("post", "/api/keys", json={"name": "my bot"})
+    raw = k["key"]
+    assert raw.startswith("km_") and k["prefix"] == raw[:10] and k["name"] == "my bot"
+    assert [x["id"] for x in user.ok("get", "/api/keys")] == [k["id"]] and "key" not in user.ok("get", "/api/keys")[0]
+    h = {"Authorization": f"Bearer {raw}"}
+    assert client.get("/api/me", headers=h).json()["id"] == user.info["id"]
+    assert client.get("/api/characters", headers=h).status_code == 200
+    assert client.get("/api/keys", headers=h).status_code == 403
+    assert client.post("/api/keys", json={}, headers=h).status_code == 403
+    assert client.request("DELETE", "/api/me", json={"password": "secret123"}, headers=h).status_code == 403
+    assert user.ok("get", "/api/keys")[0]["last_used_at"]
+    user.ok("delete", f"/api/keys/{k['id']}")
+    assert client.get("/api/me", headers=h).status_code == 401
+    assert client.get("/api/me", headers={"Authorization": "Bearer km_notreal"}).status_code == 401

@@ -28,7 +28,6 @@
     <a class="brand" href="../../"><img src="../../../assets/krino-mark.svg" alt=""><div><b>KRINO MATRIX</b><span>决策矩阵</span></div></a>
     <nav>
       <a class="hide-sm" href="../../products/">产品</a>
-      <a class="hide-sm" href="../../apocalypse/">启示与应验</a>
       <a class="hide-sm" href="../../vision/#tree">战略</a>
       <a class="hide-sm" href="../../developers/" aria-current="page">开发者</a>
       <a class="hide-sm" href="../../about/">关于</a>
@@ -120,12 +119,12 @@
 </section>
 <section id="auth">
   <h2>鉴权</h2>
-  <p>先注册或登录拿到 token，之后每个请求带上 <code>Authorization: Bearer &lt;token&gt;</code>。token 过一段时间会过期，过期后请求返回 <code>401</code>，重新登录即可。</p>
+  <p>登录应用，在 <b>设置 → API 密钥</b> 里创建一把密钥（以 <code>km_</code> 开头，只显示一次），之后每个请求带上 <code>Authorization: Bearer &lt;密钥&gt;</code>。密钥删掉之前一直有效；泄露了就在设置里删掉，用它的程序马上失效。</p>
+  <p>密钥能做应用里能做的一切，只有管理密钥和注销账号不行（返回 <code>403</code>），这两件要在网页上登录后操作。也可以用 <a href='#ep-post-auth-login'>密码登录</a> 拿一个登录 token 代替密钥，它一周后过期。</p>
   <div class="code"><div class="code-h"><span>Shell</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>API=https://krinomatrix.com/cn/products/world/api
-TOKEN=$(<span class="t-k">curl</span> -s $API/auth/login -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
-  -d <span class="t-s">&#x27;{&quot;username&quot;: &quot;me&quot;, &quot;password&quot;: &quot;your-password&quot;}&#x27;</span> | <span class="t-k">jq</span> -r .token)
+export KRINO_API_KEY=km_...   <span class="t-c"># 设置 → API 密钥 里创建</span>
 
-<span class="t-k">curl</span> -s $API/characters -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div>
+<span class="t-k">curl</span> -s $API/characters -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div>
 </section>
 <section id="streaming">
   <h2>流式回复</h2>
@@ -147,7 +146,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
 <section id="errors">
   <h2>错误码</h2>
   <p>出错时返回 <code>{&quot;detail&quot;: &quot;…&quot;}</code>，说明是给人看的，用本站的语言。</p>
-  <div class="table-wrap"><table class=""><thead><tr><th>状态码</th><th>意思</th></tr></thead><tbody><tr><td><code>400</code></td><td>请求不完整，比如消息是空的</td></tr><tr><td><code>401</code></td><td>没带 token 或 token 过期了，重新登录</td></tr><tr><td><code>404</code></td><td>不存在，或者不是你的</td></tr><tr><td><code>409</code></td><td>对话属于另一个角色</td></tr><tr><td><code>413 / 415</code></td><td>上传的文件太大 / 格式不支持</td></tr><tr><td><code>422</code></td><td>请求体和参数格式对不上，<code>detail</code> 里说明是哪个字段</td></tr><tr><td><code>429</code></td><td>今天的额度用完了，第二天恢复</td></tr><tr><td><code>502 / 503</code></td><td>上游的模型或语音服务出错，重试一般就好</td></tr></tbody></table></div>
+  <div class="table-wrap"><table class=""><thead><tr><th>状态码</th><th>意思</th></tr></thead><tbody><tr><td><code>400</code></td><td>请求不完整，比如消息是空的</td></tr><tr><td><code>401</code></td><td>没带密钥、密钥已删除，或登录 token 过期了</td></tr><tr><td><code>403</code></td><td>API 密钥不能做这件事（管理密钥、注销账号要在网页上登录后操作）</td></tr><tr><td><code>404</code></td><td>不存在，或者不是你的</td></tr><tr><td><code>409</code></td><td>对话属于另一个角色</td></tr><tr><td><code>413 / 415</code></td><td>上传的文件太大 / 格式不支持</td></tr><tr><td><code>422</code></td><td>请求体和参数格式对不上，<code>detail</code> 里说明是哪个字段</td></tr><tr><td><code>429</code></td><td>今天的额度用完了，第二天恢复</td></tr><tr><td><code>502 / 503</code></td><td>上游的模型或语音服务出错，重试一般就好</td></tr></tbody></table></div>
 </section>
 <section class="egroup" id="g-account"><h2>账号</h2><section class="ep" id="ep-post-auth-register">
   <h3>注册</h3>
@@ -173,7 +172,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
 <section class="ep" id="ep-post-auth-login">
   <h3>登录</h3>
   <p class="ep-line"><span class="m m-post">POST</span><code>/auth/login</code><span class="lock open">无需登录</span></p>
-  <p>用户名和密码换一个 token。之后的请求都带上 <code>Authorization: Bearer &lt;token&gt;</code>。</p>
+  <p>用户名和密码换一个登录 token（一周后过期），用法和 API 密钥一样。写程序推荐直接用 <a href="#auth">API 密钥</a>。</p>
   <h4>参数</h4>
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>username</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>用户名</td></tr><tr><td><code>password</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>密码<span class="prule">6–128字</span></td></tr></tbody></table></div>
   <div class="ep-ex">
@@ -199,7 +198,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <p class="none">无参数。</p>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/auth/logout&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
   </div>
 </section>
@@ -211,7 +210,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <p class="none">无参数。</p>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/me&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;58acfe8dca7b4a02ab9cbea54767adb8&quot;</span>,
   <span class="t-k">&quot;username&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
@@ -236,7 +235,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>display_name</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>显示的名字，不填就用用户名</td></tr><tr><td><code>save_sensitive</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>允许角色记住敏感信息（健康、财务等）</td></tr><tr><td><code>privacy</code></td><td>请求体</td><td><code>object</code></td><td><span class="opt">可选</span></td><td>隐私：<code>camera</code>、<code>microphone</code></td></tr><tr><td><code>voice</code></td><td>请求体</td><td><code>object</code></td><td><span class="opt">可选</span></td><td>语音：<code>stt</code>、<code>tts</code>、<code>autoplay</code>、<code>voice</code></td></tr><tr><td><code>interaction</code></td><td>请求体</td><td><code>object</code></td><td><span class="opt">可选</span></td><td>互动：<code>proactive</code>（角色主动搭话）、<code>idle_seconds</code>、<code>stories</code>、<code>web</code> 等</td></tr><tr><td><code>evaluator</code></td><td>请求体</td><td><code>object</code></td><td><span class="opt">可选</span></td><td>互动策略：<code>mode</code></td></tr><tr><td><code>social</code></td><td>请求体</td><td><code>object</code></td><td><span class="opt">可选</span></td><td>社交圈：<code>autonomy</code>、<code>share_life</code></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X PATCH <span class="t-s">&quot;$API/me&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;display_name&quot;: &quot;Mika&quot;, &quot;voice&quot;: {&quot;autoplay&quot;: false}}&#x27;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
@@ -263,7 +262,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>password</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>当前密码，确认是你本人</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/me&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;password&quot;: &quot;your-password&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
@@ -276,7 +275,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <p class="none">无参数。</p>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>[
   {
     <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
@@ -301,7 +300,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters/$CHARACTER_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
   <span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>,
@@ -321,7 +320,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr><tr><td><code>format</code></td><td>查询</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>json</code>：角色包；<code>md</code>：可读的 Markdown<span class="prule">默认 <code>&quot;json&quot;</code></span></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters/$CHARACTER_ID/export&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
   <span class="t-k">&quot;format&quot;</span>: <span class="t-s">&quot;krino-persona/1&quot;</span>,
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;krino&quot;</span>,
@@ -339,7 +338,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&quot;{\&quot;character_id\&quot;: \&quot;$CHARACTER_ID\&quot;}&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
@@ -361,7 +360,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>查询</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions?character_id=$CHARACTER_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>[
   {
     <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
@@ -382,7 +381,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
   <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
@@ -403,7 +402,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr><tr><td><code>text</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>你说的话<span class="prule">≤ 4000字</span></td></tr><tr><td><code>audio</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>一段录音，data URL（<code>data:audio/wav;base64,…</code>），角色直接听；只有流式接口用</td></tr><tr><td><code>image</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>一张图片，data URL（<code>data:image/jpeg;base64,…</code>）</td></tr><tr><td><code>source</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>从哪发来的：<code>app</code>、<code>voice</code>（语音对话）、<code>glasses</code>（眼镜）<span class="prule"><code>app</code> / <code>voice</code> / <code>glasses</code>；默认 <code>&quot;app&quot;</code></span></td></tr><tr><td><code>character_id</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>可选：校验对话属于这个角色，不是就返回 409</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID/messages&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;今天过得怎么样？&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
@@ -429,7 +428,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr><tr><td><code>text</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>你说的话<span class="prule">≤ 4000字</span></td></tr><tr><td><code>audio</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>一段录音，data URL（<code>data:audio/wav;base64,…</code>），角色直接听；只有流式接口用</td></tr><tr><td><code>image</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>一张图片，data URL（<code>data:image/jpeg;base64,…</code>）</td></tr><tr><td><code>source</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>从哪发来的：<code>app</code>、<code>voice</code>（语音对话）、<code>glasses</code>（眼镜）<span class="prule"><code>app</code> / <code>voice</code> / <code>glasses</code>；默认 <code>&quot;app&quot;</code></span></td></tr><tr><td><code>character_id</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>可选：校验对话属于这个角色，不是就返回 409</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -N <span class="t-s">&quot;$API/sessions/$SESSION_ID/stream&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;讲个故事吧&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>text/event-stream</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">event: decision</span>
@@ -453,7 +452,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr><tr><td><code>type</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td><code>gesture</code>（手势）、<code>idle</code>（你走开了）、<code>perception</code>（给角色看画面）<span class="prule"><code>idle</code> / <code>gesture</code> / <code>perception</code></span></td></tr><tr><td><code>gesture</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>手势名，比如 <code>wave</code>、<code>pat</code></td></tr><tr><td><code>idle_count</code></td><td>请求体</td><td><code>int</code></td><td><span class="opt">可选</span></td><td>连续第几次空闲<span class="prule">0–100；默认 <code>1</code></span></td></tr><tr><td><code>text</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>附带的一句话（可选）<span class="prule">≤ 400字</span></td></tr><tr><td><code>image</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>一张图片，data URL（<code>data:image/jpeg;base64,…</code>）</td></tr><tr><td><code>character_id</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>可选：校验对话属于这个角色，不是就返回 409</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID/events&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;type&quot;: &quot;gesture&quot;, &quot;gesture&quot;: &quot;wave&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
@@ -479,7 +478,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/sessions/$SESSION_ID/end&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
   <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
@@ -497,7 +496,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/sessions/$SESSION_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
   </div>
 </section></section><section class="egroup" id="g-memory"><h2>记忆</h2><section class="ep" id="ep-get-memories">
@@ -508,7 +507,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>查询</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr><tr><td><code>status</code></td><td>查询</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>active</code>（在用的）、<code>forgotten</code>（忘掉的）<span class="prule">默认 <code>&quot;active&quot;</code></span></td></tr><tr><td><code>type</code></td><td>查询</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>按类型筛选</td></tr><tr><td><code>q</code></td><td>查询</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>搜索内容</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories?character_id=$CHARACTER_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>[
   {
     <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
@@ -538,7 +537,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr><tr><td><code>content</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>记忆内容<span class="prule">1–2000字</span></td></tr><tr><td><code>type</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>fact</code> 事实、<code>preference</code> 偏好、<code>event</code> 事件、<code>commitment</code> 约定<span class="prule"><code>fact</code> / <code>preference</code> / <code>event</code> / <code>commitment</code>；默认 <code>&quot;fact&quot;</code></span></td></tr><tr><td><code>reality</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>real</code> 真实发生的、<code>story</code> 一起编的故事<span class="prule"><code>real</code> / <code>story</code>；默认 <code>&quot;real&quot;</code></span></td></tr><tr><td><code>title</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>短标题，不填就从内容截取</td></tr><tr><td><code>importance</code></td><td>请求体</td><td><code>int</code></td><td><span class="opt">可选</span></td><td>重要程度 1–5<span class="prule">1–5；默认 <code>3</code></span></td></tr><tr><td><code>pinned</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>置顶：每次对话都想得起来<span class="prule">默认 <code>false</code></span></td></tr><tr><td><code>sensitive</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>敏感信息<span class="prule">默认 <code>false</code></span></td></tr><tr><td><code>source_message_id</code></td><td>请求体</td><td><code>int</code></td><td><span class="opt">可选</span></td><td>出自哪条消息（消息的 <code>id</code>）</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&quot;{\&quot;character_id\&quot;: \&quot;$CHARACTER_ID\&quot;, \&quot;content\&quot;: \&quot;我喜欢吃白米饭\&quot;, \&quot;type\&quot;: \&quot;preference\&quot;}&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
@@ -568,7 +567,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>mid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>记忆 id</td></tr><tr><td><code>content</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>记忆内容</td></tr><tr><td><code>title</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>短标题，不填就从内容截取</td></tr><tr><td><code>type</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>fact</code>、<code>preference</code>、<code>event</code>、<code>commitment</code></td></tr><tr><td><code>reality</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>real</code> 真实发生的、<code>story</code> 一起编的故事</td></tr><tr><td><code>importance</code></td><td>请求体</td><td><code>int</code></td><td><span class="opt">可选</span></td><td>重要程度 1–5</td></tr><tr><td><code>pinned</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>置顶：每次对话都想得起来</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X PATCH <span class="t-s">&quot;$API/memories/$MEMORY_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;importance&quot;: 5, &quot;pinned&quot;: true}&#x27;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
@@ -598,7 +597,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>mid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>记忆 id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/memories/$MEMORY_ID/forget&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
   <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
@@ -626,7 +625,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>mid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>记忆 id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/memories/$MEMORY_ID/restore&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
   <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
@@ -654,7 +653,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>mid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>记忆 id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/memories/$MEMORY_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;removed&quot;</span>: {<span class="t-k">&quot;memories&quot;</span>: <span class="t-n">1</span>, <span class="t-k">&quot;messages&quot;</span>: <span class="t-n">0</span>}}</code></pre></div></div>
   </div>
 </section>
@@ -666,7 +665,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>查询</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories/candidates?character_id=$CHARACTER_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>[
   {<span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;…&quot;</span>, <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;明天去跑步&quot;</span>, <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;commitment&quot;</span>, …}
 ]</code></pre></div></div>
@@ -680,7 +679,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cand_id</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>待确认记忆的 id</td></tr><tr><td><code>content</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>改写后的内容（可选）</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories/candidates/$CANDIDATE_ID/accept&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{}&#x27;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
@@ -710,7 +709,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cand_id</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>待确认记忆的 id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/memories/candidates/$CANDIDATE_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
   </div>
 </section>
@@ -722,7 +721,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>job_id</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>任务 id（发消息返回的 <code>memory_job</code>）</td></tr><tr><td><code>wait</code></td><td>查询</td><td><code>number</code></td><td><span class="opt">可选</span></td><td>最多等几秒（最多 15）<span class="prule">默认 <code>0</code></span></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memory-jobs/$JOB_ID?wait=5&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;40a37bb9a38c48a580d9a67e454f49cb&quot;</span>,
   <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;done&quot;</span>,
@@ -739,7 +738,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr><tr><td><code>chats</code></td><td>查询</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>同时导出聊天记录<span class="prule">默认 <code>false</code></span></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/relations/$CHARACTER_ID/export?chats=true&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
   <span class="t-k">&quot;format&quot;</span>: <span class="t-s">&quot;krino-relation/1&quot;</span>,
   <span class="t-k">&quot;character&quot;</span>: {<span class="t-k">&quot;slug&quot;</span>: <span class="t-s">&quot;krino&quot;</span>, <span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>},
@@ -757,7 +756,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr><tr><td><code>data</code></td><td>请求体</td><td><code>object</code></td><td><span class="req">必填</span></td><td>“导出关系”返回的整个对象</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/relations/$CHARACTER_ID/import&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;data&quot;: &quot;…&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;created&quot;</span>: <span class="t-n">12</span>, <span class="t-k">&quot;duplicate&quot;</span>: <span class="t-n">0</span>}</code></pre></div></div>
@@ -770,7 +769,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>text</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>要读的文字<span class="prule">1–600字</span></td></tr><tr><td><code>voice</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>声音 id，可选值见 <code>GET /voice/config</code>；不填用默认</td></tr><tr><td><code>rate</code></td><td>请求体</td><td><code>number</code></td><td><span class="opt">可选</span></td><td>语速 0.5–2.0<span class="prule">0.5–2；默认 <code>1.0</code></span></td></tr><tr><td><code>style</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>声音描述（一句话生成的角色才有）</td></tr><tr><td><code>stream</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>边合成边返回 16-bit PCM（24 kHz 单声道），第一段声音零点几秒就到<span class="prule">默认 <code>false</code></span></td></tr><tr><td><code>opus_stream</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>流式时也压成 Ogg Opus（浏览器用 WebCodecs 边收边解）<span class="prule">默认 <code>false</code></span></td></tr><tr><td><code>opus_file</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>整句返回 Ogg Opus 而不是 WAV，小很多<span class="prule">默认 <code>false</code></span></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/tts&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;晚安&quot;, &quot;opus_file&quot;: true}&#x27;</span> \
   -o speech.ogg</code></pre></div></div>
@@ -786,7 +785,7 @@ Content-Type: audio/ogg   <span class="t-c"># opus_file=false 时是 audio/wav</
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>file</code></td><td>表单</td><td><code>string</code></td><td><span class="req">必填</span></td><td>录音文件：webm、ogg、mp4、wav 等</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/stt&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -F file=@speech.webm</code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;今天过得怎么样&quot;</span>}</code></pre></div></div>
   </div>
@@ -799,7 +798,7 @@ Content-Type: audio/ogg   <span class="t-c"># opus_file=false 时是 audio/wav</
   <p class="none">无参数。</p>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/config&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
   <span class="t-k">&quot;stt&quot;</span>: {<span class="t-k">&quot;provider&quot;</span>: <span class="t-s">&quot;dashscope&quot;</span>, <span class="t-k">&quot;server&quot;</span>: <span class="t-b">true</span>},
   <span class="t-k">&quot;tts&quot;</span>: {<span class="t-k">&quot;provider&quot;</span>: <span class="t-s">&quot;qwen&quot;</span>, <span class="t-k">&quot;server&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;voices&quot;</span>: […], <span class="t-k">&quot;default&quot;</span>: <span class="t-s">&quot;…&quot;</span>},
@@ -816,7 +815,7 @@ Content-Type: audio/ogg   <span class="t-c"># opus_file=false 时是 audio/wav</
   <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>image</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>图片，data URL<span class="prule">≤ 8000000字</span></td></tr><tr><td><code>question</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>想问的问题（可选）<span class="prule">≤ 200字</span></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/vision/describe&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;image&quot;: &quot;data:image/jpeg;base64,…&quot;, &quot;question&quot;: &quot;这是什么？&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;一只蓝色的像素小鲸鱼。&quot;</span>}</code></pre></div></div>
@@ -840,7 +839,7 @@ Content-Type: audio/ogg   <span class="t-c"># opus_file=false 时是 audio/wav</
   <p class="none">无参数。</p>
   <div class="ep-ex">
     <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/credits&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;limit&quot;</span>: <span class="t-n">100.0</span>, <span class="t-k">&quot;spent&quot;</span>: <span class="t-n">12.5</span>, <span class="t-k">&quot;per_cny&quot;</span>: <span class="t-n">10.0</span>, <span class="t-k">&quot;image&quot;</span>: <span class="t-n">2.5</span>}</code></pre></div></div>
   </div>
 </section></section>
@@ -851,7 +850,7 @@ Content-Type: audio/ogg   <span class="t-c"># opus_file=false 时是 audio/wav</
       <footer class="foot site-foot">
         <div><h4>KRINO MATRIX</h4><p class="legal">© 2026 杭州决策矩阵科技有限公司<br><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">浙ICP备2026093639号</a><br><a href="mailto:support@krinomatrix.com">support@krinomatrix.com</a></p></div>
         <div><h4>产品</h4><a href="/cn/products/world/">KRINO WORLD</a></div>
-        <div><h4>公司</h4><a href="../../apocalypse/">启示与应验</a><a href="../../vision/#tree">战略</a><a href="../../about/">关于</a><a href="../../developers/">开发者</a><a href="../../contact/">联系</a></div>
+        <div><h4>公司</h4><a href="../../vision/#tree">战略</a><a href="../../about/">关于</a><a href="../../developers/">开发者</a><a href="../../contact/">联系</a></div>
         <div><h4>法律</h4><a href="../../privacy/">隐私政策</a><a href="../../terms/">服务条款</a><a href="../../cookies/">Cookie 政策</a></div>
         <p class="region-line">地区: <b>中国大陆</b> · <a class="region-to" href="../../../global/developers/api/" data-region="global" hreflang="en" lang="en"><span class="hide-sm">International · </span>EN</a></p>
       </footer>

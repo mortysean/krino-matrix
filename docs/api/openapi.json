@@ -288,6 +288,165 @@
     }
    }
   },
+  "/api/keys": {
+   "get": {
+    "tags": [
+     "users"
+    ],
+    "summary": "List Keys",
+    "operationId": "list_keys_api_keys_get",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "users"
+    ],
+    "summary": "Create Key",
+    "description": "新建一把密钥。原文只在这次返回里出现，服务器只存哈希，丢了就删掉重建。",
+    "operationId": "create_key_api_keys_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ApiKeyIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/keys/{key_id}": {
+   "delete": {
+    "tags": [
+     "users"
+    ],
+    "summary": "Delete Key",
+    "operationId": "delete_key_api_keys__key_id__delete",
+    "parameters": [
+     {
+      "name": "key_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Key Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/persona-schema": {
    "get": {
     "tags": [
@@ -4250,6 +4409,64 @@
     }
    }
   },
+  "/api/workbench/motion": {
+   "post": {
+    "tags": [
+     "workbench"
+    ],
+    "summary": "Make Motion",
+    "description": "给自己创建的角色补做动图（用她现在的立绘）。后台做，10 分钟左右；做的时候照常能聊，做好了自动换上。",
+    "operationId": "make_motion_api_workbench_motion_post",
+    "parameters": [
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MotionIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/credits": {
    "get": {
     "tags": [
@@ -5601,6 +5818,18 @@
     "type": "object",
     "title": "AcceptIn"
    },
+   "ApiKeyIn": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 40,
+      "title": "Name",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "title": "ApiKeyIn"
+   },
    "Body_import_character_api_characters_import_post": {
     "properties": {
      "file": {
@@ -6173,6 +6402,20 @@
      "status"
     ],
     "title": "ModerateIn"
+   },
+   "MotionIn": {
+    "properties": {
+     "character_id": {
+      "type": "string",
+      "maxLength": 32,
+      "title": "Character Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "character_id"
+    ],
+    "title": "MotionIn"
    },
    "PostIn": {
     "properties": {
@@ -6828,6 +7071,11 @@
      "wait": {
       "type": "boolean",
       "title": "Wait",
+      "default": false
+     },
+     "motion": {
+      "type": "boolean",
+      "title": "Motion",
       "default": false
      }
     },

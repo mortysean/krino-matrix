@@ -120,12 +120,12 @@
 </section>
 <section id="auth">
   <h2>Authentication</h2>
-  <p>Register or log in for a token, then send <code>Authorization: Bearer &lt;token&gt;</code> on every request. Tokens expire after a while; when one does you get <code>401</code> and log in again.</p>
+  <p>Sign in to the app and create a key under <b>Settings → API keys</b> (it starts with <code>km_</code> and is shown only once), then send <code>Authorization: Bearer &lt;key&gt;</code> on every request. A key works until you delete it; if one leaks, delete it in Settings and it stops working at once.</p>
+  <p>A key can do everything the app does except manage keys and delete the account (those get <code>403</code> and need a signed-in browser). You can also <a href='#ep-post-auth-login'>log in with a password</a> for a login token instead; it expires after a week.</p>
   <div class="code"><div class="code-h"><span>Shell</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>API=https://krinomatrix.com/global/products/world/api
-TOKEN=$(<span class="t-k">curl</span> -s $API/auth/login -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
-  -d <span class="t-s">&#x27;{&quot;username&quot;: &quot;me&quot;, &quot;password&quot;: &quot;your-password&quot;}&#x27;</span> | <span class="t-k">jq</span> -r .token)
+export KRINO_API_KEY=km_...   <span class="t-c"># create one under Settings → API keys</span>
 
-<span class="t-k">curl</span> -s $API/characters -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div>
+<span class="t-k">curl</span> -s $API/characters -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div>
 </section>
 <section id="streaming">
   <h2>Streaming</h2>
@@ -147,7 +147,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
 <section id="errors">
   <h2>Errors</h2>
   <p>Errors come back as <code>{&quot;detail&quot;: &quot;…&quot;}</code>, written for people, in the site's language.</p>
-  <div class="table-wrap"><table class=""><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody><tr><td><code>400</code></td><td>The request is incomplete, for example an empty message</td></tr><tr><td><code>401</code></td><td>Missing or expired token; log in again</td></tr><tr><td><code>404</code></td><td>It doesn't exist, or it isn't yours</td></tr><tr><td><code>409</code></td><td>The session belongs to a different character than the one you named</td></tr><tr><td><code>413 / 415</code></td><td>The upload is too large / in a format we don't take</td></tr><tr><td><code>422</code></td><td>The body doesn't match the schema; <code>detail</code> says which field</td></tr><tr><td><code>429</code></td><td>Today's credits are used up; they reset tomorrow</td></tr><tr><td><code>502 / 503</code></td><td>An upstream model or voice service failed; retrying usually works</td></tr></tbody></table></div>
+  <div class="table-wrap"><table class=""><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody><tr><td><code>400</code></td><td>The request is incomplete, for example an empty message</td></tr><tr><td><code>401</code></td><td>Missing or deleted API key, or an expired login token</td></tr><tr><td><code>403</code></td><td>An API key can't do this (managing keys and deleting the account need a signed-in browser)</td></tr><tr><td><code>404</code></td><td>It doesn't exist, or it isn't yours</td></tr><tr><td><code>409</code></td><td>The session belongs to a different character than the one you named</td></tr><tr><td><code>413 / 415</code></td><td>The upload is too large / in a format we don't take</td></tr><tr><td><code>422</code></td><td>The body doesn't match the schema; <code>detail</code> says which field</td></tr><tr><td><code>429</code></td><td>Today's credits are used up; they reset tomorrow</td></tr><tr><td><code>502 / 503</code></td><td>An upstream model or voice service failed; retrying usually works</td></tr></tbody></table></div>
 </section>
 <section class="egroup" id="g-account"><h2>Account</h2><section class="ep" id="ep-post-auth-register">
   <h3>Register</h3>
@@ -173,7 +173,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
 <section class="ep" id="ep-post-auth-login">
   <h3>Log in</h3>
   <p class="ep-line"><span class="m m-post">POST</span><code>/auth/login</code><span class="lock open">Public</span></p>
-  <p>Trade a username and password for a token. Send it as <code>Authorization: Bearer &lt;token&gt;</code> on every other request.</p>
+  <p>Trade a username and password for a login token (expires after a week), used like an API key. For programs, an <a href="#auth">API key</a> is simpler.</p>
   <h4>Parameters</h4>
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>username</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Username</td></tr><tr><td><code>password</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Password<span class="prule">6–128 chars</span></td></tr></tbody></table></div>
   <div class="ep-ex">
@@ -199,7 +199,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <p class="none">No parameters.</p>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/auth/logout&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
   </div>
 </section>
@@ -211,7 +211,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <p class="none">No parameters.</p>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/me&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;58acfe8dca7b4a02ab9cbea54767adb8&quot;</span>,
   <span class="t-k">&quot;username&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
@@ -236,7 +236,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>display_name</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>The name shown to characters; defaults to the username</td></tr><tr><td><code>save_sensitive</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Let characters remember sensitive things (health, money…)</td></tr><tr><td><code>privacy</code></td><td>body</td><td><code>object</code></td><td><span class="opt">optional</span></td><td>Privacy: <code>camera</code>, <code>microphone</code></td></tr><tr><td><code>voice</code></td><td>body</td><td><code>object</code></td><td><span class="opt">optional</span></td><td>Voice: <code>stt</code>, <code>tts</code>, <code>autoplay</code>, <code>voice</code></td></tr><tr><td><code>interaction</code></td><td>body</td><td><code>object</code></td><td><span class="opt">optional</span></td><td>Interaction: <code>proactive</code> (characters start talking), <code>idle_seconds</code>, <code>stories</code>, <code>web</code> and more</td></tr><tr><td><code>evaluator</code></td><td>body</td><td><code>object</code></td><td><span class="opt">optional</span></td><td>Interaction policy: <code>mode</code></td></tr><tr><td><code>social</code></td><td>body</td><td><code>object</code></td><td><span class="opt">optional</span></td><td>Social circle: <code>autonomy</code>, <code>share_life</code></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X PATCH <span class="t-s">&quot;$API/me&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;display_name&quot;: &quot;Mika&quot;, &quot;voice&quot;: {&quot;autoplay&quot;: false}}&#x27;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
@@ -263,7 +263,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>password</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Your current password, to confirm it's you</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/me&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;password&quot;: &quot;your-password&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
@@ -276,7 +276,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <p class="none">No parameters.</p>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>[
   {
     <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
@@ -301,7 +301,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters/$CHARACTER_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
   <span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>,
@@ -321,7 +321,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr><tr><td><code>format</code></td><td>query</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>json</code> for the package, <code>md</code> for readable Markdown<span class="prule">default <code>&quot;json&quot;</code></span></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters/$CHARACTER_ID/export&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
   <span class="t-k">&quot;format&quot;</span>: <span class="t-s">&quot;krino-persona/1&quot;</span>,
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;krino&quot;</span>,
@@ -339,7 +339,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&quot;{\&quot;character_id\&quot;: \&quot;$CHARACTER_ID\&quot;}&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
@@ -361,7 +361,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>query</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions?character_id=$CHARACTER_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>[
   {
     <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
@@ -382,7 +382,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
   <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
@@ -403,7 +403,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr><tr><td><code>text</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>What you say<span class="prule">≤ 4000 chars</span></td></tr><tr><td><code>audio</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A recording as a data URL (<code>data:audio/wav;base64,…</code>) that the character hears directly; streaming only</td></tr><tr><td><code>image</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>An image as a data URL (<code>data:image/jpeg;base64,…</code>)</td></tr><tr><td><code>source</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Where it came from: <code>app</code>, <code>voice</code> (voice chat), <code>glasses</code><span class="prule"><code>app</code> / <code>voice</code> / <code>glasses</code>; default <code>&quot;app&quot;</code></span></td></tr><tr><td><code>character_id</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Optional: check the session belongs to this character, 409 if not</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID/messages&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;How was your day?&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
@@ -429,7 +429,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr><tr><td><code>text</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>What you say<span class="prule">≤ 4000 chars</span></td></tr><tr><td><code>audio</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A recording as a data URL (<code>data:audio/wav;base64,…</code>) that the character hears directly; streaming only</td></tr><tr><td><code>image</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>An image as a data URL (<code>data:image/jpeg;base64,…</code>)</td></tr><tr><td><code>source</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Where it came from: <code>app</code>, <code>voice</code> (voice chat), <code>glasses</code><span class="prule"><code>app</code> / <code>voice</code> / <code>glasses</code>; default <code>&quot;app&quot;</code></span></td></tr><tr><td><code>character_id</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Optional: check the session belongs to this character, 409 if not</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -N <span class="t-s">&quot;$API/sessions/$SESSION_ID/stream&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;Tell me a story&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>text/event-stream</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">event: decision</span>
@@ -453,7 +453,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr><tr><td><code>type</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td><code>gesture</code>, <code>idle</code> (you've been away) or <code>perception</code> (show the character an image)<span class="prule"><code>idle</code> / <code>gesture</code> / <code>perception</code></span></td></tr><tr><td><code>gesture</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>The gesture, such as <code>wave</code> or <code>pat</code></td></tr><tr><td><code>idle_count</code></td><td>body</td><td><code>int</code></td><td><span class="opt">optional</span></td><td>How many idle events in a row<span class="prule">0–100; default <code>1</code></span></td></tr><tr><td><code>text</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>An optional line to go with it<span class="prule">≤ 400 chars</span></td></tr><tr><td><code>image</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>An image as a data URL (<code>data:image/jpeg;base64,…</code>)</td></tr><tr><td><code>character_id</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Optional: check the session belongs to this character, 409 if not</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID/events&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;type&quot;: &quot;gesture&quot;, &quot;gesture&quot;: &quot;wave&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
@@ -479,7 +479,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/sessions/$SESSION_ID/end&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
   <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
@@ -497,7 +497,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/sessions/$SESSION_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
   </div>
 </section></section><section class="egroup" id="g-memory"><h2>Memory</h2><section class="ep" id="ep-get-memories">
@@ -508,7 +508,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>query</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr><tr><td><code>status</code></td><td>query</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>active</code> or <code>forgotten</code><span class="prule">default <code>&quot;active&quot;</code></span></td></tr><tr><td><code>type</code></td><td>query</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Filter by type</td></tr><tr><td><code>q</code></td><td>query</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Search text</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories?character_id=$CHARACTER_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>[
   {
     <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
@@ -538,7 +538,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr><tr><td><code>content</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>What to remember<span class="prule">1–2000 chars</span></td></tr><tr><td><code>type</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>fact</code>, <code>preference</code>, <code>event</code> or <code>commitment</code><span class="prule"><code>fact</code> / <code>preference</code> / <code>event</code> / <code>commitment</code>; default <code>&quot;fact&quot;</code></span></td></tr><tr><td><code>reality</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>real</code> (it happened) or <code>story</code> (shared fiction)<span class="prule"><code>real</code> / <code>story</code>; default <code>&quot;real&quot;</code></span></td></tr><tr><td><code>title</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A short title; taken from the content if omitted</td></tr><tr><td><code>importance</code></td><td>body</td><td><code>int</code></td><td><span class="opt">optional</span></td><td>Importance, 1–5<span class="prule">1–5; default <code>3</code></span></td></tr><tr><td><code>pinned</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Pinned: always recalled<span class="prule">default <code>false</code></span></td></tr><tr><td><code>sensitive</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Sensitive<span class="prule">default <code>false</code></span></td></tr><tr><td><code>source_message_id</code></td><td>body</td><td><code>int</code></td><td><span class="opt">optional</span></td><td>The message it came from (its <code>id</code>)</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&quot;{\&quot;character_id\&quot;: \&quot;$CHARACTER_ID\&quot;, \&quot;content\&quot;: \&quot;I like plain rice\&quot;, \&quot;type\&quot;: \&quot;preference\&quot;}&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
@@ -568,7 +568,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>mid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Memory id</td></tr><tr><td><code>content</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>What to remember</td></tr><tr><td><code>title</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A short title; taken from the content if omitted</td></tr><tr><td><code>type</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>fact</code>, <code>preference</code>, <code>event</code> or <code>commitment</code></td></tr><tr><td><code>reality</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>real</code> (it happened) or <code>story</code> (shared fiction)</td></tr><tr><td><code>importance</code></td><td>body</td><td><code>int</code></td><td><span class="opt">optional</span></td><td>Importance, 1–5</td></tr><tr><td><code>pinned</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Pinned: always recalled</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X PATCH <span class="t-s">&quot;$API/memories/$MEMORY_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;importance&quot;: 5, &quot;pinned&quot;: true}&#x27;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
@@ -598,7 +598,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>mid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Memory id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/memories/$MEMORY_ID/forget&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
   <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
@@ -626,7 +626,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>mid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Memory id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/memories/$MEMORY_ID/restore&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
   <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
@@ -654,7 +654,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>mid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Memory id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/memories/$MEMORY_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;removed&quot;</span>: {<span class="t-k">&quot;memories&quot;</span>: <span class="t-n">1</span>, <span class="t-k">&quot;messages&quot;</span>: <span class="t-n">0</span>}}</code></pre></div></div>
   </div>
 </section>
@@ -666,7 +666,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>query</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories/candidates?character_id=$CHARACTER_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>[
   {<span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;…&quot;</span>, <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;Going for a run tomorrow&quot;</span>, <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;commitment&quot;</span>, …}
 ]</code></pre></div></div>
@@ -680,7 +680,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cand_id</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Proposal id</td></tr><tr><td><code>content</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Reworded content (optional)</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories/candidates/$CANDIDATE_ID/accept&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{}&#x27;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
@@ -710,7 +710,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cand_id</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Proposal id</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/memories/candidates/$CANDIDATE_ID&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
   </div>
 </section>
@@ -722,7 +722,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>job_id</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Job id (<code>memory_job</code> from a turn)</td></tr><tr><td><code>wait</code></td><td>query</td><td><code>number</code></td><td><span class="opt">optional</span></td><td>Seconds to wait for it to finish, up to 15<span class="prule">default <code>0</code></span></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memory-jobs/$JOB_ID?wait=5&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
   <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;40a37bb9a38c48a580d9a67e454f49cb&quot;</span>,
   <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;done&quot;</span>,
@@ -739,7 +739,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr><tr><td><code>chats</code></td><td>query</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Include chats<span class="prule">default <code>false</code></span></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/relations/$CHARACTER_ID/export?chats=true&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
   <span class="t-k">&quot;format&quot;</span>: <span class="t-s">&quot;krino-relation/1&quot;</span>,
   <span class="t-k">&quot;character&quot;</span>: {<span class="t-k">&quot;slug&quot;</span>: <span class="t-s">&quot;krino&quot;</span>, <span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>},
@@ -757,7 +757,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr><tr><td><code>data</code></td><td>body</td><td><code>object</code></td><td><span class="req">required</span></td><td>The whole object from “Export relationship”</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/relations/$CHARACTER_ID/import&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;data&quot;: &quot;…&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;created&quot;</span>: <span class="t-n">12</span>, <span class="t-k">&quot;duplicate&quot;</span>: <span class="t-n">0</span>}</code></pre></div></div>
@@ -770,7 +770,7 @@ data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: [
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>text</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>The text to speak<span class="prule">1–600 chars</span></td></tr><tr><td><code>voice</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A voice id from <code>GET /voice/config</code>; the default if omitted</td></tr><tr><td><code>rate</code></td><td>body</td><td><code>number</code></td><td><span class="opt">optional</span></td><td>Speed, 0.5–2.0<span class="prule">0.5–2; default <code>1.0</code></span></td></tr><tr><td><code>style</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A voice description (characters designed from a sentence)</td></tr><tr><td><code>stream</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Stream 16-bit PCM (24 kHz mono) as it's synthesized; the first audio arrives in a fraction of a second<span class="prule">default <code>false</code></span></td></tr><tr><td><code>opus_stream</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>With stream, send Ogg Opus instead of PCM (decode with WebCodecs)<span class="prule">default <code>false</code></span></td></tr><tr><td><code>opus_file</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Return Ogg Opus instead of WAV for the whole clip; much smaller<span class="prule">default <code>false</code></span></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/tts&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;Good night&quot;, &quot;opus_file&quot;: true}&#x27;</span> \
   -o speech.ogg</code></pre></div></div>
@@ -786,7 +786,7 @@ Content-Type: audio/ogg   <span class="t-c"># audio/wav when opus_file is false<
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>file</code></td><td>form</td><td><code>string</code></td><td><span class="req">required</span></td><td>The recording: webm, ogg, mp4, wav…</td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/stt&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -F file=@speech.webm</code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;How was your day&quot;</span>}</code></pre></div></div>
   </div>
@@ -799,7 +799,7 @@ Content-Type: audio/ogg   <span class="t-c"># audio/wav when opus_file is false<
   <p class="none">No parameters.</p>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/config&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
   <span class="t-k">&quot;stt&quot;</span>: {<span class="t-k">&quot;provider&quot;</span>: <span class="t-s">&quot;dashscope&quot;</span>, <span class="t-k">&quot;server&quot;</span>: <span class="t-b">true</span>},
   <span class="t-k">&quot;tts&quot;</span>: {<span class="t-k">&quot;provider&quot;</span>: <span class="t-s">&quot;qwen&quot;</span>, <span class="t-k">&quot;server&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;voices&quot;</span>: […], <span class="t-k">&quot;default&quot;</span>: <span class="t-s">&quot;…&quot;</span>},
@@ -816,7 +816,7 @@ Content-Type: audio/ogg   <span class="t-c"># audio/wav when opus_file is false<
   <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>image</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>The image as a data URL<span class="prule">≤ 8000000 chars</span></td></tr><tr><td><code>question</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A question about it (optional)<span class="prule">≤ 200 chars</span></td></tr></tbody></table></div>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/vision/describe&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span> \
   -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
   -d <span class="t-s">&#x27;{&quot;image&quot;: &quot;data:image/jpeg;base64,…&quot;, &quot;question&quot;: &quot;What is this?&quot;}&#x27;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;A small blue pixel-art whale.&quot;</span>}</code></pre></div></div>
@@ -840,7 +840,7 @@ Content-Type: audio/ogg   <span class="t-c"># audio/wav when opus_file is false<
   <p class="none">No parameters.</p>
   <div class="ep-ex">
     <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/credits&quot;</span> \
-  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+  -H <span class="t-s">&quot;Authorization: Bearer $KRINO_API_KEY&quot;</span></code></pre></div></div>
     <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;limit&quot;</span>: <span class="t-n">100.0</span>, <span class="t-k">&quot;spent&quot;</span>: <span class="t-n">12.5</span>, <span class="t-k">&quot;per_cny&quot;</span>: <span class="t-n">10.0</span>, <span class="t-k">&quot;image&quot;</span>: <span class="t-n">2.5</span>}</code></pre></div></div>
   </div>
 </section></section>

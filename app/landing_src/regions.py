@@ -24,6 +24,8 @@ REGIONS = {
         "label": "中国大陆",
         "switch": "中国大陆 · 中文",  # 别的地区页面上“切到这里”的链接文字
         "company": "杭州决策矩阵科技有限公司",
+        # 暂时下线的栏目：不生成页面、不进导航和站点地图；旧地址跳回本地区首页。上线时从这里删掉即可
+        "hidden": ("apocalypse/", "manifesto/"),
         "brand_sub": "决策矩阵",
         "icp": "浙ICP备2026093639号",
         "contact": CONTACT,
