@@ -464,16 +464,28 @@ def _set_origin(cid: str, **kw) -> None:
             db.commit()
 
 
-def _make_motion(cid: str, user_id: str, image_src: str, key: str) -> dict | None:
-    """做动图（app/motion.py），进度写在 origin[key]；做成了按实际片段数扣钱。失败返回 None（角色照样用立绘）。"""
+MOTION_TRIES = 3  # 同一个动图任务最多因为服务重启接着做几次，再断就放弃（免得一直重启、一直重做）
+
+
+def _make_motion(cid: str, user_id: str, image_src: str, key: str, resume: dict | None = None) -> dict | None:
+    """做动图（app/motion.py），进度写在 origin[key]：{done, total, started, at, dir, image, tries}；做成了按实际片段数扣钱。
+    失败返回 None（角色照样用立绘）。dir 是工作目录：服务重启打断了，resume_jobs() 拿它接着做，已经下好的片段不重做。"""
     from . import motion
 
     total = len(motion.clip_names())
-    started = int(time.time())  # 开始的时间只记一次：页面刷新后“已用时间”接着算，不从 0 开始
-    _set_origin(cid, **{key: {"done": 0, "total": total, "started": started}})
+    resume = resume or {}
+    started = int(resume.get("started") or time.time())  # 开始的时间只记一次：页面刷新、接着做，“已用时间”都接着算
+    work = settings.media_dir / "u" / user_id / resume["dir"] if resume.get("dir") else motion.new_work(user_id)
+    job = {"done": int(resume.get("done", 0)), "total": total, "started": started, "dir": work.name, "image": image_src,
+           "tries": int(resume.get("tries", 0)) + (1 if resume else 0)}
+
+    def save(d: int, t: int) -> None:
+        job.update(done=d, total=t, at=int(time.time()))  # at：最近一次有进展的时间，用来判断任务还活着没有
+        _set_origin(cid, **{key: dict(job)})
+
+    save(job["done"], total)
     try:
-        out = motion.make(user_id, settings.media_dir / image_src[len("/media/"):],
-                          progress=lambda d, t: _set_origin(cid, **{key: {"done": d, "total": t, "started": started}}))
+        out = motion.make(user_id, settings.media_dir / image_src[len("/media/"):], progress=save, work=work)
     except Exception as e:  # noqa: BLE001
         log.warning("角色 %s 的动图没做出来：%s", cid, e)
         events.error("motion", f"{type(e).__name__}: {e}")
@@ -542,6 +554,14 @@ def _finish_character(cid: str, user_id: str, look_prompt: str, voice: dict, gre
                     except Exception:  # noqa: BLE001
                         log.exception("新角色 %s 的声音没设计出来", cid)
                     mark("voice")
+        if motion and image:  # 动图要做十来分钟：先把立绘和声音存好，中途被重启打断了，接着做的时候也不会丢
+            with SessionLocal() as sdb:
+                x = sdb.get(Character, cid)
+                if x is not None:
+                    x.behavior = {**(x.behavior or {}), "portrait": {"kind": "image", "src": image},
+                                  "looks": [{"kind": "image", "src": image}],
+                                  "voice": {**((x.behavior or {}).get("voice") or {}), **new_voice}}
+                    sdb.commit()
         chibi = _make_motion(cid, user_id, image, "motion") if motion and image else None
         db.expire_all()  # 进度用别的会话改过 origin
         c = db.get(Character, cid)
@@ -639,6 +659,81 @@ class MotionIn(BaseModel):
     character_id: str = Field(max_length=32)
 
 
+def _apply_motion(cid: str, chibi: dict | None) -> None:
+    """已有角色补做的动图做完了：换上（做成了的话），去掉“正在做”。"""
+    from .db import SessionLocal
+    from .models import Character
+
+    with SessionLocal() as db2:
+        x = db2.get(Character, cid)
+        if x is not None:
+            if chibi:
+                x.behavior = _with_motion(dict(x.behavior or {}), chibi)
+                x.version += 1
+            x.origin = {k: v for k, v in (x.origin or {}).items() if k != "motion_job"}
+            db2.commit()
+
+
+def _finish_new_with_motion(cid: str, chibi: dict | None) -> None:
+    """新建角色时勾了动图、做动图那一步被重启打断又接着做完：换上动图（做成了的话），去掉“正在创建”。"""
+    from .db import SessionLocal
+    from .models import Character
+
+    with SessionLocal() as db2:
+        x = db2.get(Character, cid)
+        if x is not None:
+            if chibi:
+                x.behavior = _with_motion(dict(x.behavior or {}), chibi)
+            x.origin = {k: v for k, v in (x.origin or {}).items() if k not in ("pending", "done", "motion")}
+            db2.commit()
+
+
+def _legacy_dir(user_id: str, job: dict) -> dict:
+    """这次改动之前开始的任务没记工作目录：找这个用户下还没做完（有 _raw/base.png、没有 chibi.json）的最新那个。"""
+    root = settings.media_dir / "u" / user_id
+    dirs = sorted((d for d in root.glob("m*") if (d / "_raw" / "base.png").is_file() and not (d / "chibi.json").is_file()),
+                  key=lambda d: d.stat().st_mtime, reverse=True) if root.is_dir() else []
+    return {**job, "dir": dirs[0].name} if dirs else job
+
+
+def resume_jobs() -> None:
+    """服务启动时：把被重启打断的动图任务接着做完（后台线程，已经下好的片段不重做）。部署、重启都会打断后台任务。"""
+    import threading
+
+    from sqlalchemy import select as _select
+
+    from .db import SessionLocal
+    from .models import Character
+
+    if settings.image_provider == "mock" or not settings.dashscope_api_key:
+        return
+    with SessionLocal() as db:
+        rows = db.scalars(_select(Character).where(Character.origin.has_key("motion_job") | Character.origin.has_key("motion"))).all()
+        todo = []
+        for c in rows:
+            o = c.origin or {}
+            for key in ("motion_job", "motion"):
+                job = o.get(key)
+                if not isinstance(job, dict):
+                    continue
+                img = job.get("image") or ((c.behavior or {}).get("portrait") or {}).get("src", "")
+                if not str(img).startswith("/media/") or int(job.get("tries", 0)) >= MOTION_TRIES:
+                    log.warning("角色 %s 的动图任务接不上了（%s），放弃", c.id, "试过太多次" if img else "没有立绘")
+                    _set_origin(c.id, **{key: None, "motion_error": "做到一半被打断，没能接着做完"})
+                    if key == "motion":
+                        _set_origin(c.id, pending=None, done=None)
+                    continue
+                todo.append((c.id, c.owner_id, img, key, _legacy_dir(c.owner_id, job) if not job.get("dir") else job))
+
+    def run(cid, uid, img, key, job):
+        log.info("接着做角色 %s 的动图（%s，已有 %s 段）", cid, job.get("dir"), job.get("done"))
+        chibi = _make_motion(cid, uid, img, key, resume=job)
+        (_apply_motion if key == "motion_job" else _finish_new_with_motion)(cid, chibi)
+
+    for args in todo:
+        threading.Thread(target=run, args=args, name=f"motion-resume-{args[0][:8]}", daemon=True).start()
+
+
 @router.post("/motion")
 def make_motion(body: MotionIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     """给自己创建的角色补做动图（用她现在的立绘）。后台做，10 分钟左右；做的时候照常能聊，做好了自动换上。"""
@@ -653,25 +748,14 @@ def make_motion(body: MotionIn, user: User = Depends(current_user), db: Session 
     img = p if p.get("kind") == "image" else next((x for x in (c.behavior or {}).get("looks") or [] if x.get("kind") == "image"), None)
     if not img or not str(img.get("src", "")).startswith("/media/"):
         raise HTTPException(400, "先给她画一张立绘（或上传一张），再做动图")
-    if (c.origin or {}).get("motion_job"):
+    if personas._motion_job(c):  # 正在做（最近半小时有进展）；卡死很久的不挡，让人重新做
         raise HTTPException(409, "动图已经在做了")
     _check_motion(db, user)
     _set_origin(c.id, motion_job={"done": 0, "total": 0, "started": int(time.time())})
 
     def run():
-        from .db import SessionLocal
-        from .models import Character
-
         chibi = _make_motion(c.id, user.id, img["src"], "motion_job") if settings.image_provider != "mock" else None
-        with SessionLocal() as db2:
-            x = db2.get(Character, c.id)
-            if x is not None:
-                if chibi:
-                    x.behavior = _with_motion(dict(x.behavior or {}), chibi)
-                    x.version += 1
-                o = {k: v for k, v in (x.origin or {}).items() if k != "motion_job"}
-                x.origin = o
-                db2.commit()
+        _apply_motion(c.id, chibi)
 
     threading.Thread(target=run, name=f"motion-{c.id[:8]}", daemon=True).start()
     return {"ok": True, "cost": credits.points(motion.cost_cny())}

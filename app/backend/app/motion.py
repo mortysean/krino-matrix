@@ -6,6 +6,8 @@
   4. 写 chibi.json（动作清单：聊天里的动作、表情各对应哪几段），和官方角色的格式一样，前端 chibi.js 直接播
 
 文件放在 data/media/u/<用户>/<随机名>/，地址 /media/u/<用户>/<随机名>/chibi.json。
+做的时候中间文件（基础姿势、下载好的 mp4）放在同一目录的 _raw/ 里：服务重启（比如部署）打断了，重启后 workbench.resume_jobs()
+用同一个目录接着做，已经下好的片段不再重做（也不再花钱）。
 花的钱：一张图（IMAGE_PRICE_CNY）+ 每段视频 MOTION_CLIP_PRICE_CNY（wan2.2-kf2v-flash 720P 5 秒约 1 元），
 默认 8 段约 8 元。大约 10 分钟（视频三段一组同时做，一组 3~4 分钟）。只用百炼（视频没有自建）。
 """
@@ -143,7 +145,9 @@ def clip(base_uri: str, action: str, out: Path) -> None:
                 break
         if d.get("task_status") != "SUCCEEDED":
             raise MotionError(f"动作视频没做出来：{d.get('message') or d.get('task_status')}")
-        out.write_bytes(c.get(d["video_url"]).content)
+        part = out.with_suffix(".part")  # 先写临时文件再改名：下载到一半被打断，不会留下半个视频被当成做好了
+        part.write_bytes(c.get(d["video_url"]).content)
+        part.replace(out)
 
 
 # ---------- 绿幕 → 透明 WebM ----------
@@ -233,21 +237,35 @@ def _encode(frames, box, out: Path):
 
 # ---------- 一整套 ----------
 
-def make(user_id: str, portrait_path: Path, progress=None) -> dict:
+def new_work(user_id: str) -> Path:
+    """新的工作目录（还没建）。目录名记在角色上，被打断后用它接着做。"""
+    return settings.media_dir / "u" / user_id / ("m" + secrets.token_hex(8))
+
+
+def make(user_id: str, portrait_path: Path, progress=None, work: Path | None = None) -> dict:
     """做一整套动图，返回形象 {kind: chibi, src, still} 和实际做成的片段数。progress(done, total) 每做完一段报一次。
-    片段做失败几段没关系（少几个动作）；待机（idle）没做出来就算整套失败。"""
+    片段做失败几段没关系（少几个动作）；待机（idle）没做出来就算整套失败。
+    work 已经有东西（上次被打断）：基础姿势和下好的片段直接用，只做剩下的。"""
     from PIL import Image
 
     names = clip_names()
-    work = settings.media_dir / "u" / user_id / ("m" + secrets.token_hex(8))
+    work = work or new_work(user_id)
     work.mkdir(parents=True, exist_ok=True)
     tmp = work / "_raw"
-    tmp.mkdir()
+    tmp.mkdir(exist_ok=True)
     try:
-        base = base_pose(Image.open(portrait_path))
-        base.save(tmp / "base.png")
+        if (tmp / "base.png").is_file():
+            base = Image.open(tmp / "base.png").convert("RGB")
+        else:
+            base = base_pose(Image.open(portrait_path))
+            base.save(tmp / "base.png")
         base_uri = _data_uri(base)
-        done, made = [0], {}
+        made = {n: tmp / f"{n}.mp4" for n in names if (tmp / f"{n}.mp4").is_file() and (tmp / f"{n}.mp4").stat().st_size > 0}
+        done, total = [len(made)], len(names)
+        if made:
+            log.info("动图接着做：%s 已有 %d 段（%s）", work.name, len(made), ", ".join(made))
+        if progress:
+            progress(done[0], total)
 
         def one(name: str):
             try:
@@ -257,10 +275,10 @@ def make(user_id: str, portrait_path: Path, progress=None) -> dict:
                 log.warning("动作 %s 没做出来：%s", name, e)
             done[0] += 1
             if progress:
-                progress(done[0], len(names))
+                progress(done[0], total)
 
         with ThreadPoolExecutor(WORKERS) as pool:
-            list(pool.map(one, names))
+            list(pool.map(one, [n for n in names if n not in made]))  # 只做还没有的
         if "idle" not in made:
             raise MotionError("待机动作没做出来，动图做不成")
         clips = {n: _frames(p) for n, p in made.items()}

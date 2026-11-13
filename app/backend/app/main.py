@@ -55,6 +55,7 @@ async def lifespan(app: FastAPI):
         catalog.seed(db)
     finally:
         db.close()
+    workbench.resume_jobs()  # 上次被重启（部署）打断的动图任务：接着做完
     if settings.policy_mode == "matrix":  # 模型加载要十几秒：后台预热，别让第一位用户等
         import threading
 

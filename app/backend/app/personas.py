@@ -360,7 +360,7 @@ def _motion_job(c: Character) -> dict:
     import time
 
     j = (c.origin or {}).get("motion_job")
-    if not j or time.time() - float(j.get("started", 0)) > PENDING_MAX_S:
+    if not j or time.time() - float(j.get("at") or j.get("started", 0)) > PENDING_MAX_S:
         return {}
     return {"motion_job": {"done": int(j.get("done", 0)), "total": int(j.get("total", 0)), "started": int(j.get("started", 0))}}
 
@@ -392,8 +392,12 @@ def _pending(c: Character) -> bool:
     """新角色的形象和声音还在后台做（workbench._finish_character）。"""
     import time
 
-    ts = (c.origin or {}).get("pending")
-    return bool(ts) and time.time() - float(ts) < PENDING_MAX_S
+    o = c.origin or {}
+    ts = o.get("pending")
+    if not ts:
+        return False
+    last = max(float(ts), float((o.get("motion") or {}).get("at") or 0))  # 在做动图：看最近一次有进展的时间
+    return time.time() - last < PENDING_MAX_S
 
 
 def _progress(c: Character) -> dict:
