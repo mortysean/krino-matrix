@@ -1003,5 +1003,16 @@
   "打开未成年人模式": "Turn on minor mode",
   "关闭未成年人模式": "Turn off minor mode",
   "请填写监护人的姓名和电话": "Please enter the guardian's name and phone",
-  "请填写紧急联系人的姓名和电话": "Please enter the emergency contact's name and phone"
+  "请填写紧急联系人的姓名和电话": "Please enter the emergency contact's name and phone",
+  "注册时填写": "Needed to create an account",
+  "我已年满 18 周岁": "I am 18 or older",
+  "KRINO WORLD 只为年满 18 周岁的用户提供服务，请确认你已年满 18 周岁": "KRINO WORLD is only for people 18 and older. Please confirm you're 18 or older",
+  "KRINO WORLD 只为成年人提供服务": "KRINO WORLD is for adults only",
+  "很抱歉，KRINO WORLD 只为年满 18 周岁的用户提供服务。": "Sorry, KRINO WORLD is only available to people 18 and older.",
+  "从你的聊天看，你可能未满 18 周岁，服务已暂停。如果判断错了，请提交申诉，我们核实后会恢复。": "From your chat, you may be under 18, so your access is paused. If that's wrong, send an appeal and we'll restore it once we've checked.",
+  "提交申诉": "Send appeal",
+  "KRINO WORLD 只为年满 18 周岁的用户提供服务，请填写你的出生年月。": "KRINO WORLD is only for people 18 and older. Please enter your birth month.",
+  "KRINO WORLD 只为年满 18 周岁的用户提供服务": "KRINO WORLD is only available to people 18 and older",
+  "你可能未满 18 周岁，服务已暂停；申诉核实后恢复": "You may be under 18, so access is paused until an appeal is reviewed",
+  "没有这个功能": "Not available"
 }

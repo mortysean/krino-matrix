@@ -1,6 +1,8 @@
 """未成年人保护，以及《人工智能拟人化互动服务管理暂行办法》（网信办等五部门令第 21 号，2026-07-15 施行）在产品里的落实。
 
-两个版本都有（未成年人保护）：
+国际站（SITE_EDITION=global）：只对成年人提供服务，没有未成年人模式。注册时要填出生年月并满 18 岁，登录页要勾选“已满 18 岁”；
+  老账号第一次打开时补出生年月；不满 18 岁、或者聊天里说出自己未成年的，停止服务（后者可以申诉）。
+国内版（SITE_EDITION=cn）的未成年人保护：
 - 年龄：第一次用时填出生年月，填了不能自己改（第十二条）
 - 未成年人模式：不满 18 岁、疑似未成年人自动开启且关不掉，成年人也可以自己打开（第十四条第二款）。
   开启后：不提供恋人、伴侣、家人这类虚拟亲密关系（第十四条第一款），内容更安全（第八条第四项），每天限时、
@@ -8,7 +10,7 @@
 - 不满 14 岁：要监护人同意才能用（第十四条第一款、第十七条），同时设一个监护人密码
 - 监护人面板（凭监护人密码）：看最近 7 天的使用情况和聊过的角色、风险提醒，屏蔽角色，调每天时长和夜间限制
 - 疑似未成年人识别：聊天里说出明确的年龄、年级，就按未成年人对待并给申诉入口（第十四条第三款）
-只在国内版（SITE_EDITION=cn）：
+国内版还有：
 - 第一次用时还要留紧急联系人（第十二条）；未成年人留的是监护人
 - 提示词：不冒充真人、不过度迎合、不诱导依赖、不情感操纵，劝对方多和现实里的人来往（第八条第五、六项，第十条）
 - 危机干预：流露轻生、自伤，或遭遇诈骗等重大财产损失时，回复里附上求助电话，记下风险事件交运营联络监护人或紧急联系人（第十三条）
@@ -78,7 +80,10 @@ def age(user: User, today: date | None = None) -> int | None:
 
 
 def minor_reason(user: User) -> str | None:
-    """为什么按未成年人对待：age（年龄不满 18）| detected（聊天里看出来的）| voluntary（自己打开的）；不是就 None。"""
+    """为什么按未成年人对待：age（年龄不满 18）| detected（聊天里看出来的）| voluntary（自己打开的）；不是就 None。
+    只有国内版有未成年人模式；国际站不向未成年人提供服务（见 adult_block）。"""
+    if not cn():
+        return None
     g = _g(user)
     a = age(user)
     if a is not None and a < ADULT:
@@ -92,6 +97,18 @@ def minor_reason(user: User) -> str | None:
 
 def is_minor_mode(user: User) -> bool:
     return minor_reason(user) is not None
+
+
+def adult_block(user: User) -> str | None:
+    """国际站：为什么不能用。minor（登记的年龄不满 18）| suspected（聊天里说出自己未成年，等申诉）| None。"""
+    if cn():
+        return None
+    a = age(user)
+    if a is not None and a < ADULT:
+        return "minor"
+    if _g(user).get("suspected"):
+        return "suspected"
+    return None
 
 
 def _limits(user: User) -> dict:
@@ -138,7 +155,7 @@ def needs(user: User) -> list[str]:
     if not g.get("birth"):
         out.append("birth")
     a = age(user)
-    if a is not None and a < CONSENT_AGE and not (g.get("guardian") or {}).get("consent_at"):
+    if cn() and a is not None and a < CONSENT_AGE and not (g.get("guardian") or {}).get("consent_at"):
         out.append("guardian")
     if cn() and not g.get("contact") and not (g.get("guardian") or {}).get("phone"):
         out.append("contact")
@@ -155,6 +172,7 @@ def status(db: Session, user: User) -> dict:
         (now() - u.last_ping).total_seconds() < PING_GAP_S else 0
     return {
         "edition": settings.edition, "needs": needs(user), "age": age(user), "birth": g.get("birth"),
+        "service_block": adult_block(user),  # 国际站：不向未成年人提供服务（minor | suspected）
         "minor": reason is not None, "minor_reason": reason, "suspected": bool(g.get("suspected")),
         "appealed": bool(g.get("appealed")),
         "has_guardian": bool((g.get("guardian") or {}).get("phone")), "has_pin": bool(g.get("pin")),
@@ -175,6 +193,10 @@ def check(db: Session, user: User, character_id: str | None = None) -> None:
     n = needs(user)
     if n:
         raise HTTPException(403, "先完善年龄等信息再开始聊天" if "guardian" not in n else "不满 14 周岁，需要监护人同意后才能使用")
+    b = adult_block(user)
+    if b:
+        raise HTTPException(403, "KRINO WORLD 只为年满 18 周岁的用户提供服务" if b == "minor"
+                            else "你可能未满 18 周岁，服务已暂停；申诉核实后恢复")
     if is_minor_mode(user):
         lim = _limits(user)
         if lim["curfew"] and in_curfew(user):
@@ -230,7 +252,8 @@ HOTLINES = {
 
 
 def mark_suspected(db: Session, user: User, said: str) -> bool:
-    """聊天里看出是未成年人：没登记成未成年人的，标成疑似，按未成年人模式对待（可以申诉）。返回这次是不是新标的。"""
+    """聊天里看出是未成年人：没登记成未成年人的，标成疑似（可以申诉）。国内版按未成年人模式对待；国际站暂停服务。
+    返回这次是不是新标的。"""
     a = age(user)
     g = _g(user)
     if (a is not None and a < ADULT) or g.get("suspected"):
@@ -350,12 +373,14 @@ def set_profile(body: ProfileIn, user: User = Depends(session_user), db: Session
         y, m = (int(x) for x in body.birth.split("-"))
         if not (1 <= m <= 12 and 1900 <= y and date(y, m, 1) <= date.today()):
             raise HTTPException(400, "出生年月不对")
-        g["birth"] = body.birth
+        g["birth"] = body.birth  # 国际站不满 18 岁也记下来：同一个账号不能换个日期再试
     if body.contact and (body.contact.name or body.contact.phone):
         g["contact"] = _person(body.contact, "紧急联系人")
     user.settings = {**(user.settings or {}), "guard": g}
     a = age(user)
     if body.guardian and (body.guardian.name or body.guardian.phone):
+        if not cn():
+            raise HTTPException(400, "KRINO WORLD 只为年满 18 周岁的用户提供服务")
         if not body.guardian_consent:
             raise HTTPException(400, "需要监护人勾选同意")
         if not body.pin or not _PIN_RE.match(body.pin):
@@ -375,7 +400,9 @@ class MinorModeIn(BaseModel):
 
 @router.post("/guard/minor-mode")
 def set_minor_mode(body: MinorModeIn, user: User = Depends(session_user), db: Session = Depends(get_db)):
-    """成年人自己打开 / 关闭未成年人模式。不满 18 岁、疑似未成年人的关不掉。"""
+    """成年人自己打开 / 关闭未成年人模式（国内版）。不满 18 岁、疑似未成年人的关不掉。"""
+    if not cn():
+        raise HTTPException(404, "没有这个功能")
     g = _g(user)
     if not body.on and minor_reason(user) in ("age", "detected"):
         raise HTTPException(403, "未成年人模式不能关闭" if minor_reason(user) == "age" else "系统判断你可能是未成年人，申诉通过后才能关闭")
@@ -417,7 +444,7 @@ class AppealIn(BaseModel):
 
 @router.post("/guard/appeal")
 def appeal(body: AppealIn, user: User = Depends(session_user), db: Session = Depends(get_db)):
-    """被误判成未成年人、出生年月填错了：提交申诉，运营核实后处理。"""
+    """被误判成未成年人、出生年月填错了：提交申诉，运营核实后处理（核实后在后台取消“疑似”，或改正出生年月）。"""
     db.add(Report(user_id=user.id, kind="minor_appeal", content=body.content.strip()))
     g = _g(user)
     g["appealed"] = int(time.time())
@@ -444,6 +471,8 @@ class GuardianSettingsIn(PinIn):
 @router.post("/guard/guardian/overview")
 def guardian_overview(body: PinIn, user: User = Depends(session_user), db: Session = Depends(get_db)):
     """监护人看：最近 7 天每天用了多久、和哪些角色聊过（只看次数，不看聊天内容）、风险提醒。"""
+    if not cn():
+        raise HTTPException(404, "没有这个功能")
     _pin_ok(db, user, body.pin)
     today = _local_now(user).date()
     days = [(today - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
@@ -466,6 +495,8 @@ def guardian_overview(body: PinIn, user: User = Depends(session_user), db: Sessi
 
 @router.post("/guard/guardian/settings")
 def guardian_settings(body: GuardianSettingsIn, user: User = Depends(session_user), db: Session = Depends(get_db)):
+    if not cn():
+        raise HTTPException(404, "没有这个功能")
     _pin_ok(db, user, body.pin)
     g = _g(user)
     lim = dict(g.get("limits") or {})
@@ -565,6 +596,7 @@ def admin_reports(status_: str = "open", admin: User = Depends(_admin), db: Sess
 class HandleIn(BaseModel):
     reply: str = Field(min_length=1, max_length=1000)
     clear_minor: bool = False  # 申诉核实通过：取消“疑似未成年人”
+    birth: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$")  # 申诉核实后改正的出生年月
 
 
 @router.post("/guard/admin/reports/{rid}")
@@ -573,11 +605,13 @@ def admin_handle(rid: str, body: HandleIn, admin: User = Depends(_admin), db: Se
     if r is None:
         raise HTTPException(404, "没有这条")
     r.status, r.reply, r.handled_at = "done", body.reply.strip(), now()
-    if body.clear_minor:
+    if body.clear_minor or body.birth:
         u = db.get(User, r.user_id)
         g = _g(u)
         g.pop("suspected", None)
         g.pop("appealed", None)
+        if body.birth:  # 核实后改正出生年月（用户自己改不了）
+            g["birth"] = body.birth
         u.settings = {**(u.settings or {}), "guard": g}
     db.commit()
     return _report_out(r)

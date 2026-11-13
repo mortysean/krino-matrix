@@ -74,7 +74,7 @@ class Helper:
 def make_user(client, name=None, birth="1995-06"):
     """新用户。默认是成年人，填好了出生年月和紧急联系人（guard.py：没填不能聊天）；birth=None 就不填。"""
     name = name or "t" + uuid.uuid4().hex[:10]
-    r = client.post("/api/auth/register", json={"username": name, "password": "secret123"})
+    r = client.post("/api/auth/register", json={"username": name, "password": "secret123", **({"birth": birth} if birth else {})})
     assert r.status_code == 200, r.text
     h = Helper(client, r.json()["token"], r.json()["user"])
     if birth:

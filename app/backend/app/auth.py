@@ -125,6 +125,7 @@ class Credentials(BaseModel):
     username: str
     password: str = Field(min_length=6, max_length=128)
     display_name: str | None = Field(default=None, max_length=32)
+    birth: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$")  # 出生年月；国际站注册必填且要满 18 岁
 
 
 class SettingsIn(BaseModel):
@@ -178,8 +179,22 @@ def register(body: Credentials, db: Session = Depends(get_db)):
         raise HTTPException(400, "用户名需 2-32 位字母、数字、下划线或中文")
     if db.scalar(select(User).where(User.username == body.username)):
         raise HTTPException(409, "用户名已存在")
+    guard_info = {}
+    if settings.edition != "cn":  # 国际站只为成年人提供服务：注册时就确认
+        from .guard import ADULT
+        if not body.birth:
+            raise HTTPException(400, "请填写出生年月")
+        y, m = (int(x) for x in body.birth.split("-"))
+        today = datetime.now(timezone.utc).date()
+        if not (1900 <= y and 1 <= m <= 12 and (y, m) <= (today.year, today.month)):
+            raise HTTPException(400, "出生年月不对")
+        if today.year - y - (1 if today.month < m else 0) < ADULT:
+            raise HTTPException(403, "KRINO WORLD 只为年满 18 周岁的用户提供服务")
+        guard_info = {"guard": {"birth": body.birth}}
+    elif body.birth:
+        guard_info = {"guard": {"birth": body.birth}}
     user = User(username=body.username, password_hash=hash_password(body.password),
-                display_name=body.display_name or body.username, settings={})
+                display_name=body.display_name or body.username, settings=guard_info)
     db.add(user)
     db.flush()
     from .personas import adopt_officials
@@ -194,6 +209,9 @@ def login(body: Credentials, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.username == body.username))
     if user is None or not verify_password(body.password, user.password_hash):
         raise HTTPException(401, "用户名或密码错误")
+    from .guard import adult_block
+    if adult_block(user) == "minor":  # 国际站：登记的年龄不满 18 岁的账号不能登录（疑似的可以登录去申诉）
+        raise HTTPException(403, "KRINO WORLD 只为年满 18 周岁的用户提供服务")
     return {"token": issue_token(db, user), "user": user_out(user)}
 
 

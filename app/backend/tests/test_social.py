@@ -119,6 +119,9 @@ def test_autonomy_tick(user, client, monkeypatch):
     sid = user.session(user.krino["id"])
     user.say(sid, "你好")  # 来过 → 算活跃（关系里记下最后来的时间）
     monkeypatch.setattr(social, "now", lambda: __import__("app.models", fromlist=["now"]).now().replace(hour=12))
+    # 测试库里留着很多别的测试建的活跃用户：只让这一位参加，不然预算（100 件事）会先花在别人身上
+    real_owners = social._active_owners
+    monkeypatch.setattr(social, "_active_owners", lambda db: [u for u in real_owners(db) if u.id == user.info["id"]])
 
     class Always(random.Random):
         def random(self):
@@ -149,6 +152,9 @@ def test_pending_character_stays_out_of_autonomy(user, monkeypatch):
     c.origin = {**(c.origin or {}), "pending": _t.time()}
     db.commit()
     monkeypatch.setattr(social, "now", lambda: __import__("app.models", fromlist=["now"]).now().replace(hour=12))
+    # 测试库里留着很多别的测试建的活跃用户：只让这一位参加，不然预算（100 件事）会先花在别人身上
+    real_owners = social._active_owners
+    monkeypatch.setattr(social, "_active_owners", lambda db: [u for u in real_owners(db) if u.id == user.info["id"]])
 
     class Always(random.Random):
         def random(self):

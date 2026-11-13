@@ -921,3 +921,8 @@ label.check input { margin-top: 3px; }
 .usage-bars i { width: 60%; background: var(--char); min-height: 2px; }
 .usage-bars b { font-weight: 400; color: var(--text); }
 .report-reply { color: var(--ok); margin-top: 4px; }
+
+/* 国际站登录页：出生年月、已满 18 岁 */
+.adult-only { display: none; }
+html[data-edition="global"] .adult-only { display: flex; }
+html[data-edition="global"] label.field.adult-only { flex-direction: column; }

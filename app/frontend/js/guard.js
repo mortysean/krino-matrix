@@ -22,6 +22,8 @@ function apply() {
   $("#ai-note")?.classList.toggle("hidden", st.edition !== "cn");
   if (st.needs.length) return gate();
   $("#guard-gate")?.remove();
+  if (st.service_block) return adultOnly();
+  $("#guard-adult")?.remove();
   if (st.minor && (st.curfew_now || st.remaining_minutes === 0)) return lock();
   $("#guard-lock")?.remove();
 }
@@ -41,7 +43,7 @@ function gate() {
   el.innerHTML = `<form class="guard-card" novalidate>
     <h2>${t("开始之前")}</h2>
     <p class="muted small">${t(cn ? "按照国家对人工智能拟人化互动服务和未成年人网络保护的要求，需要先登记年龄和紧急联系人。信息只用于保护你，不会公开。"
-      : "We need your age so we can keep younger users safe. It's never shown to anyone.")}</p>
+      : "KRINO WORLD 只为年满 18 周岁的用户提供服务，请填写你的出生年月。")}</p>
     <label>${t("出生年月")}<input type="month" id="g-birth" value="${esc(st.birth || "")}" ${st.birth ? "disabled" : ""} max="${new Date().toISOString().slice(0, 7)}" required></label>
     <div id="g-contact" class="hidden"><div class="section-title mono">${t("紧急联系人")}</div>
       <p class="muted small">${t("你遇到危险时我们会联系的人。")}</p>
@@ -60,7 +62,7 @@ function gate() {
     const minor = a !== null && a < 18, under14 = a !== null && a < 14;
     // 国内版：成年人留紧急联系人，未成年人留监护人；国际站：只有不满 14 岁要监护人，14–17 岁可以不填
     $("#g-contact", el).classList.toggle("hidden", !(cn && a !== null && !minor));
-    $("#g-guardian", el).classList.toggle("hidden", !(minor && (cn || under14)) && !(minor && !cn));
+    $("#g-guardian", el).classList.toggle("hidden", !(cn && minor));  // 国际站没有监护人这一套：不满 18 岁就不提供服务
     $("#g-gnote", el).textContent = under14 ? t("不满 14 周岁需要监护人同意才能使用。请让爸爸妈妈或其他监护人来填。")
       : t(cn ? "未满 18 周岁：请留监护人的联系方式，并由监护人设置密码。" : "Under 18: a parent or guardian can add their details here (optional).");
   };
@@ -81,6 +83,26 @@ function gate() {
       el.remove(); apply(); toast("好了，开始吧");
     } catch (err) { $("#g-err", el).textContent = tr(err.message); }
   };
+}
+
+// ---------- 国际站：只为成年人提供服务 ----------
+function adultOnly() {
+  if ($("#guard-adult")) return;
+  const st = G.st, el = document.createElement("div");
+  el.id = "guard-adult"; el.className = "guard-cover";
+  el.innerHTML = `<div class="guard-card"><h2>${t("KRINO WORLD 只为成年人提供服务")}</h2>
+    <p>${t(st.service_block === "minor" ? "很抱歉，KRINO WORLD 只为年满 18 周岁的用户提供服务。" : "从你的聊天看，你可能未满 18 周岁，服务已暂停。如果判断错了，请提交申诉，我们核实后会恢复。")}</p>
+    ${st.service_block === "suspected" ? (st.appealed ? `<p class="muted small">${t("申诉已提交，核实后处理")}</p>`
+      : `<textarea id="ad-text" rows="3" maxlength="500" placeholder="${esc(t("说明一下情况（比如你的真实年龄、刚才说的是别人），我们核实后会处理。"))}"></textarea>
+         <div class="row"><button class="ghost small" id="ad-appeal">${t("提交申诉")}</button></div>`) : ""}
+    <div class="row"><span class="grow"></span><button class="link small" id="ad-logout">${t("退出登录")}</button></div></div>`;
+  document.body.appendChild(el);
+  $("#ad-logout", el).onclick = () => bus.emit("logout");
+  $("#ad-appeal", el)?.addEventListener("click", async () => {
+    const content = $("#ad-text", el).value.trim();
+    if (content.length < 2) return toast("写一句说明吧");
+    try { await api("/api/guard/appeal", { body: { content } }); await refreshGuard(); el.remove(); apply(); } catch (e) { fail(e); }
+  });
 }
 
 // ---------- 未成年人：时间到了 / 夜里 ----------
@@ -149,6 +171,7 @@ export function helpCard(a) {  // 危机时：求助电话（可以直接点着�
 
 export async function minorNotice() {
   await refreshGuard();
+  if (G.st?.service_block) return null;  // 国际站：直接挡住（adultOnly），不再弹未成年人模式的说明
   const ok = await modal("已切换到未成年人模式", `<p>${t("从刚才的聊天看，你可能还未满 18 周岁，已经为你打开未成年人模式：她只会以朋友的身份陪你，每天的使用时间和夜间使用会受到限制。")}</p>
     <p class="muted small">${t("如果判断错了，可以在“设置 → 未成年人模式”里申诉，我们核实后会帮你恢复。")}</p>`, null, { okText: "知道了", cancel: false });
   return ok;
@@ -159,6 +182,7 @@ export async function settingsSections(host) {
   const st = G.st || (await refreshGuard());
   if (!st || !host) return;
   const cn = st.edition === "cn";
+  if (!cn) { host.innerHTML = ""; return; }  // 国际站：没有未成年人模式、聊天记录和投诉这几块
   const reason = { age: t("你未满 18 周岁，未成年人模式一直开着。"), detected: t("系统判断你可能未满 18 周岁，已打开未成年人模式。"),
     voluntary: t("你自己打开了未成年人模式。") }[st.minor_reason] || t("没有开启。");
   host.innerHTML = `

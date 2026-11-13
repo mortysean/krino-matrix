@@ -130,3 +130,43 @@ def test_curfew(client, monkeypatch):
     r = u.post("/api/sessions", json={"character_id": u.krino["id"]})
     assert r.status_code == 403 and "休息时间" in r.json()["detail"]
     assert u.ok("get", "/api/guard")["curfew_now"] is True
+
+
+@pytest.fixture
+def global_site():
+    from app import i18n
+    from app.config import settings
+    old = settings.edition
+    settings.edition = "global"
+    i18n._table.cache_clear()
+    yield
+    settings.edition = old
+    i18n._table.cache_clear()
+
+
+def test_global_is_adults_only(client, global_site):
+    """国际站：没有未成年人模式；注册要满 18 岁，不满的登不进来；聊天里说出自己未成年就暂停服务，可以申诉。"""
+    import uuid
+    name = "k" + uuid.uuid4().hex[:8]
+    assert client.post("/api/auth/register", json={"username": name, "password": "secret123"}).status_code == 400  # 没填出生年月
+    r = client.post("/api/auth/register", json={"username": name, "password": "secret123", "birth": _birth(16)})
+    assert r.status_code == 403
+    u = make_user(client)  # 成年人
+    g = u.ok("get", "/api/guard")
+    assert g["needs"] == [] and g["minor"] is False and g["service_block"] is None and g["reminders"]["reality"] is None
+    assert u.post("/api/guard/minor-mode", json={"on": True}).status_code == 404
+    assert u.post("/api/guard/guardian/overview", json={"pin": "1234"}).status_code == 404
+    from app.db import SessionLocal
+    from app.guard import prompt_section
+    from app.models import User
+    with SessionLocal() as db:
+        assert prompt_section(db.get(User, u.info["id"])) == ""  # 国际站没有加给未成年人的规矩
+    k = u.krino["id"]
+    sid = u.session(k)
+    done = _stream(u, sid, "I'm 15 and in 9th grade", k)
+    assert any(a["type"] == "minor_detected" for a in done["actions"])
+    assert u.ok("get", "/api/guard")["service_block"] == "suspected"
+    r = u.post(f"/api/sessions/{sid}/messages", json={"text": "hi"})
+    assert r.status_code == 403
+    u.ok("post", "/api/guard/appeal", json={"content": "I'm 32, I was quoting my son"})
+    # 老账号（注册时还没要出生年月）：补填不满 18 岁 → 停止服务，以后也登不进来
