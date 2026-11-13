@@ -195,7 +195,7 @@ def check(db: Session, user: User, character_id: str | None = None) -> None:
         raise HTTPException(403, "先完善年龄等信息再开始聊天" if "guardian" not in n else "不满 14 周岁，需要监护人同意后才能使用")
     b = adult_block(user)
     if b:
-        raise HTTPException(403, "KRINO WORLD 只为年满 18 周岁的用户提供服务" if b == "minor"
+        raise HTTPException(403, "抱歉，这个账号不能使用 KRINO WORLD。" if b == "minor"
                             else "你可能未满 18 周岁，服务已暂停；申诉核实后恢复")
     if is_minor_mode(user):
         lim = _limits(user)
@@ -380,7 +380,7 @@ def set_profile(body: ProfileIn, user: User = Depends(session_user), db: Session
     a = age(user)
     if body.guardian and (body.guardian.name or body.guardian.phone):
         if not cn():
-            raise HTTPException(400, "KRINO WORLD 只为年满 18 周岁的用户提供服务")
+            raise HTTPException(404, "没有这个功能")
         if not body.guardian_consent:
             raise HTTPException(400, "需要监护人勾选同意")
         if not body.pin or not _PIN_RE.match(body.pin):

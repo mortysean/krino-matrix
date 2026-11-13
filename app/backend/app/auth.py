@@ -183,13 +183,13 @@ def register(body: Credentials, db: Session = Depends(get_db)):
     if settings.edition != "cn":  # 国际站只为成年人提供服务：注册时就确认
         from .guard import ADULT
         if not body.birth:
-            raise HTTPException(400, "请填写出生年月")
+            raise HTTPException(400, "请选择出生年月")
         y, m = (int(x) for x in body.birth.split("-"))
         today = datetime.now(timezone.utc).date()
         if not (1900 <= y and 1 <= m <= 12 and (y, m) <= (today.year, today.month)):
             raise HTTPException(400, "出生年月不对")
-        if today.year - y - (1 if today.month < m else 0) < ADULT:
-            raise HTTPException(403, "KRINO WORLD 只为年满 18 周岁的用户提供服务")
+        if today.year - y - (1 if today.month < m else 0) < ADULT:  # 中性的拒绝：不说年龄门槛（FTC COPPA FAQ D.7）
+            raise HTTPException(403, "抱歉，无法为你创建账号。")
         guard_info = {"guard": {"birth": body.birth}}
     elif body.birth:
         guard_info = {"guard": {"birth": body.birth}}
@@ -211,7 +211,7 @@ def login(body: Credentials, db: Session = Depends(get_db)):
         raise HTTPException(401, "用户名或密码错误")
     from .guard import adult_block
     if adult_block(user) == "minor":  # 国际站：登记的年龄不满 18 岁的账号不能登录（疑似的可以登录去申诉）
-        raise HTTPException(403, "KRINO WORLD 只为年满 18 周岁的用户提供服务")
+        raise HTTPException(403, "抱歉，这个账号不能使用 KRINO WORLD。")
     return {"token": issue_token(db, user), "user": user_out(user)}
 
 

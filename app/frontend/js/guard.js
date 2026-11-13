@@ -5,6 +5,35 @@
 // - 聊天里：退出（停掉语音对话和主动搭话）、危机时的求助电话卡片、疑似未成年人的说明和申诉
 // - 设置页里的“未成年人模式”“聊天记录”“投诉与反馈”三块也在这里画
 import { $, $$, S, api, bus, confirmBox, esc, fail, fmtTime, modal, storeGet, storeSet, t, toast, tr } from "./core.js";
+import { getLocale } from "./i18n.js";
+
+// ---------- 出生年月：两个下拉框（月、年） ----------
+// 按美国 FTC《COPPA 规则》（2025 修订）和 COPPA FAQ D.7 的“中性年龄筛查”：让人如实填出生年月，不预设年龄、年份列表包括所有年龄，
+// 不用“我已满 X 岁”的勾选框，也不在填之前说出年龄门槛（免得引导谎报）。不用浏览器自带的月份选择器：它的文字跟着浏览器语言走
+// （英文站在中文浏览器里会显示中文），Safari、Firefox 桌面版也不支持。月份名按网站语言显示。
+export function dobFields(id, value = "") {
+  const [vy, vm] = (value || "").split("-").map(Number);
+  const loc = getLocale() === "en" ? "en-US" : "zh-CN";
+  const months = Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleString(loc, { month: "long" }));
+  const now = new Date().getFullYear();
+  const years = Array.from({ length: 111 }, (_, i) => now - i);
+  return `<div class="dob" id="${id}">
+    <select data-dob="m" aria-label="${esc(t("月"))}" ${value ? "disabled" : ""}><option value="">${esc(t("月"))}</option>${months.map((m, i) => `<option value="${i + 1}" ${vm === i + 1 ? "selected" : ""}>${esc(m)}</option>`).join("")}</select>
+    <select data-dob="y" aria-label="${esc(t("年"))}" ${value ? "disabled" : ""}><option value="">${esc(t("年"))}</option>${years.map((y) => `<option value="${y}" ${vy === y ? "selected" : ""}>${y}</option>`).join("")}</select>
+  </div>`;
+}
+export function readDob(root) {  // "YYYY-MM"；没选全就是 null
+  const m = root?.querySelector('[data-dob="m"]')?.value, y = root?.querySelector('[data-dob="y"]')?.value;
+  return m && y ? `${y}-${String(m).padStart(2, "0")}` : null;
+}
+
+// 国际站：被拒绝后，这个浏览器一天内不能换个年龄再试（FTC 建议用 Cookie 防止“后退重填”；ICO 也要求防止立刻重新填）
+const AGE_COOKIE = "km_age_denied";
+export const ageDenied = () => document.cookie.split("; ").some((c) => c === AGE_COOKIE + "=1");
+export function denyAge() {
+  const secure = location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${AGE_COOKIE}=1; Path=/; Max-Age=86400; SameSite=Lax${secure}`;
+}
 
 export const G = { st: null, timer: null };
 const isCn = () => (G.st?.edition || S.site?.edition) === "cn";
@@ -43,8 +72,8 @@ function gate() {
   el.innerHTML = `<form class="guard-card" novalidate>
     <h2>${t("开始之前")}</h2>
     <p class="muted small">${t(cn ? "按照国家对人工智能拟人化互动服务和未成年人网络保护的要求，需要先登记年龄和紧急联系人。信息只用于保护你，不会公开。"
-      : "KRINO WORLD 只为年满 18 周岁的用户提供服务，请填写你的出生年月。")}</p>
-    <label>${t("出生年月")}<input type="month" id="g-birth" value="${esc(st.birth || "")}" ${st.birth ? "disabled" : ""} max="${new Date().toISOString().slice(0, 7)}" required></label>
+      : "你的出生年月是？")}</p>
+    <label>${t("出生年月")}${dobFields("g-birth", st.birth || "")}</label>
     <div id="g-contact" class="hidden"><div class="section-title mono">${t("紧急联系人")}</div>
       <p class="muted small">${t("你遇到危险时我们会联系的人。")}</p>
       <div class="row"><input id="g-cname" maxlength="20" placeholder="${esc(t("姓名"))}"><input id="g-cphone" maxlength="20" inputmode="tel" placeholder="${esc(t("电话"))}"></div></div>
@@ -58,7 +87,7 @@ function gate() {
   </form>`;
   document.body.appendChild(el);
   const sync = () => {
-    const a = ageOf($("#g-birth", el).value);
+    const a = ageOf(readDob($("#g-birth", el)));
     const minor = a !== null && a < 18, under14 = a !== null && a < 14;
     // 国内版：成年人留紧急联系人，未成年人留监护人；国际站：只有不满 14 岁要监护人，14–17 岁可以不填
     $("#g-contact", el).classList.toggle("hidden", !(cn && a !== null && !minor));
@@ -66,11 +95,11 @@ function gate() {
     $("#g-gnote", el).textContent = under14 ? t("不满 14 周岁需要监护人同意才能使用。请让爸爸妈妈或其他监护人来填。")
       : t(cn ? "未满 18 周岁：请留监护人的联系方式，并由监护人设置密码。" : "Under 18: a parent or guardian can add their details here (optional).");
   };
-  $("#g-birth", el).oninput = sync; sync();
+  $("#g-birth", el).onchange = sync; sync();
   $("#g-logout", el).onclick = () => bus.emit("logout");
   el.querySelector("form").onsubmit = async (e) => {
     e.preventDefault();
-    const birth = $("#g-birth", el).value, a = ageOf(birth), body = {};
+    const birth = readDob($("#g-birth", el)), a = ageOf(birth), body = {};
     if (!st.birth) { if (a === null || a < 0) return ($("#g-err", el).textContent = t("请填写出生年月")); body.birth = birth; }
     if (!$("#g-contact", el).classList.contains("hidden")) body.contact = { name: $("#g-cname", el).value, phone: $("#g-cphone", el).value };
     if (!$("#g-guardian", el).classList.contains("hidden") && ($("#g-gname", el).value || (a ?? 99) < 14 || cn)) {
@@ -79,6 +108,7 @@ function gate() {
     }
     try {
       G.st = await api("/api/guard/profile", { body });
+      if (G.st.service_block === "minor") denyAge();
       if (G.st.needs.length) { $("#g-err", el).textContent = t("还有信息没填完"); return; }
       el.remove(); apply(); toast("好了，开始吧");
     } catch (err) { $("#g-err", el).textContent = tr(err.message); }
@@ -90,8 +120,8 @@ function ageBlock() {
   if ($("#guard-age")) return;
   const st = G.st, el = document.createElement("div");
   el.id = "guard-age"; el.className = "guard-cover";
-  el.innerHTML = `<div class="guard-card"><h2>${t("KRINO WORLD 只为成年人提供服务")}</h2>
-    <p>${t(st.service_block === "minor" ? "很抱歉，KRINO WORLD 只为年满 18 周岁的用户提供服务。" : "从你的聊天看，你可能未满 18 周岁，服务已暂停。如果判断错了，请提交申诉，我们核实后会恢复。")}</p>
+  el.innerHTML = `<div class="guard-card"><h2>${t("无法继续使用")}</h2>
+    <p>${t(st.service_block === "minor" ? "很抱歉，这个账号不能使用 KRINO WORLD。" : "从你的聊天看，你可能未满 18 周岁，服务已暂停。如果判断错了，请提交申诉，我们核实后会恢复。")}</p>
     ${st.service_block === "suspected" ? (st.appealed ? `<p class="muted small">${t("申诉已提交，核实后处理")}</p>`
       : `<textarea id="ag-text" rows="3" maxlength="500" placeholder="${esc(t("说明一下情况（比如你的真实年龄、刚才说的是别人），我们核实后会处理。"))}"></textarea>
          <div class="row"><button class="ghost small" id="ag-appeal">${t("提交申诉")}</button></div>`) : ""}

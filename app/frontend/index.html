@@ -25,9 +25,8 @@
       <form id="auth-form">
         <label class="field"><span class="mono">USERNAME</span><input name="username" autocomplete="username" required></label>
         <label class="field"><span class="mono">PASSWORD</span><input name="password" type="password" autocomplete="current-password" required minlength="6"></label>
-        <!-- 国际站只为成年人提供服务：注册要填出生年月，登录、注册都要确认已满 18 岁（只在 html[data-edition=global] 时显示） -->
-        <label class="field age-check"><span class="mono">BIRTH MONTH</span><input name="birth" type="month"><small class="muted" data-i18n>注册时填写</small></label>
-        <label class="check age-check"><input type="checkbox" name="over18"> <span data-i18n>我已年满 18 周岁</span></label>
+        <!-- 国际站注册时问出生年月（中性的年龄筛查，见 guard.js 的 dobFields；只在 html[data-edition=global] 时显示，下拉框由 main.js 填） -->
+        <div class="field age-check"><span class="mono">DATE OF BIRTH</span><div id="auth-dob"></div><small class="muted" data-i18n>注册时填写</small></div>
         <div class="row">
           <button type="submit" data-action="login" data-i18n>进入</button>
           <button type="submit" data-action="register" class="ghost" data-i18n>注册</button>

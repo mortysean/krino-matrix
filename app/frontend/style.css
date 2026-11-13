@@ -925,4 +925,8 @@ label.check input { margin-top: 3px; }
 /* 国际站登录页：出生年月、已满 18 岁 */
 .age-check { display: none; }
 html[data-edition="global"] .age-check { display: flex; }
-html[data-edition="global"] label.field.age-check { flex-direction: column; }
+html[data-edition="global"] .field.age-check { flex-direction: column; gap: 6px; }
+
+/* 出生年月：月、年两个下拉框 */
+.dob { display: flex; gap: 8px; }
+.dob select { flex: 1; min-width: 0; }
