@@ -4,7 +4,7 @@
 
 The HTTP API behind the KRINO WORLD app. The web app uses the same endpoints, so anything it does you can do too. Every endpoint, with its request and response schema, is in [`openapi.json`](openapi.json) (OpenAPI 3.1). This page covers what the schema can't: where to connect, how to sign in, how streaming works, and what errors mean.
 
-The quickest way in is the Python client in [`sdk/python`](../../sdk/python).
+The quickest way in is the Python client in [`sdk/python`](../../sdk/python) (`pip install krino-world`). The same docs, with an example for every endpoint, are online at [krinomatrix.com/global/developers](https://krinomatrix.com/global/developers/).
 
 ## Base URLs
 

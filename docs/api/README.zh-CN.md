@@ -4,7 +4,7 @@
 
 KRINO WORLD 应用背后的 HTTP 接口。网页版用的就是这些接口，它能做的你都能做。所有接口和请求、返回的格式都在 [`openapi.json`](openapi.json)（OpenAPI 3.1）里。这一页讲规范文件里看不出来的部分：连到哪里、怎么登录、流式回复怎么收、报错是什么意思。
 
-最快的用法是 [`sdk/python`](../../sdk/python) 里的 Python 客户端。
+最快的用法是 [`sdk/python`](../../sdk/python) 里的 Python 客户端（`pip install krino-world`）。同样的文档、每个接口都带示例的在线版：[krinomatrix.com/cn/developers](https://krinomatrix.com/cn/developers/)。
 
 ## 地址
 

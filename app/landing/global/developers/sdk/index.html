@@ -1,0 +1,175 @@
+<!doctype html>
+<!-- 由 app/landing_src/build.py 生成，别直接改：改 devdocs.py 或 regions.py 再重跑 -->
+<html lang="en" data-lang="en" data-region="global">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Python SDK · KRINO MATRIX</title>
+  <meta name="description" content="The KRINO WORLD Python SDK: pip install krino-world and talk to AI characters that remember you in a few lines.">
+  <link rel="canonical" href="https://krinomatrix.com/global/developers/sdk/">
+  <link rel="alternate" hreflang="zh-CN" href="https://krinomatrix.com/cn/developers/sdk/">
+  <link rel="alternate" hreflang="en" href="https://krinomatrix.com/global/developers/sdk/">
+  <link rel="alternate" hreflang="x-default" href="https://krinomatrix.com/global/developers/sdk/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="KRINO MATRIX">
+  <meta property="og:title" content="Python SDK · KRINO MATRIX">
+  <meta property="og:description" content="The KRINO WORLD Python SDK: pip install krino-world and talk to AI characters that remember you in a few lines.">
+  <meta property="og:url" content="https://krinomatrix.com/global/developers/sdk/">
+  <meta property="og:image" content="https://krinomatrix.com/assets/krino.png">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#06060b">
+  <link rel="icon" href="../../../assets/krino-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../portal.css">
+</head>
+<body>
+  <div class="fx fx-glow"></div><div class="fx fx-grid"></div><div class="fx fx-scan"></div>
+  <header class="bar">
+    <a class="brand" href="../../"><img src="../../../assets/krino-mark.svg" alt=""><div><b>KRINO MATRIX</b></div></a>
+    <nav>
+      <a class="hide-sm" href="../../products/">Products</a>
+      <a class="hide-sm" href="../../apocalypse/">Apocalypse & Fulfillment</a>
+      <a class="hide-sm" href="../../vision/#tree">Krino Tree</a>
+      <a class="hide-sm" href="../../developers/" aria-current="page">Developers</a>
+      <a class="hide-sm" href="../../about/">About</a>
+      <a class="region-sw" href="../../../cn/developers/sdk/" data-region="cn" hreflang="zh-CN" lang="zh-CN"><span class="hide-sm">中国大陆 · </span>中文</a>
+      <a class="cta" href="/global/products/world/">Log in</a>
+    </nav>
+  </header>
+  <main class="devdoc">
+<div class="dev">
+<nav class="dev-side" aria-label="docs">
+<button type="button" class="dev-toggle" aria-expanded="false">Contents</button><div class="dev-nav">
+<h4><a href="../../developers/">Get started</a></h4>
+<a href="../../developers/#overview">Overview</a>
+<a href="../../developers/#quickstart">Quick start</a>
+<a href="../../developers/#basics">Basics</a>
+<h4><a href="../../developers/api/">API reference</a></h4>
+<a href="../../developers/api/#base">Base URL</a>
+<a href="../../developers/api/#auth">Authentication</a>
+<a href="../../developers/api/#streaming">Streaming</a>
+<a href="../../developers/api/#errors">Errors</a>
+<h5><a href="../../developers/api/#g-account">Account</a></h5>
+<a href="../../developers/api/#ep-post-auth-register"><span class="m m-post">POST</span>Register</a>
+<a href="../../developers/api/#ep-post-auth-login"><span class="m m-post">POST</span>Log in</a>
+<a href="../../developers/api/#ep-post-auth-logout"><span class="m m-post">POST</span>Log out</a>
+<a href="../../developers/api/#ep-get-me"><span class="m m-get">GET</span>Your account</a>
+<a href="../../developers/api/#ep-patch-me"><span class="m m-patch">PATCH</span>Update settings</a>
+<a href="../../developers/api/#ep-delete-me"><span class="m m-delete">DELETE</span>Delete account</a>
+<h5><a href="../../developers/api/#g-characters">Characters</a></h5>
+<a href="../../developers/api/#ep-get-characters"><span class="m m-get">GET</span>List characters</a>
+<a href="../../developers/api/#ep-get-characters-cid"><span class="m m-get">GET</span>Get a character</a>
+<a href="../../developers/api/#ep-get-characters-cid-export"><span class="m m-get">GET</span>Export a character</a>
+<h5><a href="../../developers/api/#g-chat">Chat</a></h5>
+<a href="../../developers/api/#ep-post-sessions"><span class="m m-post">POST</span>Start a session</a>
+<a href="../../developers/api/#ep-get-sessions"><span class="m m-get">GET</span>List sessions</a>
+<a href="../../developers/api/#ep-get-sessions-sid"><span class="m m-get">GET</span>Get a session</a>
+<a href="../../developers/api/#ep-post-sessions-sid-messages"><span class="m m-post">POST</span>Send a message</a>
+<a href="../../developers/api/#ep-post-sessions-sid-stream"><span class="m m-post">POST</span>Send a message (streamed)</a>
+<a href="../../developers/api/#ep-post-sessions-sid-events"><span class="m m-post">POST</span>Send an event</a>
+<a href="../../developers/api/#ep-post-sessions-sid-end"><span class="m m-post">POST</span>End a session</a>
+<a href="../../developers/api/#ep-delete-sessions-sid"><span class="m m-delete">DELETE</span>Delete a session</a>
+<h5><a href="../../developers/api/#g-memory">Memory</a></h5>
+<a href="../../developers/api/#ep-get-memories"><span class="m m-get">GET</span>List memories</a>
+<a href="../../developers/api/#ep-post-memories"><span class="m m-post">POST</span>Add a memory</a>
+<a href="../../developers/api/#ep-patch-memories-mid"><span class="m m-patch">PATCH</span>Edit a memory</a>
+<a href="../../developers/api/#ep-post-memories-mid-forget"><span class="m m-post">POST</span>Forget</a>
+<a href="../../developers/api/#ep-post-memories-mid-restore"><span class="m m-post">POST</span>Restore</a>
+<a href="../../developers/api/#ep-delete-memories-mid"><span class="m m-delete">DELETE</span>Delete permanently</a>
+<a href="../../developers/api/#ep-get-memories-candidates"><span class="m m-get">GET</span>Proposed memories</a>
+<a href="../../developers/api/#ep-post-memories-candidates-cand-id-accept"><span class="m m-post">POST</span>Accept</a>
+<a href="../../developers/api/#ep-delete-memories-candidates-cand-id"><span class="m m-delete">DELETE</span>Reject</a>
+<a href="../../developers/api/#ep-get-memory-jobs-job-id"><span class="m m-get">GET</span>Memory job</a>
+<a href="../../developers/api/#ep-get-relations-cid-export"><span class="m m-get">GET</span>Export relationship</a>
+<a href="../../developers/api/#ep-post-relations-cid-import"><span class="m m-post">POST</span>Import relationship</a>
+<h5><a href="../../developers/api/#g-voice">Voice & vision</a></h5>
+<a href="../../developers/api/#ep-post-voice-tts"><span class="m m-post">POST</span>Text to speech</a>
+<a href="../../developers/api/#ep-post-voice-stt"><span class="m m-post">POST</span>Speech to text</a>
+<a href="../../developers/api/#ep-get-voice-config"><span class="m m-get">GET</span>Voice services</a>
+<a href="../../developers/api/#ep-post-vision-describe"><span class="m m-post">POST</span>Describe an image</a>
+<h5><a href="../../developers/api/#g-status">Status</a></h5>
+<a href="../../developers/api/#ep-get-health"><span class="m m-get">GET</span>Health</a>
+<a href="../../developers/api/#ep-get-credits"><span class="m m-get">GET</span>Today&#x27;s credits</a>
+<h4><a href="../../developers/sdk/">Python SDK</a></h4>
+<a href="../../developers/sdk/#install">Install</a>
+<a href="../../developers/sdk/#client">Client</a>
+<a href="../../developers/sdk/#sdk-plumbing">Any endpoint</a>
+<a href="../../developers/sdk/#sdk-account">Account</a>
+<a href="../../developers/sdk/#sdk-characters">Characters</a>
+<a href="../../developers/sdk/#sdk-chat">Chat</a>
+<a href="../../developers/sdk/#sdk-memory">Memory</a>
+<a href="../../developers/sdk/#sdk-voice">Voice</a>
+<a href="../../developers/sdk/#event">Event</a>
+<a href="../../developers/sdk/#krinoerror">KrinoError</a>
+<h4>Resources</h4>
+<a href="../../../assets/krino-world-openapi.json" download>openapi.json</a>
+<a href="https://github.com/mortysean/krino-matrix" target="_blank" rel="noopener">GitHub ↗</a>
+<a href="https://pypi.org/project/krino-world/" target="_blank" rel="noopener">PyPI ↗</a>
+</div></nav>
+<article class="dev-main">
+<header class="dev-head">
+  <p class="tag">// PYTHON SDK</p>
+  <h1 class="title">Python <em>SDK</em></h1>
+  <p class="lead"><code>krino-world</code> wraps the API in a few dozen methods that return plain dicts and lists.
+    <span class="ver">v0.1.0</span> · <a href="https://pypi.org/project/krino-world/" target="_blank" rel="noopener">PyPI</a> · <a href="https://github.com/mortysean/krino-matrix/tree/main/sdk/python" target="_blank" rel="noopener">Source</a></p>
+</header>
+<section id="install">
+  <h2>Install</h2>
+  <div class="code"><div class="code-h"><span>Shell</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">pip</span> install krino-world</code></pre></div>
+  <p>Python 3.10 or newer; its only dependency is httpx.</p>
+  <div class="code"><div class="code-h"><span>Python</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">from</span> krino_world <span class="t-k">import</span> Client
+
+<span class="t-k">with</span> Client(region=<span class="t-s">&quot;global&quot;</span>) <span class="t-k">as</span> kw:
+    kw.login(<span class="t-s">&quot;me&quot;</span>, <span class="t-s">&quot;your-password&quot;</span>)         <span class="t-c"># or kw.register(...); the token is kept on the client</span>
+    character = kw.characters()[<span class="t-n">0</span>]           <span class="t-c"># a new account already has the official characters</span>
+    session = kw.start_session(character[<span class="t-s">&quot;id&quot;</span>])
+    <span class="t-k">print</span>(session[<span class="t-s">&quot;greeting&quot;</span>])
+
+    turn = kw.send(session[<span class="t-s">&quot;id&quot;</span>], <span class="t-s">&quot;How was your day?&quot;</span>)
+    <span class="t-k">print</span>(turn[<span class="t-s">&quot;reply&quot;</span>][<span class="t-s">&quot;content&quot;</span>])</code></pre></div>
+</section>
+<section id="client">
+  <h2>Client</h2>
+  <div class="fn"><code class="sig">Client(region=<span class="t-s">&quot;global&quot;</span>, base_url=<span class="t-k">None</span>, token=<span class="t-k">None</span>, timeout=<span class="t-n">120</span>)</code></div>
+  <div class="table-wrap"><table class=""><thead><tr><th>Argument</th><th>Description</th></tr></thead><tbody><tr><td><code>region</code></td><td><code>"cn"</code> for the mainland China site, <code>"global"</code> for the international one. Their accounts are separate</td></tr><tr><td><code>base_url</code></td><td>Your own server, such as <code>http://127.0.0.1:8630</code> (overrides region)</td></tr><tr><td><code>token</code></td><td>A token you already have, so you needn't log in</td></tr><tr><td><code>timeout</code></td><td>Request timeout in seconds</td></tr></tbody></table></div>
+  <p><code>with</code> closes the connection when you're done; otherwise call <code>close()</code>. After you log in the token is on <code>kw.token</code>; save it to skip logging in next time.</p>
+</section>
+<section id="sdk-plumbing"><h2>Any endpoint</h2><div class="fn" id="sdk-fn-request"><code class="sig">request(method: str, path: str, **kwargs) -&gt; Any</code><p>Call any endpoint under <code>/api/</code> that has no method of its own. Returns the decoded JSON; extra arguments go to httpx.</p></div></section><section id="sdk-account"><h2>Account</h2><div class="fn" id="sdk-fn-register"><code class="sig">register(username: str, password: str, display_name: str | <span class="t-k">None</span>=<span class="t-k">None</span>) -&gt; dict</code><p>Register and sign in; the token is kept on the client. Returns your account.</p></div><div class="fn" id="sdk-fn-login"><code class="sig">login(username: str, password: str) -&gt; dict</code><p>Sign in; the token is kept on the client. Returns your account.</p></div><div class="fn" id="sdk-fn-logout"><code class="sig">logout() -&gt; <span class="t-k">None</span></code><p>Sign out and revoke the token.</p></div><div class="fn" id="sdk-fn-me"><code class="sig">me() -&gt; dict</code><p>Your account and settings.</p></div><div class="fn" id="sdk-fn-health"><code class="sig">health() -&gt; dict</code><p>Whether the service is up.</p></div></section><section id="sdk-characters"><h2>Characters</h2><div class="fn" id="sdk-fn-characters"><code class="sig">characters() -&gt; list[dict]</code><p>Your characters, newest first. A new account already has the official characters.</p></div><div class="fn" id="sdk-fn-character"><code class="sig">character(character_id: str) -&gt; dict</code><p>One character in full.</p></div><div class="fn" id="sdk-fn-export_character"><code class="sig">export_character(character_id: str) -&gt; dict</code><p>The character as a <code>krino-persona/1</code> package.</p></div></section><section id="sdk-chat"><h2>Chat</h2><div class="fn" id="sdk-fn-sessions"><code class="sig">sessions(character_id: str) -&gt; list[dict]</code><p>Your conversations with a character.</p></div><div class="fn" id="sdk-fn-start_session"><code class="sig">start_session(character_id: str) -&gt; dict</code><p>Start a conversation; the result carries the <code>greeting</code>.</p></div><div class="fn" id="sdk-fn-session"><code class="sig">session(session_id: str) -&gt; dict</code><p>A conversation with all its messages.</p></div><div class="fn" id="sdk-fn-send"><code class="sig">send(session_id: str, text: str, image: str | <span class="t-k">None</span>=<span class="t-k">None</span>, source: str=<span class="t-s">&#x27;app&#x27;</span>) -&gt; dict</code><p>Say something and wait for the whole reply, at <code>turn["reply"]["content"]</code>.</p></div><div class="fn" id="sdk-fn-stream"><code class="sig">stream(session_id: str, text: str=<span class="t-s">&#x27;&#x27;</span>, image: str | <span class="t-k">None</span>=<span class="t-k">None</span>, audio: str | <span class="t-k">None</span>=<span class="t-k">None</span>, source: str=<span class="t-s">&#x27;app&#x27;</span>) -&gt; Iterator[Event]</code><p>Say something and get the reply in pieces: yields <code>Event</code>s.</p></div><div class="fn" id="sdk-fn-gesture"><code class="sig">gesture(session_id: str, gesture: str) -&gt; dict</code><p>Make a gesture (<code>wave</code>, <code>pat</code>…); the character decides how to respond.</p></div><div class="fn" id="sdk-fn-end_session"><code class="sig">end_session(session_id: str) -&gt; dict</code><p>Close the conversation; the character writes a summary.</p></div><div class="fn" id="sdk-fn-delete_session"><code class="sig">delete_session(session_id: str) -&gt; <span class="t-k">None</span></code><p>Delete a conversation.</p></div></section><section id="sdk-memory"><h2>Memory</h2><div class="fn" id="sdk-fn-memories"><code class="sig">memories(character_id: str, status: str=<span class="t-s">&#x27;active&#x27;</span>, type: str | <span class="t-k">None</span>=<span class="t-k">None</span>, q: str | <span class="t-k">None</span>=<span class="t-k">None</span>) -&gt; list[dict]</code><p>What the character remembers about you, filtered by status, type or search text.</p></div><div class="fn" id="sdk-fn-remember"><code class="sig">remember(character_id: str, content: str, type: str=<span class="t-s">&#x27;fact&#x27;</span>, reality: str=<span class="t-s">&#x27;real&#x27;</span>, importance: int=<span class="t-n">3</span>, **fields) -&gt; dict</code><p>Tell the character something to remember. <code>type</code>: fact, preference, event or commitment.</p></div><div class="fn" id="sdk-fn-edit_memory"><code class="sig">edit_memory(memory_id: str, **fields) -&gt; dict</code><p>Change a memory; pass only the fields you change.</p></div><div class="fn" id="sdk-fn-forget"><code class="sig">forget(memory_id: str) -&gt; dict</code><p>Forget a memory; <code>restore()</code> brings it back.</p></div><div class="fn" id="sdk-fn-restore"><code class="sig">restore(memory_id: str) -&gt; dict</code><p>Bring a forgotten memory back.</p></div><div class="fn" id="sdk-fn-delete_memory"><code class="sig">delete_memory(memory_id: str) -&gt; <span class="t-k">None</span></code><p>Delete a memory for good.</p></div></section><section id="sdk-voice"><h2>Voice</h2><div class="fn" id="sdk-fn-speak"><code class="sig">speak(text: str, voice: str | <span class="t-k">None</span>=<span class="t-k">None</span>, rate: float=<span class="t-n">1.0</span>) -&gt; tuple[bytes, str]</code><p>Synthesize speech: returns <code>(audio bytes, media type)</code>.</p></div></section>
+<section id="event">
+  <h2>Event</h2>
+  <p>What <code>stream()</code> yields: <code>name</code> and <code>data</code>. <code>name</code> is <code>decision</code>, <code>delta</code>, <code>done</code> or <code>error</code>; see <a href='../../developers/api/#streaming'>Streaming</a>.</p>
+  <div class="code"><div class="code-h"><span>Python</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">for</span> event <span class="t-k">in</span> kw.stream(session[<span class="t-s">&quot;id&quot;</span>], <span class="t-s">&quot;Tell me a story&quot;</span>):
+    <span class="t-k">if</span> event.name == <span class="t-s">&quot;delta&quot;</span>:
+        <span class="t-k">print</span>(event.data[<span class="t-s">&quot;text&quot;</span>], end=<span class="t-s">&quot;&quot;</span>, flush=<span class="t-k">True</span>)
+    <span class="t-k">elif</span> event.name == <span class="t-s">&quot;error&quot;</span>:
+        <span class="t-k">print</span>(<span class="t-s">&quot;\n&quot;</span>, event.data[<span class="t-s">&quot;message&quot;</span>])</code></pre></div>
+</section>
+<section id="krinoerror">
+  <h2>KrinoError</h2>
+  <p>Raised when the server refuses a request: <code>.status</code> is the HTTP status, <code>.message</code> the server's explanation.</p>
+  <div class="code"><div class="code-h"><span>Python</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">from</span> krino_world <span class="t-k">import</span> Client, KrinoError
+
+<span class="t-k">try</span>:
+    kw.send(session[<span class="t-s">&quot;id&quot;</span>], <span class="t-s">&quot;&quot;</span>)
+<span class="t-k">except</span> KrinoError <span class="t-k">as</span> e:
+    <span class="t-k">print</span>(e.status, e.message)   <span class="t-c"># 400 Message is empty</span></code></pre></div>
+</section>
+</article>
+</div>
+  </main>
+  <div class="foot-wrap">
+      <footer class="foot site-foot">
+        <div><h4>KRINO MATRIX</h4><p class="legal">© 2026 Krino Matrix<br><a href="mailto:support@krinomatrix.com">support@krinomatrix.com</a></p></div>
+        <div><h4>Products</h4><a href="/global/products/world/">KRINO WORLD</a></div>
+        <div><h4>COMPANY</h4><a href="../../apocalypse/">Apocalypse & Fulfillment</a><a href="../../vision/#tree">Krino Tree</a><a href="../../about/">About</a><a href="../../developers/">Developers</a><a href="../../contact/">Contact</a></div>
+        <div><h4>LEGAL</h4><a href="../../privacy/">Privacy Policy</a><a href="../../terms/">Terms of Service</a><a href="../../cookies/">Cookie Policy</a></div>
+        <p class="region-line">Region: <b>International</b> · <a class="region-to" href="../../../cn/developers/sdk/" data-region="cn" hreflang="zh-CN" lang="zh-CN"><span class="hide-sm">中国大陆 · </span>中文</a></p>
+      </footer>
+  </div>
+  <div class="cookie" hidden role="region" aria-label="Cookie">
+    <p>No tracking and no analytics here. One cookie remembers the region you picked. <a href="../../cookies/">Learn more</a></p>
+    <button type="button">GOT IT</button>
+  </div>
+  <script src="../../../portal.js"></script>
+</body>
+</html>

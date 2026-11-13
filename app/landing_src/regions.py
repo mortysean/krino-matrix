@@ -37,7 +37,7 @@ REGIONS = {
         ],
         "t": {  # 外壳上的文字
             "products": "产品", "developers": "开发者", "about": "关于", "contact": "联系",
-            "manifesto": "宣言", "apocalypse": "启示与应验", "tree": "战略", "enter": "Enter Krino",
+            "manifesto": "宣言", "apocalypse": "启示与应验", "tree": "战略", "enter": "Enter Krino", "login": "登录",
             "privacy": "隐私政策", "terms": "服务条款", "cookies": "Cookie 政策",
             "legal": "法律", "company_h": "公司", "region": "地区", "change_region": "切换地区",
             "all_products": "产品介绍", "learn": "了解", "home": "首页",
@@ -65,7 +65,7 @@ REGIONS = {
         ],
         "t": {
             "products": "Products", "developers": "Developers", "about": "About", "contact": "Contact",
-            "manifesto": "Manifesto", "apocalypse": "Apocalypse & Fulfillment", "tree": "Krino Tree", "enter": "Enter Krino",
+            "manifesto": "Manifesto", "apocalypse": "Apocalypse & Fulfillment", "tree": "Krino Tree", "enter": "Enter Krino", "login": "Log in",
             "privacy": "Privacy Policy", "terms": "Terms of Service", "cookies": "Cookie Policy",
             "legal": "LEGAL", "company_h": "COMPANY", "region": "Region", "change_region": "Change region",
             "all_products": "Product overview", "learn": "Explore", "home": "Home",

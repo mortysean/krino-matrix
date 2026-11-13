@@ -1,12 +1,14 @@
 # krino-world（Python）
 
-[English](README.md) | **简体中文**
+[English](https://github.com/mortysean/krino-matrix/blob/main/sdk/python/README.md) | **简体中文**
 
-[KRINO WORLD 接口](../../docs/api/README.zh-CN.md)的 Python 客户端。需要 Python 3.10+，唯一的依赖是 `httpx`。
+[KRINO WORLD 接口](https://github.com/mortysean/krino-matrix/blob/main/docs/api/README.zh-CN.md)的 Python 客户端。需要 Python 3.10+，唯一的依赖是 `httpx`。
 
 ```bash
-pip install "git+https://github.com/mortysean/krino-matrix#subdirectory=sdk/python"
+pip install krino-world
 ```
+
+完整文档和快速开始：[krinomatrix.com/cn/developers](https://krinomatrix.com/cn/developers/)（[国际站](https://krinomatrix.com/global/developers/)）。
 
 ## 用法
 
@@ -51,4 +53,4 @@ with Client(region="cn") as kw:               # 国际站用 "global"
 - 连自己的服务器：`Client(base_url="http://127.0.0.1:8630")`。
 - 复用已有的 token：`Client(region="cn", token="…")`。
 - 请求被拒绝时抛出 `KrinoError`：`.status` 是 HTTP 状态码，`.message` 是服务器给的说明。
-- 两个地区的账号互不相通，见[地址](../../docs/api/README.zh-CN.md#地址)。
+- 两个地区的账号互不相通，见[地址](https://github.com/mortysean/krino-matrix/blob/main/docs/api/README.zh-CN.md#地址)。

@@ -1,0 +1,865 @@
+<!doctype html>
+<!-- 由 app/landing_src/build.py 生成，别直接改：改 devdocs.py 或 regions.py 再重跑 -->
+<html lang="en" data-lang="en" data-region="global">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>API reference · KRINO MATRIX</title>
+  <meta name="description" content="KRINO WORLD API reference: accounts, characters, chat (with streaming), memory and voice, each with parameters and examples.">
+  <link rel="canonical" href="https://krinomatrix.com/global/developers/api/">
+  <link rel="alternate" hreflang="zh-CN" href="https://krinomatrix.com/cn/developers/api/">
+  <link rel="alternate" hreflang="en" href="https://krinomatrix.com/global/developers/api/">
+  <link rel="alternate" hreflang="x-default" href="https://krinomatrix.com/global/developers/api/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="KRINO MATRIX">
+  <meta property="og:title" content="API reference · KRINO MATRIX">
+  <meta property="og:description" content="KRINO WORLD API reference: accounts, characters, chat (with streaming), memory and voice, each with parameters and examples.">
+  <meta property="og:url" content="https://krinomatrix.com/global/developers/api/">
+  <meta property="og:image" content="https://krinomatrix.com/assets/krino.png">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#06060b">
+  <link rel="icon" href="../../../assets/krino-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../portal.css">
+</head>
+<body>
+  <div class="fx fx-glow"></div><div class="fx fx-grid"></div><div class="fx fx-scan"></div>
+  <header class="bar">
+    <a class="brand" href="../../"><img src="../../../assets/krino-mark.svg" alt=""><div><b>KRINO MATRIX</b></div></a>
+    <nav>
+      <a class="hide-sm" href="../../products/">Products</a>
+      <a class="hide-sm" href="../../apocalypse/">Apocalypse & Fulfillment</a>
+      <a class="hide-sm" href="../../vision/#tree">Krino Tree</a>
+      <a class="hide-sm" href="../../developers/" aria-current="page">Developers</a>
+      <a class="hide-sm" href="../../about/">About</a>
+      <a class="region-sw" href="../../../cn/developers/api/" data-region="cn" hreflang="zh-CN" lang="zh-CN"><span class="hide-sm">中国大陆 · </span>中文</a>
+      <a class="cta" href="/global/products/world/">Log in</a>
+    </nav>
+  </header>
+  <main class="devdoc">
+<div class="dev">
+<nav class="dev-side" aria-label="docs">
+<button type="button" class="dev-toggle" aria-expanded="false">Contents</button><div class="dev-nav">
+<h4><a href="../../developers/">Get started</a></h4>
+<a href="../../developers/#overview">Overview</a>
+<a href="../../developers/#quickstart">Quick start</a>
+<a href="../../developers/#basics">Basics</a>
+<h4><a href="../../developers/api/">API reference</a></h4>
+<a href="../../developers/api/#base">Base URL</a>
+<a href="../../developers/api/#auth">Authentication</a>
+<a href="../../developers/api/#streaming">Streaming</a>
+<a href="../../developers/api/#errors">Errors</a>
+<h5><a href="../../developers/api/#g-account">Account</a></h5>
+<a href="../../developers/api/#ep-post-auth-register"><span class="m m-post">POST</span>Register</a>
+<a href="../../developers/api/#ep-post-auth-login"><span class="m m-post">POST</span>Log in</a>
+<a href="../../developers/api/#ep-post-auth-logout"><span class="m m-post">POST</span>Log out</a>
+<a href="../../developers/api/#ep-get-me"><span class="m m-get">GET</span>Your account</a>
+<a href="../../developers/api/#ep-patch-me"><span class="m m-patch">PATCH</span>Update settings</a>
+<a href="../../developers/api/#ep-delete-me"><span class="m m-delete">DELETE</span>Delete account</a>
+<h5><a href="../../developers/api/#g-characters">Characters</a></h5>
+<a href="../../developers/api/#ep-get-characters"><span class="m m-get">GET</span>List characters</a>
+<a href="../../developers/api/#ep-get-characters-cid"><span class="m m-get">GET</span>Get a character</a>
+<a href="../../developers/api/#ep-get-characters-cid-export"><span class="m m-get">GET</span>Export a character</a>
+<h5><a href="../../developers/api/#g-chat">Chat</a></h5>
+<a href="../../developers/api/#ep-post-sessions"><span class="m m-post">POST</span>Start a session</a>
+<a href="../../developers/api/#ep-get-sessions"><span class="m m-get">GET</span>List sessions</a>
+<a href="../../developers/api/#ep-get-sessions-sid"><span class="m m-get">GET</span>Get a session</a>
+<a href="../../developers/api/#ep-post-sessions-sid-messages"><span class="m m-post">POST</span>Send a message</a>
+<a href="../../developers/api/#ep-post-sessions-sid-stream"><span class="m m-post">POST</span>Send a message (streamed)</a>
+<a href="../../developers/api/#ep-post-sessions-sid-events"><span class="m m-post">POST</span>Send an event</a>
+<a href="../../developers/api/#ep-post-sessions-sid-end"><span class="m m-post">POST</span>End a session</a>
+<a href="../../developers/api/#ep-delete-sessions-sid"><span class="m m-delete">DELETE</span>Delete a session</a>
+<h5><a href="../../developers/api/#g-memory">Memory</a></h5>
+<a href="../../developers/api/#ep-get-memories"><span class="m m-get">GET</span>List memories</a>
+<a href="../../developers/api/#ep-post-memories"><span class="m m-post">POST</span>Add a memory</a>
+<a href="../../developers/api/#ep-patch-memories-mid"><span class="m m-patch">PATCH</span>Edit a memory</a>
+<a href="../../developers/api/#ep-post-memories-mid-forget"><span class="m m-post">POST</span>Forget</a>
+<a href="../../developers/api/#ep-post-memories-mid-restore"><span class="m m-post">POST</span>Restore</a>
+<a href="../../developers/api/#ep-delete-memories-mid"><span class="m m-delete">DELETE</span>Delete permanently</a>
+<a href="../../developers/api/#ep-get-memories-candidates"><span class="m m-get">GET</span>Proposed memories</a>
+<a href="../../developers/api/#ep-post-memories-candidates-cand-id-accept"><span class="m m-post">POST</span>Accept</a>
+<a href="../../developers/api/#ep-delete-memories-candidates-cand-id"><span class="m m-delete">DELETE</span>Reject</a>
+<a href="../../developers/api/#ep-get-memory-jobs-job-id"><span class="m m-get">GET</span>Memory job</a>
+<a href="../../developers/api/#ep-get-relations-cid-export"><span class="m m-get">GET</span>Export relationship</a>
+<a href="../../developers/api/#ep-post-relations-cid-import"><span class="m m-post">POST</span>Import relationship</a>
+<h5><a href="../../developers/api/#g-voice">Voice & vision</a></h5>
+<a href="../../developers/api/#ep-post-voice-tts"><span class="m m-post">POST</span>Text to speech</a>
+<a href="../../developers/api/#ep-post-voice-stt"><span class="m m-post">POST</span>Speech to text</a>
+<a href="../../developers/api/#ep-get-voice-config"><span class="m m-get">GET</span>Voice services</a>
+<a href="../../developers/api/#ep-post-vision-describe"><span class="m m-post">POST</span>Describe an image</a>
+<h5><a href="../../developers/api/#g-status">Status</a></h5>
+<a href="../../developers/api/#ep-get-health"><span class="m m-get">GET</span>Health</a>
+<a href="../../developers/api/#ep-get-credits"><span class="m m-get">GET</span>Today&#x27;s credits</a>
+<h4><a href="../../developers/sdk/">Python SDK</a></h4>
+<a href="../../developers/sdk/#install">Install</a>
+<a href="../../developers/sdk/#client">Client</a>
+<a href="../../developers/sdk/#sdk-plumbing">Any endpoint</a>
+<a href="../../developers/sdk/#sdk-account">Account</a>
+<a href="../../developers/sdk/#sdk-characters">Characters</a>
+<a href="../../developers/sdk/#sdk-chat">Chat</a>
+<a href="../../developers/sdk/#sdk-memory">Memory</a>
+<a href="../../developers/sdk/#sdk-voice">Voice</a>
+<a href="../../developers/sdk/#event">Event</a>
+<a href="../../developers/sdk/#krinoerror">KrinoError</a>
+<h4>Resources</h4>
+<a href="../../../assets/krino-world-openapi.json" download>openapi.json</a>
+<a href="https://github.com/mortysean/krino-matrix" target="_blank" rel="noopener">GitHub ↗</a>
+<a href="https://pypi.org/project/krino-world/" target="_blank" rel="noopener">PyPI ↗</a>
+</div></nav>
+<article class="dev-main">
+<header class="dev-head">
+  <p class="tag">// API</p>
+  <h1 class="title">API <em>reference</em></h1>
+  <p class="lead">The KRINO WORLD HTTP API. The common endpoints are here; the full definition of every endpoint (including the character editor, workshop, social circle and glasses) is in
+    <a href="../../../assets/krino-world-openapi.json" download>openapi.json</a> (OpenAPI 3.1).</p>
+</header>
+<section id="base">
+  <h2>Base URL</h2>
+  <div class="code"><div class="code-h"><span>Base URL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>https://krinomatrix.com/global/products/world/api</code></pre></div>
+  <p>Every path below goes after this, so <code>POST /auth/login</code> is <code>https://krinomatrix.com/global/products/world/api/auth/login</code>. The other region is a separate deployment with its own accounts and data. A server you run yourself is at <code>http://&lt;host&gt;:8630/api</code>.</p>
+</section>
+<section id="auth">
+  <h2>Authentication</h2>
+  <p>Register or log in for a token, then send <code>Authorization: Bearer &lt;token&gt;</code> on every request. Tokens expire after a while; when one does you get <code>401</code> and log in again.</p>
+  <div class="code"><div class="code-h"><span>Shell</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>API=https://krinomatrix.com/global/products/world/api
+TOKEN=$(<span class="t-k">curl</span> -s $API/auth/login -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;username&quot;: &quot;me&quot;, &quot;password&quot;: &quot;your-password&quot;}&#x27;</span> | <span class="t-k">jq</span> -r .token)
+
+<span class="t-k">curl</span> -s $API/characters -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div>
+</section>
+<section id="streaming">
+  <h2>Streaming</h2>
+  <p><code>POST /sessions/{sid}/stream</code> answers with server-sent events, in this order:</p>
+  <div class="table-wrap"><table class=""><thead><tr><th>Event</th><th>Data</th></tr></thead><tbody><tr><td><code>decision</code></td><td>First: what the character decided to do this turn (reply, stay quiet, make a gesture…)</td></tr><tr><td><code>delta</code></td><td>A piece of the reply in <code>text</code>; join them in order</td></tr><tr><td><code>done</code></td><td>The end, with the same object <code>/messages</code> returns</td></tr><tr><td><code>error</code></td><td>Replaces <code>done</code> if generation fails partway: <code>{&quot;message&quot;: &quot;…&quot;}</code></td></tr></tbody></table></div>
+  <div class="code"><div class="code-h"><span>text/event-stream</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">event: decision</span>
+data: {&quot;actions&quot;: [&quot;RESPOND&quot;], &quot;policy&quot;: &quot;rules&quot;}
+
+<span class="t-k">event: delta</span>
+data: {&quot;text&quot;: &quot;Once upon a time, &quot;}
+
+<span class="t-k">event: delta</span>
+data: {&quot;text&quot;: &quot;there was a big blue whale…&quot;}
+
+<span class="t-k">event: done</span>
+data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: […], &quot;decision&quot;: {…}, &quot;memory_job&quot;: &quot;…&quot;}</code></pre></div>
+  <p class="note">If you put a reverse proxy in front, turn off response buffering for this endpoint.</p>
+</section>
+<section id="errors">
+  <h2>Errors</h2>
+  <p>Errors come back as <code>{&quot;detail&quot;: &quot;…&quot;}</code>, written for people, in the site's language.</p>
+  <div class="table-wrap"><table class=""><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody><tr><td><code>400</code></td><td>The request is incomplete, for example an empty message</td></tr><tr><td><code>401</code></td><td>Missing or expired token; log in again</td></tr><tr><td><code>404</code></td><td>It doesn't exist, or it isn't yours</td></tr><tr><td><code>409</code></td><td>The session belongs to a different character than the one you named</td></tr><tr><td><code>413 / 415</code></td><td>The upload is too large / in a format we don't take</td></tr><tr><td><code>422</code></td><td>The body doesn't match the schema; <code>detail</code> says which field</td></tr><tr><td><code>429</code></td><td>Today's credits are used up; they reset tomorrow</td></tr><tr><td><code>502 / 503</code></td><td>An upstream model or voice service failed; retrying usually works</td></tr></tbody></table></div>
+</section>
+<section class="egroup" id="g-account"><h2>Account</h2><section class="ep" id="ep-post-auth-register">
+  <h3>Register</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/auth/register</code><span class="lock open">Public</span></p>
+  <p>Create an account and sign in. A new account already has the official characters, so you can start talking right away.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>username</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Username</td></tr><tr><td><code>password</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Password<span class="prule">6–128 chars</span></td></tr><tr><td><code>display_name</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>The name shown to characters; defaults to the username</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/auth/register&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;username&quot;: &quot;me&quot;, &quot;password&quot;: &quot;your-password&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;token&quot;</span>: <span class="t-s">&quot;2wIk7-Ecvo7oSW2Qo1IsO_Nh2S-aDo_Nxe0-bFh0HvQ&quot;</span>,
+  <span class="t-k">&quot;user&quot;</span>: {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;58acfe8dca7b4a02ab9cbea54767adb8&quot;</span>,
+    <span class="t-k">&quot;username&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+    <span class="t-k">&quot;display_name&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+    <span class="t-k">&quot;settings&quot;</span>: {…}
+  }
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-auth-login">
+  <h3>Log in</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/auth/login</code><span class="lock open">Public</span></p>
+  <p>Trade a username and password for a token. Send it as <code>Authorization: Bearer &lt;token&gt;</code> on every other request.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>username</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Username</td></tr><tr><td><code>password</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Password<span class="prule">6–128 chars</span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/auth/login&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;username&quot;: &quot;me&quot;, &quot;password&quot;: &quot;your-password&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;token&quot;</span>: <span class="t-s">&quot;2wIk7-Ecvo7oSW2Qo1IsO_Nh2S-aDo_Nxe0-bFh0HvQ&quot;</span>,
+  <span class="t-k">&quot;user&quot;</span>: {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;58acfe8dca7b4a02ab9cbea54767adb8&quot;</span>,
+    <span class="t-k">&quot;username&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+    <span class="t-k">&quot;display_name&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+    <span class="t-k">&quot;settings&quot;</span>: {…}
+  }
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-auth-logout">
+  <h3>Log out</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/auth/logout</code><span class="lock">Auth</span></p>
+  <p>Revoke the current token.</p>
+  <h4>Parameters</h4>
+  <p class="none">No parameters.</p>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/auth/logout&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-me">
+  <h3>Your account</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/me</code><span class="lock">Auth</span></p>
+  <p>Your account and settings.</p>
+  <h4>Parameters</h4>
+  <p class="none">No parameters.</p>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/me&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;58acfe8dca7b4a02ab9cbea54767adb8&quot;</span>,
+  <span class="t-k">&quot;username&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+  <span class="t-k">&quot;display_name&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+  <span class="t-k">&quot;settings&quot;</span>: {
+    <span class="t-k">&quot;save_sensitive&quot;</span>: <span class="t-b">false</span>,
+    <span class="t-k">&quot;privacy&quot;</span>: {<span class="t-k">&quot;camera&quot;</span>: <span class="t-b">false</span>, <span class="t-k">&quot;microphone&quot;</span>: <span class="t-b">false</span>},
+    <span class="t-k">&quot;voice&quot;</span>: {<span class="t-k">&quot;stt&quot;</span>: <span class="t-s">&quot;auto&quot;</span>, <span class="t-k">&quot;tts&quot;</span>: <span class="t-s">&quot;auto&quot;</span>, <span class="t-k">&quot;autoplay&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;voice&quot;</span>: <span class="t-s">&quot;&quot;</span>},
+    <span class="t-k">&quot;interaction&quot;</span>: {<span class="t-k">&quot;proactive&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;idle_seconds&quot;</span>: <span class="t-n">45</span>, <span class="t-k">&quot;animations&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;stories&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;web&quot;</span>: <span class="t-b">true</span>},
+    <span class="t-k">&quot;evaluator&quot;</span>: {<span class="t-k">&quot;mode&quot;</span>: <span class="t-b">null</span>},
+    <span class="t-k">&quot;social&quot;</span>: {<span class="t-k">&quot;autonomy&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;share_life&quot;</span>: <span class="t-b">true</span>}
+  },
+  <span class="t-k">&quot;companion_limit&quot;</span>: <span class="t-n">8</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-patch-me">
+  <h3>Update settings</h3>
+  <p class="ep-line"><span class="m m-patch">PATCH</span><code>/me</code><span class="lock">Auth</span></p>
+  <p>Send only the fields you change. Each settings group has the shape you see in <code>settings</code> from <code>GET /me</code>, and within a group you also send only what changes.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>display_name</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>The name shown to characters; defaults to the username</td></tr><tr><td><code>save_sensitive</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Let characters remember sensitive things (health, money…)</td></tr><tr><td><code>privacy</code></td><td>body</td><td><code>object</code></td><td><span class="opt">optional</span></td><td>Privacy: <code>camera</code>, <code>microphone</code></td></tr><tr><td><code>voice</code></td><td>body</td><td><code>object</code></td><td><span class="opt">optional</span></td><td>Voice: <code>stt</code>, <code>tts</code>, <code>autoplay</code>, <code>voice</code></td></tr><tr><td><code>interaction</code></td><td>body</td><td><code>object</code></td><td><span class="opt">optional</span></td><td>Interaction: <code>proactive</code> (characters start talking), <code>idle_seconds</code>, <code>stories</code>, <code>web</code> and more</td></tr><tr><td><code>evaluator</code></td><td>body</td><td><code>object</code></td><td><span class="opt">optional</span></td><td>Interaction policy: <code>mode</code></td></tr><tr><td><code>social</code></td><td>body</td><td><code>object</code></td><td><span class="opt">optional</span></td><td>Social circle: <code>autonomy</code>, <code>share_life</code></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X PATCH <span class="t-s">&quot;$API/me&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;display_name&quot;: &quot;Mika&quot;, &quot;voice&quot;: {&quot;autoplay&quot;: false}}&#x27;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;58acfe8dca7b4a02ab9cbea54767adb8&quot;</span>,
+  <span class="t-k">&quot;username&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+  <span class="t-k">&quot;display_name&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+  <span class="t-k">&quot;settings&quot;</span>: {
+    <span class="t-k">&quot;save_sensitive&quot;</span>: <span class="t-b">false</span>,
+    <span class="t-k">&quot;privacy&quot;</span>: {<span class="t-k">&quot;camera&quot;</span>: <span class="t-b">false</span>, <span class="t-k">&quot;microphone&quot;</span>: <span class="t-b">false</span>},
+    <span class="t-k">&quot;voice&quot;</span>: {<span class="t-k">&quot;stt&quot;</span>: <span class="t-s">&quot;auto&quot;</span>, <span class="t-k">&quot;tts&quot;</span>: <span class="t-s">&quot;auto&quot;</span>, <span class="t-k">&quot;autoplay&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;voice&quot;</span>: <span class="t-s">&quot;&quot;</span>},
+    <span class="t-k">&quot;interaction&quot;</span>: {<span class="t-k">&quot;proactive&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;idle_seconds&quot;</span>: <span class="t-n">45</span>, <span class="t-k">&quot;animations&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;stories&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;web&quot;</span>: <span class="t-b">true</span>},
+    <span class="t-k">&quot;evaluator&quot;</span>: {<span class="t-k">&quot;mode&quot;</span>: <span class="t-b">null</span>},
+    <span class="t-k">&quot;social&quot;</span>: {<span class="t-k">&quot;autonomy&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;share_life&quot;</span>: <span class="t-b">true</span>}
+  },
+  <span class="t-k">&quot;companion_limit&quot;</span>: <span class="t-n">8</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-delete-me">
+  <h3>Delete account</h3>
+  <p class="ep-line"><span class="m m-delete">DELETE</span><code>/me</code><span class="lock">Auth</span></p>
+  <p>Delete the account and everything in it: characters, memories, chats and relationships. This can't be undone.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>password</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Your current password, to confirm it's you</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/me&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;password&quot;: &quot;your-password&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
+  </div>
+</section></section><section class="egroup" id="g-characters"><h2>Characters</h2><section class="ep" id="ep-get-characters">
+  <h3>List characters</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/characters</code><span class="lock">Auth</span></p>
+  <p>Your characters, newest first.</p>
+  <h4>Parameters</h4>
+  <p class="none">No parameters.</p>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>[
+  {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+    <span class="t-k">&quot;public_id&quot;</span>: <span class="t-s">&quot;KR-27B48Y&quot;</span>,
+    <span class="t-k">&quot;slug&quot;</span>: <span class="t-s">&quot;krino&quot;</span>,
+    <span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>,
+    <span class="t-k">&quot;tagline&quot;</span>: <span class="t-s">&quot;Krino Matrix&#x27;s mascot, a calm researcher with glasses&quot;</span>,
+    <span class="t-k">&quot;tags&quot;</span>: [<span class="t-s">&quot;official&quot;</span>, <span class="t-s">&quot;glasses&quot;</span>],
+    <span class="t-k">&quot;official&quot;</span>: <span class="t-b">true</span>,
+    <span class="t-k">&quot;version&quot;</span>: <span class="t-n">1</span>,
+    <span class="t-k">&quot;portrait&quot;</span>: {<span class="t-k">&quot;kind&quot;</span>: <span class="t-s">&quot;chibi&quot;</span>, <span class="t-k">&quot;src&quot;</span>: <span class="t-s">&quot;/static/chibi/krino/chibi.json&quot;</span>}
+  },
+  …
+]</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-characters-cid">
+  <h3>Get a character</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/characters/{cid}</code><span class="lock">Auth</span></p>
+  <p>One character in full, including its greeting and voice settings.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters/$CHARACTER_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>,
+  <span class="t-k">&quot;greeting&quot;</span>: <span class="t-s">&quot;You&#x27;re here. What are we solving today?&quot;</span>,
+  <span class="t-k">&quot;voice&quot;</span>: {<span class="t-k">&quot;voice&quot;</span>: <span class="t-s">&quot;krino&quot;</span>, <span class="t-k">&quot;rate&quot;</span>: <span class="t-n">1.0</span>, <span class="t-k">&quot;pitch&quot;</span>: <span class="t-n">0.95</span>},
+  <span class="t-k">&quot;default_expression&quot;</span>: <span class="t-s">&quot;neutral&quot;</span>,
+  <span class="t-k">&quot;portrait&quot;</span>: {<span class="t-k">&quot;kind&quot;</span>: <span class="t-s">&quot;chibi&quot;</span>, <span class="t-k">&quot;src&quot;</span>: <span class="t-s">&quot;/static/chibi/krino/chibi.json&quot;</span>},
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-characters-cid-export">
+  <h3>Export a character</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/characters/{cid}/export</code><span class="lock">Auth</span></p>
+  <p>The character as a <code>krino-persona/1</code> package you can import elsewhere. It holds the persona only; your memories with it are under “Export relationship”.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr><tr><td><code>format</code></td><td>query</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>json</code> for the package, <code>md</code> for readable Markdown<span class="prule">default <code>&quot;json&quot;</code></span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters/$CHARACTER_ID/export&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;format&quot;</span>: <span class="t-s">&quot;krino-persona/1&quot;</span>,
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;krino&quot;</span>,
+  <span class="t-k">&quot;version&quot;</span>: <span class="t-n">1</span>,
+  <span class="t-k">&quot;persona&quot;</span>: {<span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>, <span class="t-k">&quot;personality&quot;</span>: …, <span class="t-k">&quot;speech&quot;</span>: …, <span class="t-k">&quot;greeting&quot;</span>: …, …},
+  <span class="t-k">&quot;behavior&quot;</span>: {…},
+  <span class="t-k">&quot;lore&quot;</span>: […]
+}</code></pre></div></div>
+  </div>
+</section></section><section class="egroup" id="g-chat"><h2>Chat</h2><section class="ep" id="ep-post-sessions">
+  <h3>Start a session</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/sessions</code><span class="lock">Auth</span></p>
+  <p>Start a new conversation. The response carries the character's <code>greeting</code>.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&quot;{\&quot;character_id\&quot;: \&quot;$CHARACTER_ID\&quot;}&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-b">null</span>,
+  <span class="t-k">&quot;ended&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;greeting&quot;</span>: <span class="t-s">&quot;You&#x27;re here. What are we solving today?&quot;</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-sessions">
+  <h3>List sessions</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/sessions</code><span class="lock">Auth</span></p>
+  <p>Your conversations with this character, newest first.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>query</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions?character_id=$CHARACTER_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>[
+  {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
+    <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+    <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;How was your day?&quot;</span>,
+    <span class="t-k">&quot;ended&quot;</span>: <span class="t-b">false</span>,
+    <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+    <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:36:12+00:00&quot;</span>
+  }
+]</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-sessions-sid">
+  <h3>Get a session</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/sessions/{sid}</code><span class="lock">Auth</span></p>
+  <p>A conversation with all its messages.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;ended&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;messages&quot;</span>: [
+    {<span class="t-k">&quot;id&quot;</span>: <span class="t-n">89</span>, <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;user&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;How was your day?&quot;</span>, <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;…&quot;</span>},
+    {<span class="t-k">&quot;id&quot;</span>: <span class="t-n">90</span>, <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;assistant&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;I&#x27;m here. How did today go?&quot;</span>, <span class="t-k">&quot;state&quot;</span>: {<span class="t-k">&quot;expression&quot;</span>: <span class="t-s">&quot;happy&quot;</span>, <span class="t-k">&quot;mood&quot;</span>: <span class="t-s">&quot;happy&quot;</span>}, <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;…&quot;</span>}
+  ],
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-sessions-sid-messages">
+  <h3>Send a message</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/sessions/{sid}/messages</code><span class="lock">Auth</span></p>
+  <p>Say something and wait for the whole reply. To show the reply as it's written, use the streaming endpoint below.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr><tr><td><code>text</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>What you say<span class="prule">≤ 4000 chars</span></td></tr><tr><td><code>audio</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A recording as a data URL (<code>data:audio/wav;base64,…</code>) that the character hears directly; streaming only</td></tr><tr><td><code>image</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>An image as a data URL (<code>data:image/jpeg;base64,…</code>)</td></tr><tr><td><code>source</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Where it came from: <code>app</code>, <code>voice</code> (voice chat), <code>glasses</code><span class="prule"><code>app</code> / <code>voice</code> / <code>glasses</code>; default <code>&quot;app&quot;</code></span></td></tr><tr><td><code>character_id</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Optional: check the session belongs to this character, 409 if not</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID/messages&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;How was your day?&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;reply&quot;</span>: {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-n">90</span>,
+    <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;assistant&quot;</span>,
+    <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;I&#x27;m here. How did today go?&quot;</span>,
+    <span class="t-k">&quot;state&quot;</span>: {<span class="t-k">&quot;expression&quot;</span>: <span class="t-s">&quot;happy&quot;</span>, <span class="t-k">&quot;animation&quot;</span>: <span class="t-b">null</span>, <span class="t-k">&quot;mood&quot;</span>: <span class="t-s">&quot;happy&quot;</span>},
+    <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>
+  },
+  <span class="t-k">&quot;user&quot;</span>: {<span class="t-k">&quot;id&quot;</span>: <span class="t-n">89</span>, <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;user&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;How was your day?&quot;</span>, …},
+  <span class="t-k">&quot;actions&quot;</span>: [{<span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;say&quot;</span>, <span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;I&#x27;m here. How did today go?&quot;</span>}],
+  <span class="t-k">&quot;decision&quot;</span>: {<span class="t-k">&quot;policy&quot;</span>: <span class="t-s">&quot;rules&quot;</span>, <span class="t-k">&quot;primary&quot;</span>: {<span class="t-k">&quot;action&quot;</span>: <span class="t-s">&quot;RESPOND&quot;</span>, …}, …},
+  <span class="t-k">&quot;memory_job&quot;</span>: <span class="t-s">&quot;40a37bb9a38c48a580d9a67e454f49cb&quot;</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-sessions-sid-stream">
+  <h3>Send a message (streamed)</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/sessions/{sid}/stream</code><span class="lock">Auth</span></p>
+  <p>The same, but the reply arrives piece by piece as <a href="#streaming">server-sent events</a>. You can attach a recording as <code>audio</code> and the character hears it directly.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr><tr><td><code>text</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>What you say<span class="prule">≤ 4000 chars</span></td></tr><tr><td><code>audio</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A recording as a data URL (<code>data:audio/wav;base64,…</code>) that the character hears directly; streaming only</td></tr><tr><td><code>image</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>An image as a data URL (<code>data:image/jpeg;base64,…</code>)</td></tr><tr><td><code>source</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Where it came from: <code>app</code>, <code>voice</code> (voice chat), <code>glasses</code><span class="prule"><code>app</code> / <code>voice</code> / <code>glasses</code>; default <code>&quot;app&quot;</code></span></td></tr><tr><td><code>character_id</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Optional: check the session belongs to this character, 409 if not</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -N <span class="t-s">&quot;$API/sessions/$SESSION_ID/stream&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;Tell me a story&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>text/event-stream</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">event: decision</span>
+data: {&quot;actions&quot;: [&quot;RESPOND&quot;], &quot;policy&quot;: &quot;rules&quot;}
+
+<span class="t-k">event: delta</span>
+data: {&quot;text&quot;: &quot;Once upon a time, &quot;}
+
+<span class="t-k">event: delta</span>
+data: {&quot;text&quot;: &quot;there was a big blue whale…&quot;}
+
+<span class="t-k">event: done</span>
+data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: […], &quot;decision&quot;: {…}, &quot;memory_job&quot;: &quot;…&quot;}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-sessions-sid-events">
+  <h3>Send an event</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/sessions/{sid}/events</code><span class="lock">Auth</span></p>
+  <p>Interactions without words: a gesture (wave, pat…), you being idle for a while, or showing the character an image. The character decides whether to respond. Returns the same as sending a message.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr><tr><td><code>type</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td><code>gesture</code>, <code>idle</code> (you've been away) or <code>perception</code> (show the character an image)<span class="prule"><code>idle</code> / <code>gesture</code> / <code>perception</code></span></td></tr><tr><td><code>gesture</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>The gesture, such as <code>wave</code> or <code>pat</code></td></tr><tr><td><code>idle_count</code></td><td>body</td><td><code>int</code></td><td><span class="opt">optional</span></td><td>How many idle events in a row<span class="prule">0–100; default <code>1</code></span></td></tr><tr><td><code>text</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>An optional line to go with it<span class="prule">≤ 400 chars</span></td></tr><tr><td><code>image</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>An image as a data URL (<code>data:image/jpeg;base64,…</code>)</td></tr><tr><td><code>character_id</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Optional: check the session belongs to this character, 409 if not</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID/events&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;type&quot;: &quot;gesture&quot;, &quot;gesture&quot;: &quot;wave&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;reply&quot;</span>: {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-n">90</span>,
+    <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;assistant&quot;</span>,
+    <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;I&#x27;m here. How did today go?&quot;</span>,
+    <span class="t-k">&quot;state&quot;</span>: {<span class="t-k">&quot;expression&quot;</span>: <span class="t-s">&quot;happy&quot;</span>, <span class="t-k">&quot;animation&quot;</span>: <span class="t-b">null</span>, <span class="t-k">&quot;mood&quot;</span>: <span class="t-s">&quot;happy&quot;</span>},
+    <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>
+  },
+  <span class="t-k">&quot;user&quot;</span>: {<span class="t-k">&quot;id&quot;</span>: <span class="t-n">89</span>, <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;user&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;How was your day?&quot;</span>, …},
+  <span class="t-k">&quot;actions&quot;</span>: [{<span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;say&quot;</span>, <span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;I&#x27;m here. How did today go?&quot;</span>}],
+  <span class="t-k">&quot;decision&quot;</span>: {<span class="t-k">&quot;policy&quot;</span>: <span class="t-s">&quot;rules&quot;</span>, <span class="t-k">&quot;primary&quot;</span>: {<span class="t-k">&quot;action&quot;</span>: <span class="t-s">&quot;RESPOND&quot;</span>, …}, …},
+  <span class="t-k">&quot;memory_job&quot;</span>: <span class="t-s">&quot;40a37bb9a38c48a580d9a67e454f49cb&quot;</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-sessions-sid-end">
+  <h3>End a session</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/sessions/{sid}/end</code><span class="lock">Auth</span></p>
+  <p>Close the conversation. The character writes a short summary of it.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/sessions/$SESSION_ID/end&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;ended&quot;</span>: <span class="t-b">true</span>,
+  <span class="t-k">&quot;summary&quot;</span>: {<span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;b6a975397f63406dbc8f63c98676a1f5&quot;</span>, <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;Chat 11-13 22:34: How was your day?&quot;</span>},
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-delete-sessions-sid">
+  <h3>Delete a session</h3>
+  <p class="ep-line"><span class="m m-delete">DELETE</span><code>/sessions/{sid}</code><span class="lock">Auth</span></p>
+  <p>Delete the conversation and its messages.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>sid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Session id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/sessions/$SESSION_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
+  </div>
+</section></section><section class="egroup" id="g-memory"><h2>Memory</h2><section class="ep" id="ep-get-memories">
+  <h3>List memories</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/memories</code><span class="lock">Auth</span></p>
+  <p>What the character remembers about you. <code>reality</code> is <code>real</code> (it happened) or <code>story</code> (shared fiction).</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>query</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr><tr><td><code>status</code></td><td>query</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>active</code> or <code>forgotten</code><span class="prule">default <code>&quot;active&quot;</code></span></td></tr><tr><td><code>type</code></td><td>query</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Filter by type</td></tr><tr><td><code>q</code></td><td>query</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Search text</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories?character_id=$CHARACTER_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>[
+  {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+    <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+    <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+    <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+    <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+    <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+    <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+    <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;active&quot;</span>,
+    <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-b">null</span>,
+    <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+    <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+    <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+    <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+    <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+    …
+  }
+]</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-memories">
+  <h3>Add a memory</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/memories</code><span class="lock">Auth</span></p>
+  <p>Tell the character something to remember.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr><tr><td><code>content</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>What to remember<span class="prule">1–2000 chars</span></td></tr><tr><td><code>type</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>fact</code>, <code>preference</code>, <code>event</code> or <code>commitment</code><span class="prule"><code>fact</code> / <code>preference</code> / <code>event</code> / <code>commitment</code>; default <code>&quot;fact&quot;</code></span></td></tr><tr><td><code>reality</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>real</code> (it happened) or <code>story</code> (shared fiction)<span class="prule"><code>real</code> / <code>story</code>; default <code>&quot;real&quot;</code></span></td></tr><tr><td><code>title</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A short title; taken from the content if omitted</td></tr><tr><td><code>importance</code></td><td>body</td><td><code>int</code></td><td><span class="opt">optional</span></td><td>Importance, 1–5<span class="prule">1–5; default <code>3</code></span></td></tr><tr><td><code>pinned</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Pinned: always recalled<span class="prule">default <code>false</code></span></td></tr><tr><td><code>sensitive</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Sensitive<span class="prule">default <code>false</code></span></td></tr><tr><td><code>source_message_id</code></td><td>body</td><td><code>int</code></td><td><span class="opt">optional</span></td><td>The message it came from (its <code>id</code>)</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&quot;{\&quot;character_id\&quot;: \&quot;$CHARACTER_ID\&quot;, \&quot;content\&quot;: \&quot;I like plain rice\&quot;, \&quot;type\&quot;: \&quot;preference\&quot;}&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+  <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+  <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+  <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;active&quot;</span>,
+  <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-b">null</span>,
+  <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+  <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-patch-memories-mid">
+  <h3>Edit a memory</h3>
+  <p class="ep-line"><span class="m m-patch">PATCH</span><code>/memories/{mid}</code><span class="lock">Auth</span></p>
+  <p>Correct what it got wrong. Send only the fields you change.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>mid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Memory id</td></tr><tr><td><code>content</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>What to remember</td></tr><tr><td><code>title</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A short title; taken from the content if omitted</td></tr><tr><td><code>type</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>fact</code>, <code>preference</code>, <code>event</code> or <code>commitment</code></td></tr><tr><td><code>reality</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td><code>real</code> (it happened) or <code>story</code> (shared fiction)</td></tr><tr><td><code>importance</code></td><td>body</td><td><code>int</code></td><td><span class="opt">optional</span></td><td>Importance, 1–5</td></tr><tr><td><code>pinned</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Pinned: always recalled</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X PATCH <span class="t-s">&quot;$API/memories/$MEMORY_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;importance&quot;: 5, &quot;pinned&quot;: true}&#x27;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+  <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+  <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+  <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;active&quot;</span>,
+  <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-b">null</span>,
+  <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+  <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-memories-mid-forget">
+  <h3>Forget</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/memories/{mid}/forget</code><span class="lock">Auth</span></p>
+  <p>The character stops recalling this memory. <code>/restore</code> brings it back.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>mid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Memory id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/memories/$MEMORY_ID/forget&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+  <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+  <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+  <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;forgotten&quot;</span>,
+  <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-s">&quot;You asked me to forget&quot;</span>,
+  <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+  <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-memories-mid-restore">
+  <h3>Restore</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/memories/{mid}/restore</code><span class="lock">Auth</span></p>
+  <p>Bring a forgotten memory back.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>mid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Memory id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/memories/$MEMORY_ID/restore&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+  <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+  <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+  <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;active&quot;</span>,
+  <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-b">null</span>,
+  <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+  <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-delete-memories-mid">
+  <h3>Delete permanently</h3>
+  <p class="ep-line"><span class="m m-delete">DELETE</span><code>/memories/{mid}</code><span class="lock">Auth</span></p>
+  <p>Delete the memory for good.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>mid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Memory id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/memories/$MEMORY_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;removed&quot;</span>: {<span class="t-k">&quot;memories&quot;</span>: <span class="t-n">1</span>, <span class="t-k">&quot;messages&quot;</span>: <span class="t-n">0</span>}}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-memories-candidates">
+  <h3>Proposed memories</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/memories/candidates</code><span class="lock">Auth</span></p>
+  <p>Things the character proposes to remember from your conversations, waiting for you to confirm.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>query</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories/candidates?character_id=$CHARACTER_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>[
+  {<span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;…&quot;</span>, <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;Going for a run tomorrow&quot;</span>, <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;commitment&quot;</span>, …}
+]</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-memories-candidates-cand-id-accept">
+  <h3>Accept</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/memories/candidates/{cand_id}/accept</code><span class="lock">Auth</span></p>
+  <p>Accept the proposal, optionally rewording it.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cand_id</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Proposal id</td></tr><tr><td><code>content</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>Reworded content (optional)</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories/candidates/$CANDIDATE_ID/accept&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{}&#x27;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+  <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;I like plain rice&quot;</span>,
+  <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+  <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;active&quot;</span>,
+  <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-b">null</span>,
+  <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+  <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-delete-memories-candidates-cand-id">
+  <h3>Reject</h3>
+  <p class="ep-line"><span class="m m-delete">DELETE</span><code>/memories/candidates/{cand_id}</code><span class="lock">Auth</span></p>
+  <p>Don't remember it.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cand_id</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Proposal id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/memories/candidates/$CANDIDATE_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-memory-jobs-job-id">
+  <h3>Memory job</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/memory-jobs/{job_id}</code><span class="lock">Auth</span></p>
+  <p>After each turn the character updates its memories in the background; the turn result carries the job id as <code>memory_job</code>. With <code>wait</code>, the call returns as soon as the job finishes, waiting at most that many seconds.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>job_id</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Job id (<code>memory_job</code> from a turn)</td></tr><tr><td><code>wait</code></td><td>query</td><td><code>number</code></td><td><span class="opt">optional</span></td><td>Seconds to wait for it to finish, up to 15<span class="prule">default <code>0</code></span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memory-jobs/$JOB_ID?wait=5&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;40a37bb9a38c48a580d9a67e454f49cb&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;done&quot;</span>,
+  <span class="t-k">&quot;result&quot;</span>: {<span class="t-k">&quot;created&quot;</span>: [], <span class="t-k">&quot;updated&quot;</span>: [], <span class="t-k">&quot;confirmed&quot;</span>: [], <span class="t-k">&quot;pending&quot;</span>: [], <span class="t-k">&quot;dropped&quot;</span>: []},
+  <span class="t-k">&quot;error&quot;</span>: <span class="t-b">null</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-relations-cid-export">
+  <h3>Export relationship</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/relations/{cid}/export</code><span class="lock">Auth</span></p>
+  <p>Your private data with this character: memories and relationship progress, optionally with chats.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr><tr><td><code>chats</code></td><td>query</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Include chats<span class="prule">default <code>false</code></span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/relations/$CHARACTER_ID/export?chats=true&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;format&quot;</span>: <span class="t-s">&quot;krino-relation/1&quot;</span>,
+  <span class="t-k">&quot;character&quot;</span>: {<span class="t-k">&quot;slug&quot;</span>: <span class="t-s">&quot;krino&quot;</span>, <span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>},
+  <span class="t-k">&quot;exported_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:37:20+00:00&quot;</span>,
+  <span class="t-k">&quot;memories&quot;</span>: […],
+  <span class="t-k">&quot;bond&quot;</span>: {<span class="t-k">&quot;closeness&quot;</span>: <span class="t-n">0.8</span>, <span class="t-k">&quot;stage_index&quot;</span>: <span class="t-n">0</span>, <span class="t-k">&quot;turns&quot;</span>: <span class="t-n">1</span>, <span class="t-k">&quot;days&quot;</span>: <span class="t-n">1</span>, …}
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-relations-cid-import">
+  <h3>Import relationship</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/relations/{cid}/import</code><span class="lock">Auth</span></p>
+  <p>Import an exported relationship, for example into another account. Duplicate memories are skipped.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>cid</code></td><td>path</td><td><code>string</code></td><td><span class="req">required</span></td><td>Character id</td></tr><tr><td><code>data</code></td><td>body</td><td><code>object</code></td><td><span class="req">required</span></td><td>The whole object from “Export relationship”</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/relations/$CHARACTER_ID/import&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;data&quot;: &quot;…&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;created&quot;</span>: <span class="t-n">12</span>, <span class="t-k">&quot;duplicate&quot;</span>: <span class="t-n">0</span>}</code></pre></div></div>
+  </div>
+</section></section><section class="egroup" id="g-voice"><h2>Voice & vision</h2><section class="ep" id="ep-post-voice-tts">
+  <h3>Text to speech</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/voice/tts</code><span class="lock">Auth</span></p>
+  <p>Speak text aloud. The response is the audio itself, not JSON; check <code>Content-Type</code> for the format.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>text</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>The text to speak<span class="prule">1–600 chars</span></td></tr><tr><td><code>voice</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A voice id from <code>GET /voice/config</code>; the default if omitted</td></tr><tr><td><code>rate</code></td><td>body</td><td><code>number</code></td><td><span class="opt">optional</span></td><td>Speed, 0.5–2.0<span class="prule">0.5–2; default <code>1.0</code></span></td></tr><tr><td><code>style</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A voice description (characters designed from a sentence)</td></tr><tr><td><code>stream</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Stream 16-bit PCM (24 kHz mono) as it's synthesized; the first audio arrives in a fraction of a second<span class="prule">default <code>false</code></span></td></tr><tr><td><code>opus_stream</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>With stream, send Ogg Opus instead of PCM (decode with WebCodecs)<span class="prule">default <code>false</code></span></td></tr><tr><td><code>opus_file</code></td><td>body</td><td><code>bool</code></td><td><span class="opt">optional</span></td><td>Return Ogg Opus instead of WAV for the whole clip; much smaller<span class="prule">default <code>false</code></span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/tts&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;Good night&quot;, &quot;opus_file&quot;: true}&#x27;</span> \
+  -o speech.ogg</code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>Shell</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-c"># The body is the audio bytes</span>
+Content-Type: audio/ogg   <span class="t-c"># audio/wav when opus_file is false</span></code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-voice-stt">
+  <h3>Speech to text</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/voice/stt</code><span class="lock">Auth</span></p>
+  <p>Upload a recording as <code>multipart/form-data</code> and get the text back.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>file</code></td><td>form</td><td><code>string</code></td><td><span class="req">required</span></td><td>The recording: webm, ogg, mp4, wav…</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/stt&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -F file=@speech.webm</code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;How was your day&quot;</span>}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-voice-config">
+  <h3>Voice services</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/voice/config</code><span class="lock">Auth</span></p>
+  <p>Which voice and vision services this server offers, and the voices to choose from.</p>
+  <h4>Parameters</h4>
+  <p class="none">No parameters.</p>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/config&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{
+  <span class="t-k">&quot;stt&quot;</span>: {<span class="t-k">&quot;provider&quot;</span>: <span class="t-s">&quot;dashscope&quot;</span>, <span class="t-k">&quot;server&quot;</span>: <span class="t-b">true</span>},
+  <span class="t-k">&quot;tts&quot;</span>: {<span class="t-k">&quot;provider&quot;</span>: <span class="t-s">&quot;qwen&quot;</span>, <span class="t-k">&quot;server&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;voices&quot;</span>: […], <span class="t-k">&quot;default&quot;</span>: <span class="t-s">&quot;…&quot;</span>},
+  <span class="t-k">&quot;vlm&quot;</span>: {<span class="t-k">&quot;provider&quot;</span>: <span class="t-s">&quot;openai&quot;</span>, <span class="t-k">&quot;simulated&quot;</span>: <span class="t-b">false</span>},
+  <span class="t-k">&quot;hear&quot;</span>: <span class="t-b">true</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-vision-describe">
+  <h3>Describe an image</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/vision/describe</code><span class="lock">Auth</span></p>
+  <p>Have the model describe an image or answer a question about it.</p>
+  <h4>Parameters</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td><code>image</code></td><td>body</td><td><code>string</code></td><td><span class="req">required</span></td><td>The image as a data URL<span class="prule">≤ 8000000 chars</span></td></tr><tr><td><code>question</code></td><td>body</td><td><code>string</code></td><td><span class="opt">optional</span></td><td>A question about it (optional)<span class="prule">≤ 200 chars</span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/vision/describe&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;image&quot;: &quot;data:image/jpeg;base64,…&quot;, &quot;question&quot;: &quot;What is this?&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;A small blue pixel-art whale.&quot;</span>}</code></pre></div></div>
+  </div>
+</section></section><section class="egroup" id="g-status"><h2>Status</h2><section class="ep" id="ep-get-health">
+  <h3>Health</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/health</code><span class="lock open">Public</span></p>
+  <p>Whether the service is up. No sign-in needed.</p>
+  <h4>Parameters</h4>
+  <p class="none">No parameters.</p>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/health&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-credits">
+  <h3>Today&#x27;s credits</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/credits</code><span class="lock">Auth</span></p>
+  <p>Today's credit limit and usage. When it runs out the API returns 429 until the next day.</p>
+  <h4>Parameters</h4>
+  <p class="none">No parameters.</p>
+  <div class="ep-ex">
+    <div><h4>Request</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/credits&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>Response</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>{<span class="t-k">&quot;limit&quot;</span>: <span class="t-n">100.0</span>, <span class="t-k">&quot;spent&quot;</span>: <span class="t-n">12.5</span>, <span class="t-k">&quot;per_cny&quot;</span>: <span class="t-n">10.0</span>, <span class="t-k">&quot;image&quot;</span>: <span class="t-n">2.5</span>}</code></pre></div></div>
+  </div>
+</section></section>
+</article>
+</div>
+  </main>
+  <div class="foot-wrap">
+      <footer class="foot site-foot">
+        <div><h4>KRINO MATRIX</h4><p class="legal">© 2026 Krino Matrix<br><a href="mailto:support@krinomatrix.com">support@krinomatrix.com</a></p></div>
+        <div><h4>Products</h4><a href="/global/products/world/">KRINO WORLD</a></div>
+        <div><h4>COMPANY</h4><a href="../../apocalypse/">Apocalypse & Fulfillment</a><a href="../../vision/#tree">Krino Tree</a><a href="../../about/">About</a><a href="../../developers/">Developers</a><a href="../../contact/">Contact</a></div>
+        <div><h4>LEGAL</h4><a href="../../privacy/">Privacy Policy</a><a href="../../terms/">Terms of Service</a><a href="../../cookies/">Cookie Policy</a></div>
+        <p class="region-line">Region: <b>International</b> · <a class="region-to" href="../../../cn/developers/api/" data-region="cn" hreflang="zh-CN" lang="zh-CN"><span class="hide-sm">中国大陆 · </span>中文</a></p>
+      </footer>
+  </div>
+  <div class="cookie" hidden role="region" aria-label="Cookie">
+    <p>No tracking and no analytics here. One cookie remembers the region you picked. <a href="../../cookies/">Learn more</a></p>
+    <button type="button">GOT IT</button>
+  </div>
+  <script src="../../../portal.js"></script>
+</body>
+</html>

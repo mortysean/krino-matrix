@@ -8,6 +8,7 @@
   /privacy/ 等      旧地址，按记住的地区跳到 /cn/ 或 /global/ 下的同名页面
   /<地区>/products/  产品介绍：软件（KRINO WORLD）、硬件（眼镜，以后更多）、开放平台；应用本身在 /<地区>/products/world/（后端提供）
   /<地区>/apocalypse/ 启示与应验：预言与产品、研究的更新通报，宣言是第一条；/<地区>/manifesto/ 宣言全文
+  /<地区>/developers/ 开发者中心：概览和快速开始、api/（API 参考）、sdk/（Python SDK），由 devdocs.py 生成
   /<地区>/vision/    Krino Tree + 当前进度（宣言在“启示与应验”栏目下，是它的第一则）（这三个由 vision.py 按 data/ 下的数据生成）
 地区、产品、外壳文字在 regions.py；样式和脚本 app/landing/portal.css、portal.js 是手写的，这里不碰。
 
@@ -29,6 +30,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from regions import CONTACT, PRODUCTS, REGIONS, SITE, UPDATED  # noqa: E402
 import vision  # noqa: E402  宣言与 Krino Tree（数据在 data/）
+import devdocs  # noqa: E402  开发者中心（接口参数读 docs/api/openapi.json，SDK 签名读 sdk/python）
 
 OUT = HERE.parent / "landing"
 CONTENT = HERE / "content"
@@ -36,8 +38,9 @@ ASSETS = {"krino-mark.svg": HERE.parent / "frontend/assets/krino-mark.svg",
           "krino.png": HERE.parent / "frontend/assets/krino.png"}
 GENERATED = ["cn", "global", "privacy", "terms", "cookies", "assets", "index.html", "404.html", "sitemap.xml", "robots.txt", "favicon.ico"]
 LEGAL = ("privacy", "terms", "cookies")
-# 顶栏：产品（介绍页，不是应用入口：进应用用右边的 Enter Krino）、启示与应验、战略（Krino Tree）、关于；开发者、联系在页脚
-NAV = (("products", "products/", "products/"), ("apocalypse", "apocalypse/", "apocalypse/"), ("tree", "vision/#tree", "vision/"), ("about", "about/", "about/"))
+# 顶栏：产品（介绍页）、启示与应验、战略（Krino Tree）、开发者、关于；最右边是登录（进应用，没登录时应用先显示登录页）；联系在页脚
+NAV = (("products", "products/", "products/"), ("apocalypse", "apocalypse/", "apocalypse/"), ("tree", "vision/#tree", "vision/"),
+       ("developers", "developers/", "developers/"), ("about", "about/", "about/"))
 esc = html.escape
 PORTRAIT = "krino.png"  # 页面上显示的立绘文件，main() 里按能否压缩决定
 
@@ -59,11 +62,13 @@ def region_pages(region: str):
     """这个地区有哪些页面：{相对路径: (片段文件, 类型)}。片段存在页面才存在；产品页还要在地区的产品列表里。"""
     d = CONTENT / region
     pages = {}
-    for key, rel, kind in [("home", "", "home"), ("products", "products/", "page"), ("developers", "developers/", "page"),
+    for key, rel, kind in [("home", "", "home"), ("products", "products/", "page"),
                            ("about", "about/", "page"), ("contact", "contact/", "page"),
                            ("privacy", "privacy/", "doc"), ("terms", "terms/", "doc"), ("cookies", "cookies/", "doc")]:
         if (d / f"{key}.html").exists():
             pages[rel] = (d / f"{key}.html", kind)
+    for rel in devdocs.PAGES:              # 由 devdocs.py 生成
+        pages[rel] = (None, "devdoc")
     pages["vision/"] = (None, "page")      # 由 vision.py 按数据生成
     pages["apocalypse/"] = (None, "page")
     pages["manifesto/"] = (None, "doc")
@@ -124,9 +129,10 @@ def header(region, rel, pages):
     links = []
     for key, href, page in NAV:
         if page in pages[region]:
-            cur = ' aria-current="page"' if (rel == page or rel == "manifesto/" and key == "apocalypse") and key != "tree" else ""
+            here = rel == page or rel == "manifesto/" and key == "apocalypse" or key == "developers" and rel.startswith(page)
+            cur = ' aria-current="page"' if here and key != "tree" else ""
             links.append(f'<a class="hide-sm" href="{{base}}{href}"{cur}>{t[key]}</a>')
-    cta = f'<a class="cta" href="{{enter}}">{t["enter"]}</a>' if R["products"] else ""
+    cta = f'<a class="cta" href="{{enter}}">{t["login"]}</a>' if R["products"] else ""
     return (f'<header class="bar">\n    {brand("{base}", R["brand_sub"])}\n    <nav>\n      ' + "\n      ".join(links)
             + f"\n      {region_switch(region, rel, pages)}\n      {cta}\n    </nav>\n  </header>")
 
@@ -210,6 +216,8 @@ def build_region(region, pages):
             meta, body = vision.manifesto_page(R)
         elif rel == "apocalypse/":
             meta, body = vision.apocalypse_page(R)
+        elif rel in devdocs.PAGES:
+            meta, body = devdocs.PAGES[rel](region, R)
         else:
             meta, body = read_fragment(src)
         title = meta.get("title", R["site_name"])
@@ -228,7 +236,7 @@ def build_region(region, pages):
         data_lang = "zh" if R["lang"].startswith("zh") else "en"
         tree_js = '\n  <script src="{root}tree.js" defer></script>' if rel == "vision/" else ""
         page = f"""<!doctype html>
-<!-- 由 app/landing_src/build.py 生成，别直接改：改 {src.relative_to(HERE) if src else "data/ 下的数据"} 或 regions.py 再重跑 -->
+<!-- 由 app/landing_src/build.py 生成，别直接改：改 {src.relative_to(HERE) if src else ("devdocs.py" if kind == "devdoc" else "data/ 下的数据")} 或 regions.py 再重跑 -->
 <html lang="{R["lang"]}" data-lang="{data_lang}" data-region="{region}">
 {h}
 <body>
@@ -354,6 +362,8 @@ def main():
         PORTRAIT = "krino.png"
     shutil.copy2(HERE / "favicon.ico", OUT / "favicon.ico")  # 浏览器和收藏夹默认会要 /favicon.ico
     vision.validate()
+    devdocs.validate()
+    shutil.copy2(devdocs.OPENAPI, OUT / devdocs.OPENAPI_PUBLISHED)  # 开发者中心的下载链接
     pages = {r: region_pages(r) for r in REGIONS}
     for r in REGIONS:
         build_region(r, pages)

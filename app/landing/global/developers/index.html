@@ -1,11 +1,11 @@
 <!doctype html>
-<!-- 由 app/landing_src/build.py 生成，别直接改：改 content/global/developers.html 或 regions.py 再重跑 -->
+<!-- 由 app/landing_src/build.py 生成，别直接改：改 devdocs.py 或 regions.py 再重跑 -->
 <html lang="en" data-lang="en" data-region="global">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Developers · KRINO MATRIX</title>
-  <meta name="description" content="Krino Matrix for developers: our APIs, SDKs and docs are being prepared, and the API, SDKs, client and inference framework will be open source. Get in touch for early access.">
+  <meta name="description" content="The KRINO WORLD API: quick start, API reference and the Python SDK (pip install krino-world).">
   <link rel="canonical" href="https://krinomatrix.com/global/developers/">
   <link rel="alternate" hreflang="zh-CN" href="https://krinomatrix.com/cn/developers/">
   <link rel="alternate" hreflang="en" href="https://krinomatrix.com/global/developers/">
@@ -13,7 +13,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="KRINO MATRIX">
   <meta property="og:title" content="Developers · KRINO MATRIX">
-  <meta property="og:description" content="Krino Matrix for developers: our APIs, SDKs and docs are being prepared, and the API, SDKs, client and inference framework will be open source. Get in touch for early access.">
+  <meta property="og:description" content="The KRINO WORLD API: quick start, API reference and the Python SDK (pip install krino-world).">
   <meta property="og:url" content="https://krinomatrix.com/global/developers/">
   <meta property="og:image" content="https://krinomatrix.com/assets/krino.png">
   <meta property="og:locale" content="en_US">
@@ -30,25 +30,140 @@
       <a class="hide-sm" href="../products/">Products</a>
       <a class="hide-sm" href="../apocalypse/">Apocalypse & Fulfillment</a>
       <a class="hide-sm" href="../vision/#tree">Krino Tree</a>
+      <a class="hide-sm" href="../developers/" aria-current="page">Developers</a>
       <a class="hide-sm" href="../about/">About</a>
       <a class="region-sw" href="../../cn/developers/" data-region="cn" hreflang="zh-CN" lang="zh-CN"><span class="hide-sm">中国大陆 · </span>中文</a>
-      <a class="cta" href="/global/products/world/">Enter Krino</a>
+      <a class="cta" href="/global/products/world/">Log in</a>
     </nav>
   </header>
-  <main class="page">
-<section class="sec">
-      <p class="tag">// DEVELOPERS</p>
-      <h1 class="title">For <em>developers</em></h1>
-      <p class="lead">We're turning what powers our characters into public APIs, with API docs, SDK docs and SDKs. The API, SDKs, client and inference framework will be open source; persona, memory and relationships stay closed. The docs aren't public yet; if you'd like early access or to help test, drop us a line.</p>
-      <div class="cards">
-        <div class="card"><b>CHARACTER</b><h3>Characters & memory</h3><p>Create characters, talk to them, and read or correct what they remember.</p></div>
-        <div class="card"><b>VOICE</b><h3>Voice</h3><p>Design a voice from a sentence; streamed synthesis and recognition.</p></div>
-        <div class="card"><b>DEVICE</b><h3>Devices</h3><p>Bring characters to desktops, glasses and other makers' wearables.</p></div>
-        <div class="card"><b>OPEN SOURCE</b><h3>Open source</h3><p>API definitions, SDKs, a reference client and the inference framework, open for you to read, change and deploy.</p></div>
-      </div>
-      <p class="note">These are directions we're working on, not features that are available today (<a href="../vision/#node-openApi">progress on the Krino Tree</a>). Contact: <a href="mailto:support@krinomatrix.com?subject=Developer%20access">support@krinomatrix.com</a> (subject "Developer access").</p>
-    </section>
+  <main class="devdoc">
+<div class="dev">
+<nav class="dev-side" aria-label="docs">
+<button type="button" class="dev-toggle" aria-expanded="false">Contents</button><div class="dev-nav">
+<h4><a href="../developers/">Get started</a></h4>
+<a href="../developers/#overview">Overview</a>
+<a href="../developers/#quickstart">Quick start</a>
+<a href="../developers/#basics">Basics</a>
+<h4><a href="../developers/api/">API reference</a></h4>
+<a href="../developers/api/#base">Base URL</a>
+<a href="../developers/api/#auth">Authentication</a>
+<a href="../developers/api/#streaming">Streaming</a>
+<a href="../developers/api/#errors">Errors</a>
+<h5><a href="../developers/api/#g-account">Account</a></h5>
+<a href="../developers/api/#ep-post-auth-register"><span class="m m-post">POST</span>Register</a>
+<a href="../developers/api/#ep-post-auth-login"><span class="m m-post">POST</span>Log in</a>
+<a href="../developers/api/#ep-post-auth-logout"><span class="m m-post">POST</span>Log out</a>
+<a href="../developers/api/#ep-get-me"><span class="m m-get">GET</span>Your account</a>
+<a href="../developers/api/#ep-patch-me"><span class="m m-patch">PATCH</span>Update settings</a>
+<a href="../developers/api/#ep-delete-me"><span class="m m-delete">DELETE</span>Delete account</a>
+<h5><a href="../developers/api/#g-characters">Characters</a></h5>
+<a href="../developers/api/#ep-get-characters"><span class="m m-get">GET</span>List characters</a>
+<a href="../developers/api/#ep-get-characters-cid"><span class="m m-get">GET</span>Get a character</a>
+<a href="../developers/api/#ep-get-characters-cid-export"><span class="m m-get">GET</span>Export a character</a>
+<h5><a href="../developers/api/#g-chat">Chat</a></h5>
+<a href="../developers/api/#ep-post-sessions"><span class="m m-post">POST</span>Start a session</a>
+<a href="../developers/api/#ep-get-sessions"><span class="m m-get">GET</span>List sessions</a>
+<a href="../developers/api/#ep-get-sessions-sid"><span class="m m-get">GET</span>Get a session</a>
+<a href="../developers/api/#ep-post-sessions-sid-messages"><span class="m m-post">POST</span>Send a message</a>
+<a href="../developers/api/#ep-post-sessions-sid-stream"><span class="m m-post">POST</span>Send a message (streamed)</a>
+<a href="../developers/api/#ep-post-sessions-sid-events"><span class="m m-post">POST</span>Send an event</a>
+<a href="../developers/api/#ep-post-sessions-sid-end"><span class="m m-post">POST</span>End a session</a>
+<a href="../developers/api/#ep-delete-sessions-sid"><span class="m m-delete">DELETE</span>Delete a session</a>
+<h5><a href="../developers/api/#g-memory">Memory</a></h5>
+<a href="../developers/api/#ep-get-memories"><span class="m m-get">GET</span>List memories</a>
+<a href="../developers/api/#ep-post-memories"><span class="m m-post">POST</span>Add a memory</a>
+<a href="../developers/api/#ep-patch-memories-mid"><span class="m m-patch">PATCH</span>Edit a memory</a>
+<a href="../developers/api/#ep-post-memories-mid-forget"><span class="m m-post">POST</span>Forget</a>
+<a href="../developers/api/#ep-post-memories-mid-restore"><span class="m m-post">POST</span>Restore</a>
+<a href="../developers/api/#ep-delete-memories-mid"><span class="m m-delete">DELETE</span>Delete permanently</a>
+<a href="../developers/api/#ep-get-memories-candidates"><span class="m m-get">GET</span>Proposed memories</a>
+<a href="../developers/api/#ep-post-memories-candidates-cand-id-accept"><span class="m m-post">POST</span>Accept</a>
+<a href="../developers/api/#ep-delete-memories-candidates-cand-id"><span class="m m-delete">DELETE</span>Reject</a>
+<a href="../developers/api/#ep-get-memory-jobs-job-id"><span class="m m-get">GET</span>Memory job</a>
+<a href="../developers/api/#ep-get-relations-cid-export"><span class="m m-get">GET</span>Export relationship</a>
+<a href="../developers/api/#ep-post-relations-cid-import"><span class="m m-post">POST</span>Import relationship</a>
+<h5><a href="../developers/api/#g-voice">Voice & vision</a></h5>
+<a href="../developers/api/#ep-post-voice-tts"><span class="m m-post">POST</span>Text to speech</a>
+<a href="../developers/api/#ep-post-voice-stt"><span class="m m-post">POST</span>Speech to text</a>
+<a href="../developers/api/#ep-get-voice-config"><span class="m m-get">GET</span>Voice services</a>
+<a href="../developers/api/#ep-post-vision-describe"><span class="m m-post">POST</span>Describe an image</a>
+<h5><a href="../developers/api/#g-status">Status</a></h5>
+<a href="../developers/api/#ep-get-health"><span class="m m-get">GET</span>Health</a>
+<a href="../developers/api/#ep-get-credits"><span class="m m-get">GET</span>Today&#x27;s credits</a>
+<h4><a href="../developers/sdk/">Python SDK</a></h4>
+<a href="../developers/sdk/#install">Install</a>
+<a href="../developers/sdk/#client">Client</a>
+<a href="../developers/sdk/#sdk-plumbing">Any endpoint</a>
+<a href="../developers/sdk/#sdk-account">Account</a>
+<a href="../developers/sdk/#sdk-characters">Characters</a>
+<a href="../developers/sdk/#sdk-chat">Chat</a>
+<a href="../developers/sdk/#sdk-memory">Memory</a>
+<a href="../developers/sdk/#sdk-voice">Voice</a>
+<a href="../developers/sdk/#event">Event</a>
+<a href="../developers/sdk/#krinoerror">KrinoError</a>
+<h4>Resources</h4>
+<a href="../../assets/krino-world-openapi.json" download>openapi.json</a>
+<a href="https://github.com/mortysean/krino-matrix" target="_blank" rel="noopener">GitHub ↗</a>
+<a href="https://pypi.org/project/krino-world/" target="_blank" rel="noopener">PyPI ↗</a>
+</div></nav>
+<article class="dev-main">
+<section class="dev-hero" id="overview">
+  <p class="tag">// DEVELOPERS</p>
+  <h1 class="title">Build with <em>KRINO</em></h1>
+  <p class="lead">Bring AI characters that remember you into your own app over HTTP or with the Python SDK: chat, memory, voice and vision. The KRINO WORLD web app uses the very same API, so anything it does, you can do.</p>
+  <div class="dev-doors">
+    <a href="#quickstart"><b>01</b><h3>Quick start</h3><p>Your first conversation in three steps</p></a>
+    <a href="../developers/api/"><b>02</b><h3>API reference</h3><p>Every endpoint with parameters and examples</p></a>
+    <a href="../developers/sdk/"><b>03</b><h3>Python SDK</h3><p><code>pip install krino-world</code></p></a>
+  </div>
+</section>
+<section id="quickstart">
+  <h2>Quick start</h2>
+  <ol class="dev-steps">
+    <li><h3>Get an account</h3>
+      <p>Sign up in <a href="/global/products/world/">KRINO WORLD</a>, or call the <a href="../developers/api/#ep-post-auth-register">register endpoint</a>. Accounts belong to one region: an account here works only with this site’s API, not with the mainland China site.</p></li>
+    <li><h3>Install the SDK</h3>
+      <div class="code"><div class="code-h"><span>Shell</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">pip</span> install krino-world</code></pre></div>
+      <p>Python 3.10 or newer; its only dependency is httpx. No Python? Everything is a plain HTTP endpoint.</p></li>
+    <li><h3>Say hello</h3>
+      <div class="tabs"><div class="tab-h" role="tablist"><button type="button" role="tab" data-tab="py" aria-selected="true">Python</button><button type="button" role="tab" data-tab="curl" aria-selected="false">cURL</button></div><div role="tabpanel" data-tab="py"><div class="code"><div class="code-h"><span>Python</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">from</span> krino_world <span class="t-k">import</span> Client
 
+<span class="t-k">with</span> Client(region=<span class="t-s">&quot;global&quot;</span>) <span class="t-k">as</span> kw:
+    kw.login(<span class="t-s">&quot;me&quot;</span>, <span class="t-s">&quot;your-password&quot;</span>)         <span class="t-c"># or kw.register(...); the token is kept on the client</span>
+    character = kw.characters()[<span class="t-n">0</span>]           <span class="t-c"># a new account already has the official characters</span>
+    session = kw.start_session(character[<span class="t-s">&quot;id&quot;</span>])
+    <span class="t-k">print</span>(session[<span class="t-s">&quot;greeting&quot;</span>])
+
+    turn = kw.send(session[<span class="t-s">&quot;id&quot;</span>], <span class="t-s">&quot;How was your day?&quot;</span>)
+    <span class="t-k">print</span>(turn[<span class="t-s">&quot;reply&quot;</span>][<span class="t-s">&quot;content&quot;</span>])</code></pre></div></div><div role="tabpanel" data-tab="curl" hidden><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code>API=https://krinomatrix.com/global/products/world/api
+
+<span class="t-c"># 1. Log in and keep the token</span>
+TOKEN=$(<span class="t-k">curl</span> -s $API/auth/login -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;username&quot;: &quot;me&quot;, &quot;password&quot;: &quot;your-password&quot;}&#x27;</span> | <span class="t-k">jq</span> -r .token)
+
+<span class="t-c"># 2. Pick a character and start a session</span>
+CHARACTER_ID=$(<span class="t-k">curl</span> -s $API/characters -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> | <span class="t-k">jq</span> -r <span class="t-s">&#x27;.[0].id&#x27;</span>)
+SESSION_ID=$(<span class="t-k">curl</span> -s $API/sessions -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&quot;{\&quot;character_id\&quot;: \&quot;$CHARACTER_ID\&quot;}&quot;</span> | <span class="t-k">jq</span> -r .id)
+
+<span class="t-c"># 3. Say something</span>
+<span class="t-k">curl</span> -s $API/sessions/$SESSION_ID/messages -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;How was your day?&quot;}&#x27;</span> | <span class="t-k">jq</span> -r .reply.content</code></pre></div></div></div>
+      <p>To show the reply as it's written, stream it:</p>
+      <div class="code"><div class="code-h"><span>Python</span><button type="button" class="copy" data-done="Copied">Copy</button></div><pre><code><span class="t-k">for</span> event <span class="t-k">in</span> kw.stream(session[<span class="t-s">&quot;id&quot;</span>], <span class="t-s">&quot;Tell me a story&quot;</span>):
+    <span class="t-k">if</span> event.name == <span class="t-s">&quot;delta&quot;</span>:
+        <span class="t-k">print</span>(event.data[<span class="t-s">&quot;text&quot;</span>], end=<span class="t-s">&quot;&quot;</span>, flush=<span class="t-k">True</span>)
+    <span class="t-k">elif</span> event.name == <span class="t-s">&quot;error&quot;</span>:
+        <span class="t-k">print</span>(<span class="t-s">&quot;\n&quot;</span>, event.data[<span class="t-s">&quot;message&quot;</span>])</code></pre></div></li>
+  </ol>
+</section>
+<section id="basics">
+  <h2>Basics</h2>
+  <div class="table-wrap"><table class="kv"><thead><tr><th>Item</th><th>Details</th></tr></thead><tbody><tr><td>Base URL</td><td><code>https://krinomatrix.com/global/products/world/api</code></td></tr><tr><td>Authentication</td><td>Log in for a token, then send <code>Authorization: Bearer &lt;token&gt;</code></td></tr><tr><td>Format</td><td>JSON (UTF-8) both ways; streamed replies are server-sent events; speech comes back as audio</td></tr><tr><td>Limits</td><td>Each account has a daily credit budget; when it runs out you get <code>429</code> until the next day</td></tr><tr><td>Errors</td><td><code>{"detail": "…"}</code> with a human-readable message. <a href="../developers/api/#errors">Error codes</a></td></tr><tr><td>Open source</td><td>The SDK and API definitions are Apache-2.0: <a href="https://github.com/mortysean/krino-matrix" target="_blank" rel="noopener">GitHub</a></td></tr></tbody></table></div>
+  <p class="note">Questions, higher limits or a test account: write to <a href="mailto:support@krinomatrix.com?subject=Developer">support@krinomatrix.com</a></p>
+</section>
+</article>
+</div>
   </main>
   <div class="foot-wrap">
       <footer class="foot site-foot">

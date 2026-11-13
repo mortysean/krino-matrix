@@ -1,0 +1,865 @@
+<!doctype html>
+<!-- 由 app/landing_src/build.py 生成，别直接改：改 devdocs.py 或 regions.py 再重跑 -->
+<html lang="zh-CN" data-lang="zh" data-region="cn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>API 参考 · 决策矩阵 KRINO MATRIX</title>
+  <meta name="description" content="KRINO WORLD 接口参考：账号、角色、对话（含流式）、记忆、语音，每个接口都有参数说明和请求、返回示例。">
+  <link rel="canonical" href="https://krinomatrix.com/cn/developers/api/">
+  <link rel="alternate" hreflang="zh-CN" href="https://krinomatrix.com/cn/developers/api/">
+  <link rel="alternate" hreflang="en" href="https://krinomatrix.com/global/developers/api/">
+  <link rel="alternate" hreflang="x-default" href="https://krinomatrix.com/global/developers/api/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="决策矩阵 KRINO MATRIX">
+  <meta property="og:title" content="API 参考 · 决策矩阵 KRINO MATRIX">
+  <meta property="og:description" content="KRINO WORLD 接口参考：账号、角色、对话（含流式）、记忆、语音，每个接口都有参数说明和请求、返回示例。">
+  <meta property="og:url" content="https://krinomatrix.com/cn/developers/api/">
+  <meta property="og:image" content="https://krinomatrix.com/assets/krino.png">
+  <meta property="og:locale" content="zh_CN">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#06060b">
+  <link rel="icon" href="../../../assets/krino-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../../portal.css">
+</head>
+<body>
+  <div class="fx fx-glow"></div><div class="fx fx-grid"></div><div class="fx fx-scan"></div>
+  <header class="bar">
+    <a class="brand" href="../../"><img src="../../../assets/krino-mark.svg" alt=""><div><b>KRINO MATRIX</b><span>决策矩阵</span></div></a>
+    <nav>
+      <a class="hide-sm" href="../../products/">产品</a>
+      <a class="hide-sm" href="../../apocalypse/">启示与应验</a>
+      <a class="hide-sm" href="../../vision/#tree">战略</a>
+      <a class="hide-sm" href="../../developers/" aria-current="page">开发者</a>
+      <a class="hide-sm" href="../../about/">关于</a>
+      <a class="region-sw" href="../../../global/developers/api/" data-region="global" hreflang="en" lang="en"><span class="hide-sm">International · </span>EN</a>
+      <a class="cta" href="/cn/products/world/">登录</a>
+    </nav>
+  </header>
+  <main class="devdoc">
+<div class="dev">
+<nav class="dev-side" aria-label="docs">
+<button type="button" class="dev-toggle" aria-expanded="false">目录</button><div class="dev-nav">
+<h4><a href="../../developers/">开始使用</a></h4>
+<a href="../../developers/#overview">概览</a>
+<a href="../../developers/#quickstart">快速开始</a>
+<a href="../../developers/#basics">基本信息</a>
+<h4><a href="../../developers/api/">API 参考</a></h4>
+<a href="../../developers/api/#base">接口地址</a>
+<a href="../../developers/api/#auth">鉴权</a>
+<a href="../../developers/api/#streaming">流式回复</a>
+<a href="../../developers/api/#errors">错误码</a>
+<h5><a href="../../developers/api/#g-account">账号</a></h5>
+<a href="../../developers/api/#ep-post-auth-register"><span class="m m-post">POST</span>注册</a>
+<a href="../../developers/api/#ep-post-auth-login"><span class="m m-post">POST</span>登录</a>
+<a href="../../developers/api/#ep-post-auth-logout"><span class="m m-post">POST</span>退出登录</a>
+<a href="../../developers/api/#ep-get-me"><span class="m m-get">GET</span>账号信息</a>
+<a href="../../developers/api/#ep-patch-me"><span class="m m-patch">PATCH</span>修改设置</a>
+<a href="../../developers/api/#ep-delete-me"><span class="m m-delete">DELETE</span>注销账号</a>
+<h5><a href="../../developers/api/#g-characters">角色</a></h5>
+<a href="../../developers/api/#ep-get-characters"><span class="m m-get">GET</span>角色列表</a>
+<a href="../../developers/api/#ep-get-characters-cid"><span class="m m-get">GET</span>角色详情</a>
+<a href="../../developers/api/#ep-get-characters-cid-export"><span class="m m-get">GET</span>导出角色</a>
+<h5><a href="../../developers/api/#g-chat">对话</a></h5>
+<a href="../../developers/api/#ep-post-sessions"><span class="m m-post">POST</span>开始对话</a>
+<a href="../../developers/api/#ep-get-sessions"><span class="m m-get">GET</span>对话列表</a>
+<a href="../../developers/api/#ep-get-sessions-sid"><span class="m m-get">GET</span>对话详情</a>
+<a href="../../developers/api/#ep-post-sessions-sid-messages"><span class="m m-post">POST</span>发消息</a>
+<a href="../../developers/api/#ep-post-sessions-sid-stream"><span class="m m-post">POST</span>发消息（流式）</a>
+<a href="../../developers/api/#ep-post-sessions-sid-events"><span class="m m-post">POST</span>互动事件</a>
+<a href="../../developers/api/#ep-post-sessions-sid-end"><span class="m m-post">POST</span>结束对话</a>
+<a href="../../developers/api/#ep-delete-sessions-sid"><span class="m m-delete">DELETE</span>删除对话</a>
+<h5><a href="../../developers/api/#g-memory">记忆</a></h5>
+<a href="../../developers/api/#ep-get-memories"><span class="m m-get">GET</span>记忆列表</a>
+<a href="../../developers/api/#ep-post-memories"><span class="m m-post">POST</span>添加记忆</a>
+<a href="../../developers/api/#ep-patch-memories-mid"><span class="m m-patch">PATCH</span>修改记忆</a>
+<a href="../../developers/api/#ep-post-memories-mid-forget"><span class="m m-post">POST</span>忘掉</a>
+<a href="../../developers/api/#ep-post-memories-mid-restore"><span class="m m-post">POST</span>找回</a>
+<a href="../../developers/api/#ep-delete-memories-mid"><span class="m m-delete">DELETE</span>彻底删除</a>
+<a href="../../developers/api/#ep-get-memories-candidates"><span class="m m-get">GET</span>待确认的记忆</a>
+<a href="../../developers/api/#ep-post-memories-candidates-cand-id-accept"><span class="m m-post">POST</span>确认</a>
+<a href="../../developers/api/#ep-delete-memories-candidates-cand-id"><span class="m m-delete">DELETE</span>拒绝</a>
+<a href="../../developers/api/#ep-get-memory-jobs-job-id"><span class="m m-get">GET</span>记忆整理进度</a>
+<a href="../../developers/api/#ep-get-relations-cid-export"><span class="m m-get">GET</span>导出关系</a>
+<a href="../../developers/api/#ep-post-relations-cid-import"><span class="m m-post">POST</span>导入关系</a>
+<h5><a href="../../developers/api/#g-voice">语音与视觉</a></h5>
+<a href="../../developers/api/#ep-post-voice-tts"><span class="m m-post">POST</span>语音合成</a>
+<a href="../../developers/api/#ep-post-voice-stt"><span class="m m-post">POST</span>语音识别</a>
+<a href="../../developers/api/#ep-get-voice-config"><span class="m m-get">GET</span>语音服务</a>
+<a href="../../developers/api/#ep-post-vision-describe"><span class="m m-post">POST</span>看图</a>
+<h5><a href="../../developers/api/#g-status">服务状态</a></h5>
+<a href="../../developers/api/#ep-get-health"><span class="m m-get">GET</span>健康检查</a>
+<a href="../../developers/api/#ep-get-credits"><span class="m m-get">GET</span>今日额度</a>
+<h4><a href="../../developers/sdk/">Python SDK</a></h4>
+<a href="../../developers/sdk/#install">安装</a>
+<a href="../../developers/sdk/#client">Client</a>
+<a href="../../developers/sdk/#sdk-plumbing">通用请求</a>
+<a href="../../developers/sdk/#sdk-account">账号</a>
+<a href="../../developers/sdk/#sdk-characters">角色</a>
+<a href="../../developers/sdk/#sdk-chat">对话</a>
+<a href="../../developers/sdk/#sdk-memory">记忆</a>
+<a href="../../developers/sdk/#sdk-voice">语音</a>
+<a href="../../developers/sdk/#event">Event</a>
+<a href="../../developers/sdk/#krinoerror">KrinoError</a>
+<h4>资源</h4>
+<a href="../../../assets/krino-world-openapi.json" download>openapi.json</a>
+<a href="https://github.com/mortysean/krino-matrix" target="_blank" rel="noopener">GitHub ↗</a>
+<a href="https://pypi.org/project/krino-world/" target="_blank" rel="noopener">PyPI ↗</a>
+</div></nav>
+<article class="dev-main">
+<header class="dev-head">
+  <p class="tag">// API</p>
+  <h1 class="title">API <em>参考</em></h1>
+  <p class="lead">KRINO WORLD 的 HTTP 接口。这里列出常用的接口；全部接口（包括角色编辑、工坊、社交圈、眼镜）的完整定义在
+    <a href="../../../assets/krino-world-openapi.json" download>openapi.json</a>（OpenAPI 3.1）。</p>
+</header>
+<section id="base">
+  <h2>接口地址</h2>
+  <div class="code"><div class="code-h"><span>Base URL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>https://krinomatrix.com/cn/products/world/api</code></pre></div>
+  <p>下面的路径都接在这个地址后面，比如 <code>POST /auth/login</code> 就是 <code>https://krinomatrix.com/cn/products/world/api/auth/login</code>。另一个地区是独立的部署，账号和数据各自分开。自己部署的服务器在 <code>http://&lt;主机&gt;:8630/api</code>。</p>
+</section>
+<section id="auth">
+  <h2>鉴权</h2>
+  <p>先注册或登录拿到 token，之后每个请求带上 <code>Authorization: Bearer &lt;token&gt;</code>。token 过一段时间会过期，过期后请求返回 <code>401</code>，重新登录即可。</p>
+  <div class="code"><div class="code-h"><span>Shell</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>API=https://krinomatrix.com/cn/products/world/api
+TOKEN=$(<span class="t-k">curl</span> -s $API/auth/login -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;username&quot;: &quot;me&quot;, &quot;password&quot;: &quot;your-password&quot;}&#x27;</span> | <span class="t-k">jq</span> -r .token)
+
+<span class="t-k">curl</span> -s $API/characters -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div>
+</section>
+<section id="streaming">
+  <h2>流式回复</h2>
+  <p><code>POST /sessions/{sid}/stream</code> 用 server-sent events 返回，顺序是：</p>
+  <div class="table-wrap"><table class=""><thead><tr><th>事件</th><th>内容</th></tr></thead><tbody><tr><td><code>decision</code></td><td>最先到：这一轮角色决定做什么（回复、保持安静、做个动作……）</td></tr><tr><td><code>delta</code></td><td>回复的一小段文字 <code>text</code>，按顺序拼起来就是整句</td></tr><tr><td><code>done</code></td><td>结束，内容和 <code>/messages</code> 的返回一样</td></tr><tr><td><code>error</code></td><td>生成中途失败时代替 <code>done</code>：<code>{&quot;message&quot;: &quot;…&quot;}</code></td></tr></tbody></table></div>
+  <div class="code"><div class="code-h"><span>text/event-stream</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">event: decision</span>
+data: {&quot;actions&quot;: [&quot;RESPOND&quot;], &quot;policy&quot;: &quot;rules&quot;}
+
+<span class="t-k">event: delta</span>
+data: {&quot;text&quot;: &quot;从前，&quot;}
+
+<span class="t-k">event: delta</span>
+data: {&quot;text&quot;: &quot;有一头大蓝鲸……&quot;}
+
+<span class="t-k">event: done</span>
+data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: […], &quot;decision&quot;: {…}, &quot;memory_job&quot;: &quot;…&quot;}</code></pre></div>
+  <p class="note">自己在前面加反向代理的话，要给这个接口关掉响应缓冲。</p>
+</section>
+<section id="errors">
+  <h2>错误码</h2>
+  <p>出错时返回 <code>{&quot;detail&quot;: &quot;…&quot;}</code>，说明是给人看的，用本站的语言。</p>
+  <div class="table-wrap"><table class=""><thead><tr><th>状态码</th><th>意思</th></tr></thead><tbody><tr><td><code>400</code></td><td>请求不完整，比如消息是空的</td></tr><tr><td><code>401</code></td><td>没带 token 或 token 过期了，重新登录</td></tr><tr><td><code>404</code></td><td>不存在，或者不是你的</td></tr><tr><td><code>409</code></td><td>对话属于另一个角色</td></tr><tr><td><code>413 / 415</code></td><td>上传的文件太大 / 格式不支持</td></tr><tr><td><code>422</code></td><td>请求体和参数格式对不上，<code>detail</code> 里说明是哪个字段</td></tr><tr><td><code>429</code></td><td>今天的额度用完了，第二天恢复</td></tr><tr><td><code>502 / 503</code></td><td>上游的模型或语音服务出错，重试一般就好</td></tr></tbody></table></div>
+</section>
+<section class="egroup" id="g-account"><h2>账号</h2><section class="ep" id="ep-post-auth-register">
+  <h3>注册</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/auth/register</code><span class="lock open">无需登录</span></p>
+  <p>新建账号并直接登录。新账号自带官方角色，可以马上开始对话。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>username</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>用户名</td></tr><tr><td><code>password</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>密码<span class="prule">6–128字</span></td></tr><tr><td><code>display_name</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>显示的名字，不填就用用户名</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/auth/register&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;username&quot;: &quot;me&quot;, &quot;password&quot;: &quot;your-password&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;token&quot;</span>: <span class="t-s">&quot;2wIk7-Ecvo7oSW2Qo1IsO_Nh2S-aDo_Nxe0-bFh0HvQ&quot;</span>,
+  <span class="t-k">&quot;user&quot;</span>: {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;58acfe8dca7b4a02ab9cbea54767adb8&quot;</span>,
+    <span class="t-k">&quot;username&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+    <span class="t-k">&quot;display_name&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+    <span class="t-k">&quot;settings&quot;</span>: {…}
+  }
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-auth-login">
+  <h3>登录</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/auth/login</code><span class="lock open">无需登录</span></p>
+  <p>用户名和密码换一个 token。之后的请求都带上 <code>Authorization: Bearer &lt;token&gt;</code>。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>username</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>用户名</td></tr><tr><td><code>password</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>密码<span class="prule">6–128字</span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/auth/login&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;username&quot;: &quot;me&quot;, &quot;password&quot;: &quot;your-password&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;token&quot;</span>: <span class="t-s">&quot;2wIk7-Ecvo7oSW2Qo1IsO_Nh2S-aDo_Nxe0-bFh0HvQ&quot;</span>,
+  <span class="t-k">&quot;user&quot;</span>: {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;58acfe8dca7b4a02ab9cbea54767adb8&quot;</span>,
+    <span class="t-k">&quot;username&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+    <span class="t-k">&quot;display_name&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+    <span class="t-k">&quot;settings&quot;</span>: {…}
+  }
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-auth-logout">
+  <h3>退出登录</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/auth/logout</code><span class="lock">需要登录</span></p>
+  <p>让当前 token 失效。</p>
+  <h4>参数</h4>
+  <p class="none">无参数。</p>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/auth/logout&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-me">
+  <h3>账号信息</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/me</code><span class="lock">需要登录</span></p>
+  <p>账号和设置。</p>
+  <h4>参数</h4>
+  <p class="none">无参数。</p>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/me&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;58acfe8dca7b4a02ab9cbea54767adb8&quot;</span>,
+  <span class="t-k">&quot;username&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+  <span class="t-k">&quot;display_name&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+  <span class="t-k">&quot;settings&quot;</span>: {
+    <span class="t-k">&quot;save_sensitive&quot;</span>: <span class="t-b">false</span>,
+    <span class="t-k">&quot;privacy&quot;</span>: {<span class="t-k">&quot;camera&quot;</span>: <span class="t-b">false</span>, <span class="t-k">&quot;microphone&quot;</span>: <span class="t-b">false</span>},
+    <span class="t-k">&quot;voice&quot;</span>: {<span class="t-k">&quot;stt&quot;</span>: <span class="t-s">&quot;auto&quot;</span>, <span class="t-k">&quot;tts&quot;</span>: <span class="t-s">&quot;auto&quot;</span>, <span class="t-k">&quot;autoplay&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;voice&quot;</span>: <span class="t-s">&quot;&quot;</span>},
+    <span class="t-k">&quot;interaction&quot;</span>: {<span class="t-k">&quot;proactive&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;idle_seconds&quot;</span>: <span class="t-n">45</span>, <span class="t-k">&quot;animations&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;stories&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;web&quot;</span>: <span class="t-b">true</span>},
+    <span class="t-k">&quot;evaluator&quot;</span>: {<span class="t-k">&quot;mode&quot;</span>: <span class="t-b">null</span>},
+    <span class="t-k">&quot;social&quot;</span>: {<span class="t-k">&quot;autonomy&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;share_life&quot;</span>: <span class="t-b">true</span>}
+  },
+  <span class="t-k">&quot;companion_limit&quot;</span>: <span class="t-n">8</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-patch-me">
+  <h3>修改设置</h3>
+  <p class="ep-line"><span class="m m-patch">PATCH</span><code>/me</code><span class="lock">需要登录</span></p>
+  <p>只传要改的字段。设置分组的结构和 <code>GET /me</code> 返回的 <code>settings</code> 一样，组内也只需传要改的项。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>display_name</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>显示的名字，不填就用用户名</td></tr><tr><td><code>save_sensitive</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>允许角色记住敏感信息（健康、财务等）</td></tr><tr><td><code>privacy</code></td><td>请求体</td><td><code>object</code></td><td><span class="opt">可选</span></td><td>隐私：<code>camera</code>、<code>microphone</code></td></tr><tr><td><code>voice</code></td><td>请求体</td><td><code>object</code></td><td><span class="opt">可选</span></td><td>语音：<code>stt</code>、<code>tts</code>、<code>autoplay</code>、<code>voice</code></td></tr><tr><td><code>interaction</code></td><td>请求体</td><td><code>object</code></td><td><span class="opt">可选</span></td><td>互动：<code>proactive</code>（角色主动搭话）、<code>idle_seconds</code>、<code>stories</code>、<code>web</code> 等</td></tr><tr><td><code>evaluator</code></td><td>请求体</td><td><code>object</code></td><td><span class="opt">可选</span></td><td>互动策略：<code>mode</code></td></tr><tr><td><code>social</code></td><td>请求体</td><td><code>object</code></td><td><span class="opt">可选</span></td><td>社交圈：<code>autonomy</code>、<code>share_life</code></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X PATCH <span class="t-s">&quot;$API/me&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;display_name&quot;: &quot;Mika&quot;, &quot;voice&quot;: {&quot;autoplay&quot;: false}}&#x27;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;58acfe8dca7b4a02ab9cbea54767adb8&quot;</span>,
+  <span class="t-k">&quot;username&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+  <span class="t-k">&quot;display_name&quot;</span>: <span class="t-s">&quot;me&quot;</span>,
+  <span class="t-k">&quot;settings&quot;</span>: {
+    <span class="t-k">&quot;save_sensitive&quot;</span>: <span class="t-b">false</span>,
+    <span class="t-k">&quot;privacy&quot;</span>: {<span class="t-k">&quot;camera&quot;</span>: <span class="t-b">false</span>, <span class="t-k">&quot;microphone&quot;</span>: <span class="t-b">false</span>},
+    <span class="t-k">&quot;voice&quot;</span>: {<span class="t-k">&quot;stt&quot;</span>: <span class="t-s">&quot;auto&quot;</span>, <span class="t-k">&quot;tts&quot;</span>: <span class="t-s">&quot;auto&quot;</span>, <span class="t-k">&quot;autoplay&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;voice&quot;</span>: <span class="t-s">&quot;&quot;</span>},
+    <span class="t-k">&quot;interaction&quot;</span>: {<span class="t-k">&quot;proactive&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;idle_seconds&quot;</span>: <span class="t-n">45</span>, <span class="t-k">&quot;animations&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;stories&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;web&quot;</span>: <span class="t-b">true</span>},
+    <span class="t-k">&quot;evaluator&quot;</span>: {<span class="t-k">&quot;mode&quot;</span>: <span class="t-b">null</span>},
+    <span class="t-k">&quot;social&quot;</span>: {<span class="t-k">&quot;autonomy&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;share_life&quot;</span>: <span class="t-b">true</span>}
+  },
+  <span class="t-k">&quot;companion_limit&quot;</span>: <span class="t-n">8</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-delete-me">
+  <h3>注销账号</h3>
+  <p class="ep-line"><span class="m m-delete">DELETE</span><code>/me</code><span class="lock">需要登录</span></p>
+  <p>删除账号和里面的一切：角色、记忆、聊天、关系。不能恢复。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>password</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>当前密码，确认是你本人</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/me&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;password&quot;: &quot;your-password&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
+  </div>
+</section></section><section class="egroup" id="g-characters"><h2>角色</h2><section class="ep" id="ep-get-characters">
+  <h3>角色列表</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/characters</code><span class="lock">需要登录</span></p>
+  <p>你的角色，新的在前。</p>
+  <h4>参数</h4>
+  <p class="none">无参数。</p>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>[
+  {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+    <span class="t-k">&quot;public_id&quot;</span>: <span class="t-s">&quot;KR-27B48Y&quot;</span>,
+    <span class="t-k">&quot;slug&quot;</span>: <span class="t-s">&quot;krino&quot;</span>,
+    <span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>,
+    <span class="t-k">&quot;tagline&quot;</span>: <span class="t-s">&quot;决策矩阵的吉祥物，戴眼镜的冷静研究员&quot;</span>,
+    <span class="t-k">&quot;tags&quot;</span>: [<span class="t-s">&quot;official&quot;</span>, <span class="t-s">&quot;glasses&quot;</span>],
+    <span class="t-k">&quot;official&quot;</span>: <span class="t-b">true</span>,
+    <span class="t-k">&quot;version&quot;</span>: <span class="t-n">1</span>,
+    <span class="t-k">&quot;portrait&quot;</span>: {<span class="t-k">&quot;kind&quot;</span>: <span class="t-s">&quot;chibi&quot;</span>, <span class="t-k">&quot;src&quot;</span>: <span class="t-s">&quot;/static/chibi/krino/chibi.json&quot;</span>}
+  },
+  …
+]</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-characters-cid">
+  <h3>角色详情</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/characters/{cid}</code><span class="lock">需要登录</span></p>
+  <p>一个角色的完整资料，包括开场白和声音设置。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters/$CHARACTER_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>,
+  <span class="t-k">&quot;greeting&quot;</span>: <span class="t-s">&quot;你来了。今天要解决什么问题？&quot;</span>,
+  <span class="t-k">&quot;voice&quot;</span>: {<span class="t-k">&quot;voice&quot;</span>: <span class="t-s">&quot;krino&quot;</span>, <span class="t-k">&quot;rate&quot;</span>: <span class="t-n">1.0</span>, <span class="t-k">&quot;pitch&quot;</span>: <span class="t-n">0.95</span>},
+  <span class="t-k">&quot;default_expression&quot;</span>: <span class="t-s">&quot;neutral&quot;</span>,
+  <span class="t-k">&quot;portrait&quot;</span>: {<span class="t-k">&quot;kind&quot;</span>: <span class="t-s">&quot;chibi&quot;</span>, <span class="t-k">&quot;src&quot;</span>: <span class="t-s">&quot;/static/chibi/krino/chibi.json&quot;</span>},
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-characters-cid-export">
+  <h3>导出角色</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/characters/{cid}/export</code><span class="lock">需要登录</span></p>
+  <p>把角色导出成 <code>krino-persona/1</code> 角色包（可以在别处导入）。只含人设，不含你们之间的记忆，那部分用“导出关系”。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr><tr><td><code>format</code></td><td>查询</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>json</code>：角色包；<code>md</code>：可读的 Markdown<span class="prule">默认 <code>&quot;json&quot;</code></span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/characters/$CHARACTER_ID/export&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;format&quot;</span>: <span class="t-s">&quot;krino-persona/1&quot;</span>,
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;krino&quot;</span>,
+  <span class="t-k">&quot;version&quot;</span>: <span class="t-n">1</span>,
+  <span class="t-k">&quot;persona&quot;</span>: {<span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>, <span class="t-k">&quot;personality&quot;</span>: …, <span class="t-k">&quot;speech&quot;</span>: …, <span class="t-k">&quot;greeting&quot;</span>: …, …},
+  <span class="t-k">&quot;behavior&quot;</span>: {…},
+  <span class="t-k">&quot;lore&quot;</span>: […]
+}</code></pre></div></div>
+  </div>
+</section></section><section class="egroup" id="g-chat"><h2>对话</h2><section class="ep" id="ep-post-sessions">
+  <h3>开始对话</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/sessions</code><span class="lock">需要登录</span></p>
+  <p>开一段新对话，返回里带着角色的开场白 <code>greeting</code>。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&quot;{\&quot;character_id\&quot;: \&quot;$CHARACTER_ID\&quot;}&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-b">null</span>,
+  <span class="t-k">&quot;ended&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;greeting&quot;</span>: <span class="t-s">&quot;你来了。今天要解决什么问题？&quot;</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-sessions">
+  <h3>对话列表</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/sessions</code><span class="lock">需要登录</span></p>
+  <p>和这个角色的所有对话，新的在前。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>查询</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions?character_id=$CHARACTER_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>[
+  {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
+    <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+    <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;今天过得怎么样？&quot;</span>,
+    <span class="t-k">&quot;ended&quot;</span>: <span class="t-b">false</span>,
+    <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+    <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:36:12+00:00&quot;</span>
+  }
+]</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-sessions-sid">
+  <h3>对话详情</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/sessions/{sid}</code><span class="lock">需要登录</span></p>
+  <p>一段对话和它的全部消息。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;ended&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;messages&quot;</span>: [
+    {<span class="t-k">&quot;id&quot;</span>: <span class="t-n">89</span>, <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;user&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;今天过得怎么样？&quot;</span>, <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;…&quot;</span>},
+    {<span class="t-k">&quot;id&quot;</span>: <span class="t-n">90</span>, <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;assistant&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;嗯，我在。今天顺利吗？&quot;</span>, <span class="t-k">&quot;state&quot;</span>: {<span class="t-k">&quot;expression&quot;</span>: <span class="t-s">&quot;happy&quot;</span>, <span class="t-k">&quot;mood&quot;</span>: <span class="t-s">&quot;happy&quot;</span>}, <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;…&quot;</span>}
+  ],
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-sessions-sid-messages">
+  <h3>发消息</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/sessions/{sid}/messages</code><span class="lock">需要登录</span></p>
+  <p>说一句话，等角色的完整回复。要边生成边显示用下面的流式接口。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr><tr><td><code>text</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>你说的话<span class="prule">≤ 4000字</span></td></tr><tr><td><code>audio</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>一段录音，data URL（<code>data:audio/wav;base64,…</code>），角色直接听；只有流式接口用</td></tr><tr><td><code>image</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>一张图片，data URL（<code>data:image/jpeg;base64,…</code>）</td></tr><tr><td><code>source</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>从哪发来的：<code>app</code>、<code>voice</code>（语音对话）、<code>glasses</code>（眼镜）<span class="prule"><code>app</code> / <code>voice</code> / <code>glasses</code>；默认 <code>&quot;app&quot;</code></span></td></tr><tr><td><code>character_id</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>可选：校验对话属于这个角色，不是就返回 409</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID/messages&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;今天过得怎么样？&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;reply&quot;</span>: {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-n">90</span>,
+    <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;assistant&quot;</span>,
+    <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;嗯，我在。今天顺利吗？&quot;</span>,
+    <span class="t-k">&quot;state&quot;</span>: {<span class="t-k">&quot;expression&quot;</span>: <span class="t-s">&quot;happy&quot;</span>, <span class="t-k">&quot;animation&quot;</span>: <span class="t-b">null</span>, <span class="t-k">&quot;mood&quot;</span>: <span class="t-s">&quot;happy&quot;</span>},
+    <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>
+  },
+  <span class="t-k">&quot;user&quot;</span>: {<span class="t-k">&quot;id&quot;</span>: <span class="t-n">89</span>, <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;user&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;今天过得怎么样？&quot;</span>, …},
+  <span class="t-k">&quot;actions&quot;</span>: [{<span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;say&quot;</span>, <span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;嗯，我在。今天顺利吗？&quot;</span>}],
+  <span class="t-k">&quot;decision&quot;</span>: {<span class="t-k">&quot;policy&quot;</span>: <span class="t-s">&quot;rules&quot;</span>, <span class="t-k">&quot;primary&quot;</span>: {<span class="t-k">&quot;action&quot;</span>: <span class="t-s">&quot;RESPOND&quot;</span>, …}, …},
+  <span class="t-k">&quot;memory_job&quot;</span>: <span class="t-s">&quot;40a37bb9a38c48a580d9a67e454f49cb&quot;</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-sessions-sid-stream">
+  <h3>发消息（流式）</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/sessions/{sid}/stream</code><span class="lock">需要登录</span></p>
+  <p>同上，但回复以 <a href="#streaming">server-sent events</a> 一段段返回。可以带一段录音 <code>audio</code>，角色直接听。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr><tr><td><code>text</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>你说的话<span class="prule">≤ 4000字</span></td></tr><tr><td><code>audio</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>一段录音，data URL（<code>data:audio/wav;base64,…</code>），角色直接听；只有流式接口用</td></tr><tr><td><code>image</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>一张图片，data URL（<code>data:image/jpeg;base64,…</code>）</td></tr><tr><td><code>source</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>从哪发来的：<code>app</code>、<code>voice</code>（语音对话）、<code>glasses</code>（眼镜）<span class="prule"><code>app</code> / <code>voice</code> / <code>glasses</code>；默认 <code>&quot;app&quot;</code></span></td></tr><tr><td><code>character_id</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>可选：校验对话属于这个角色，不是就返回 409</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -N <span class="t-s">&quot;$API/sessions/$SESSION_ID/stream&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;讲个故事吧&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>text/event-stream</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">event: decision</span>
+data: {&quot;actions&quot;: [&quot;RESPOND&quot;], &quot;policy&quot;: &quot;rules&quot;}
+
+<span class="t-k">event: delta</span>
+data: {&quot;text&quot;: &quot;从前，&quot;}
+
+<span class="t-k">event: delta</span>
+data: {&quot;text&quot;: &quot;有一头大蓝鲸……&quot;}
+
+<span class="t-k">event: done</span>
+data: {&quot;reply&quot;: {…}, &quot;user&quot;: {…}, &quot;actions&quot;: […], &quot;decision&quot;: {…}, &quot;memory_job&quot;: &quot;…&quot;}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-sessions-sid-events">
+  <h3>互动事件</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/sessions/{sid}/events</code><span class="lock">需要登录</span></p>
+  <p>不说话的互动：做手势（挥手、摸头……）、你走开了一会儿、或者给角色看一眼画面。角色自己决定要不要回应。返回和发消息一样。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr><tr><td><code>type</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td><code>gesture</code>（手势）、<code>idle</code>（你走开了）、<code>perception</code>（给角色看画面）<span class="prule"><code>idle</code> / <code>gesture</code> / <code>perception</code></span></td></tr><tr><td><code>gesture</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>手势名，比如 <code>wave</code>、<code>pat</code></td></tr><tr><td><code>idle_count</code></td><td>请求体</td><td><code>int</code></td><td><span class="opt">可选</span></td><td>连续第几次空闲<span class="prule">0–100；默认 <code>1</code></span></td></tr><tr><td><code>text</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>附带的一句话（可选）<span class="prule">≤ 400字</span></td></tr><tr><td><code>image</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>一张图片，data URL（<code>data:image/jpeg;base64,…</code>）</td></tr><tr><td><code>character_id</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>可选：校验对话属于这个角色，不是就返回 409</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/sessions/$SESSION_ID/events&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;type&quot;: &quot;gesture&quot;, &quot;gesture&quot;: &quot;wave&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;reply&quot;</span>: {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-n">90</span>,
+    <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;assistant&quot;</span>,
+    <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;嗯，我在。今天顺利吗？&quot;</span>,
+    <span class="t-k">&quot;state&quot;</span>: {<span class="t-k">&quot;expression&quot;</span>: <span class="t-s">&quot;happy&quot;</span>, <span class="t-k">&quot;animation&quot;</span>: <span class="t-b">null</span>, <span class="t-k">&quot;mood&quot;</span>: <span class="t-s">&quot;happy&quot;</span>},
+    <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>
+  },
+  <span class="t-k">&quot;user&quot;</span>: {<span class="t-k">&quot;id&quot;</span>: <span class="t-n">89</span>, <span class="t-k">&quot;role&quot;</span>: <span class="t-s">&quot;user&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;今天过得怎么样？&quot;</span>, …},
+  <span class="t-k">&quot;actions&quot;</span>: [{<span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;say&quot;</span>, <span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;嗯，我在。今天顺利吗？&quot;</span>}],
+  <span class="t-k">&quot;decision&quot;</span>: {<span class="t-k">&quot;policy&quot;</span>: <span class="t-s">&quot;rules&quot;</span>, <span class="t-k">&quot;primary&quot;</span>: {<span class="t-k">&quot;action&quot;</span>: <span class="t-s">&quot;RESPOND&quot;</span>, …}, …},
+  <span class="t-k">&quot;memory_job&quot;</span>: <span class="t-s">&quot;40a37bb9a38c48a580d9a67e454f49cb&quot;</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-sessions-sid-end">
+  <h3>结束对话</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/sessions/{sid}/end</code><span class="lock">需要登录</span></p>
+  <p>结束对话，角色会给这段对话写一份小结。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/sessions/$SESSION_ID/end&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;2f549fa0f5f240a8b7e979c12c275312&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;ended&quot;</span>: <span class="t-b">true</span>,
+  <span class="t-k">&quot;summary&quot;</span>: {<span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;b6a975397f63406dbc8f63c98676a1f5&quot;</span>, <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;聊天 11-13 22:34：今天过得怎么样？&quot;</span>},
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-delete-sessions-sid">
+  <h3>删除对话</h3>
+  <p class="ep-line"><span class="m m-delete">DELETE</span><code>/sessions/{sid}</code><span class="lock">需要登录</span></p>
+  <p>删除对话和里面的消息。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>sid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>对话 id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/sessions/$SESSION_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
+  </div>
+</section></section><section class="egroup" id="g-memory"><h2>记忆</h2><section class="ep" id="ep-get-memories">
+  <h3>记忆列表</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/memories</code><span class="lock">需要登录</span></p>
+  <p>角色记得的关于你的事。<code>reality</code> 是 <code>real</code>（真实发生的）或 <code>story</code>（一起编的故事）。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>查询</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr><tr><td><code>status</code></td><td>查询</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>active</code>（在用的）、<code>forgotten</code>（忘掉的）<span class="prule">默认 <code>&quot;active&quot;</code></span></td></tr><tr><td><code>type</code></td><td>查询</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>按类型筛选</td></tr><tr><td><code>q</code></td><td>查询</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>搜索内容</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories?character_id=$CHARACTER_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>[
+  {
+    <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+    <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+    <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+    <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+    <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+    <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+    <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+    <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;active&quot;</span>,
+    <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-b">null</span>,
+    <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+    <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+    <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+    <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+    <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+    …
+  }
+]</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-memories">
+  <h3>添加记忆</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/memories</code><span class="lock">需要登录</span></p>
+  <p>自己告诉角色一件事，让它记住。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr><tr><td><code>content</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>记忆内容<span class="prule">1–2000字</span></td></tr><tr><td><code>type</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>fact</code> 事实、<code>preference</code> 偏好、<code>event</code> 事件、<code>commitment</code> 约定<span class="prule"><code>fact</code> / <code>preference</code> / <code>event</code> / <code>commitment</code>；默认 <code>&quot;fact&quot;</code></span></td></tr><tr><td><code>reality</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>real</code> 真实发生的、<code>story</code> 一起编的故事<span class="prule"><code>real</code> / <code>story</code>；默认 <code>&quot;real&quot;</code></span></td></tr><tr><td><code>title</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>短标题，不填就从内容截取</td></tr><tr><td><code>importance</code></td><td>请求体</td><td><code>int</code></td><td><span class="opt">可选</span></td><td>重要程度 1–5<span class="prule">1–5；默认 <code>3</code></span></td></tr><tr><td><code>pinned</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>置顶：每次对话都想得起来<span class="prule">默认 <code>false</code></span></td></tr><tr><td><code>sensitive</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>敏感信息<span class="prule">默认 <code>false</code></span></td></tr><tr><td><code>source_message_id</code></td><td>请求体</td><td><code>int</code></td><td><span class="opt">可选</span></td><td>出自哪条消息（消息的 <code>id</code>）</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&quot;{\&quot;character_id\&quot;: \&quot;$CHARACTER_ID\&quot;, \&quot;content\&quot;: \&quot;我喜欢吃白米饭\&quot;, \&quot;type\&quot;: \&quot;preference\&quot;}&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+  <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+  <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+  <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;active&quot;</span>,
+  <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-b">null</span>,
+  <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+  <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-patch-memories-mid">
+  <h3>修改记忆</h3>
+  <p class="ep-line"><span class="m m-patch">PATCH</span><code>/memories/{mid}</code><span class="lock">需要登录</span></p>
+  <p>改正记错的地方。只传要改的字段。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>mid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>记忆 id</td></tr><tr><td><code>content</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>记忆内容</td></tr><tr><td><code>title</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>短标题，不填就从内容截取</td></tr><tr><td><code>type</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>fact</code>、<code>preference</code>、<code>event</code>、<code>commitment</code></td></tr><tr><td><code>reality</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td><code>real</code> 真实发生的、<code>story</code> 一起编的故事</td></tr><tr><td><code>importance</code></td><td>请求体</td><td><code>int</code></td><td><span class="opt">可选</span></td><td>重要程度 1–5</td></tr><tr><td><code>pinned</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>置顶：每次对话都想得起来</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X PATCH <span class="t-s">&quot;$API/memories/$MEMORY_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;importance&quot;: 5, &quot;pinned&quot;: true}&#x27;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+  <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+  <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+  <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;active&quot;</span>,
+  <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-b">null</span>,
+  <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+  <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-memories-mid-forget">
+  <h3>忘掉</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/memories/{mid}/forget</code><span class="lock">需要登录</span></p>
+  <p>让角色不再想起这条记忆。可以用 <code>/restore</code> 找回。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>mid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>记忆 id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/memories/$MEMORY_ID/forget&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+  <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+  <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+  <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;forgotten&quot;</span>,
+  <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-s">&quot;你说不再记住&quot;</span>,
+  <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+  <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-memories-mid-restore">
+  <h3>找回</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/memories/{mid}/restore</code><span class="lock">需要登录</span></p>
+  <p>找回忘掉的记忆。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>mid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>记忆 id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X POST <span class="t-s">&quot;$API/memories/$MEMORY_ID/restore&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+  <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+  <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+  <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;active&quot;</span>,
+  <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-b">null</span>,
+  <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+  <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-delete-memories-mid">
+  <h3>彻底删除</h3>
+  <p class="ep-line"><span class="m m-delete">DELETE</span><code>/memories/{mid}</code><span class="lock">需要登录</span></p>
+  <p>彻底删除这条记忆，不能恢复。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>mid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>记忆 id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/memories/$MEMORY_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;removed&quot;</span>: {<span class="t-k">&quot;memories&quot;</span>: <span class="t-n">1</span>, <span class="t-k">&quot;messages&quot;</span>: <span class="t-n">0</span>}}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-memories-candidates">
+  <h3>待确认的记忆</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/memories/candidates</code><span class="lock">需要登录</span></p>
+  <p>角色从对话里提出想记住、但要你确认的事。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>character_id</code></td><td>查询</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories/candidates?character_id=$CHARACTER_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>[
+  {<span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;…&quot;</span>, <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>, <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;明天去跑步&quot;</span>, <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;commitment&quot;</span>, …}
+]</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-memories-candidates-cand-id-accept">
+  <h3>确认</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/memories/candidates/{cand_id}/accept</code><span class="lock">需要登录</span></p>
+  <p>确认记住。可以顺手改写内容。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cand_id</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>待确认记忆的 id</td></tr><tr><td><code>content</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>改写后的内容（可选）</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memories/candidates/$CANDIDATE_ID/accept&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{}&#x27;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;806576307f4a428d871dceee6921f2cd&quot;</span>,
+  <span class="t-k">&quot;character_id&quot;</span>: <span class="t-s">&quot;c54631270dbe4ae9b7fb44ff27d5ae2c&quot;</span>,
+  <span class="t-k">&quot;type&quot;</span>: <span class="t-s">&quot;preference&quot;</span>,
+  <span class="t-k">&quot;title&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+  <span class="t-k">&quot;content&quot;</span>: <span class="t-s">&quot;我喜欢吃白米饭&quot;</span>,
+  <span class="t-k">&quot;origin&quot;</span>: <span class="t-s">&quot;manual&quot;</span>,
+  <span class="t-k">&quot;reality&quot;</span>: <span class="t-s">&quot;real&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;active&quot;</span>,
+  <span class="t-k">&quot;status_reason&quot;</span>: <span class="t-b">null</span>,
+  <span class="t-k">&quot;importance&quot;</span>: <span class="t-n">3</span>,
+  <span class="t-k">&quot;pinned&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;sensitive&quot;</span>: <span class="t-b">false</span>,
+  <span class="t-k">&quot;created_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  <span class="t-k">&quot;updated_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:34:05+00:00&quot;</span>,
+  …
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-delete-memories-candidates-cand-id">
+  <h3>拒绝</h3>
+  <p class="ep-line"><span class="m m-delete">DELETE</span><code>/memories/candidates/{cand_id}</code><span class="lock">需要登录</span></p>
+  <p>不记这件事。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cand_id</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>待确认记忆的 id</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> -X DELETE <span class="t-s">&quot;$API/memories/candidates/$CANDIDATE_ID&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-memory-jobs-job-id">
+  <h3>记忆整理进度</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/memory-jobs/{job_id}</code><span class="lock">需要登录</span></p>
+  <p>每轮对话后角色会在后台整理记忆，发消息的返回里有任务 id <code>memory_job</code>。<code>wait</code> 秒内完成就直接返回结果。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>job_id</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>任务 id（发消息返回的 <code>memory_job</code>）</td></tr><tr><td><code>wait</code></td><td>查询</td><td><code>number</code></td><td><span class="opt">可选</span></td><td>最多等几秒（最多 15）<span class="prule">默认 <code>0</code></span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/memory-jobs/$JOB_ID?wait=5&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;id&quot;</span>: <span class="t-s">&quot;40a37bb9a38c48a580d9a67e454f49cb&quot;</span>,
+  <span class="t-k">&quot;status&quot;</span>: <span class="t-s">&quot;done&quot;</span>,
+  <span class="t-k">&quot;result&quot;</span>: {<span class="t-k">&quot;created&quot;</span>: [], <span class="t-k">&quot;updated&quot;</span>: [], <span class="t-k">&quot;confirmed&quot;</span>: [], <span class="t-k">&quot;pending&quot;</span>: [], <span class="t-k">&quot;dropped&quot;</span>: []},
+  <span class="t-k">&quot;error&quot;</span>: <span class="t-b">null</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-relations-cid-export">
+  <h3>导出关系</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/relations/{cid}/export</code><span class="lock">需要登录</span></p>
+  <p>你和这个角色之间的私人数据：记忆和关系进度，可选带上聊天记录。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr><tr><td><code>chats</code></td><td>查询</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>同时导出聊天记录<span class="prule">默认 <code>false</code></span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/relations/$CHARACTER_ID/export?chats=true&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;format&quot;</span>: <span class="t-s">&quot;krino-relation/1&quot;</span>,
+  <span class="t-k">&quot;character&quot;</span>: {<span class="t-k">&quot;slug&quot;</span>: <span class="t-s">&quot;krino&quot;</span>, <span class="t-k">&quot;name&quot;</span>: <span class="t-s">&quot;KRINO&quot;</span>},
+  <span class="t-k">&quot;exported_at&quot;</span>: <span class="t-s">&quot;2026-11-13T14:37:20+00:00&quot;</span>,
+  <span class="t-k">&quot;memories&quot;</span>: […],
+  <span class="t-k">&quot;bond&quot;</span>: {<span class="t-k">&quot;closeness&quot;</span>: <span class="t-n">0.8</span>, <span class="t-k">&quot;stage_index&quot;</span>: <span class="t-n">0</span>, <span class="t-k">&quot;turns&quot;</span>: <span class="t-n">1</span>, <span class="t-k">&quot;days&quot;</span>: <span class="t-n">1</span>, …}
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-relations-cid-import">
+  <h3>导入关系</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/relations/{cid}/import</code><span class="lock">需要登录</span></p>
+  <p>把导出的关系导进来（比如换了角色或换了账号）。重复的记忆会跳过。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>cid</code></td><td>路径</td><td><code>string</code></td><td><span class="req">必填</span></td><td>角色 id</td></tr><tr><td><code>data</code></td><td>请求体</td><td><code>object</code></td><td><span class="req">必填</span></td><td>“导出关系”返回的整个对象</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/relations/$CHARACTER_ID/import&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;data&quot;: &quot;…&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;created&quot;</span>: <span class="t-n">12</span>, <span class="t-k">&quot;duplicate&quot;</span>: <span class="t-n">0</span>}</code></pre></div></div>
+  </div>
+</section></section><section class="egroup" id="g-voice"><h2>语音与视觉</h2><section class="ep" id="ep-post-voice-tts">
+  <h3>语音合成</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/voice/tts</code><span class="lock">需要登录</span></p>
+  <p>把文字读出来，返回音频本身（不是 JSON）。看 <code>Content-Type</code> 判断格式。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>text</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>要读的文字<span class="prule">1–600字</span></td></tr><tr><td><code>voice</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>声音 id，可选值见 <code>GET /voice/config</code>；不填用默认</td></tr><tr><td><code>rate</code></td><td>请求体</td><td><code>number</code></td><td><span class="opt">可选</span></td><td>语速 0.5–2.0<span class="prule">0.5–2；默认 <code>1.0</code></span></td></tr><tr><td><code>style</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>声音描述（一句话生成的角色才有）</td></tr><tr><td><code>stream</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>边合成边返回 16-bit PCM（24 kHz 单声道），第一段声音零点几秒就到<span class="prule">默认 <code>false</code></span></td></tr><tr><td><code>opus_stream</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>流式时也压成 Ogg Opus（浏览器用 WebCodecs 边收边解）<span class="prule">默认 <code>false</code></span></td></tr><tr><td><code>opus_file</code></td><td>请求体</td><td><code>bool</code></td><td><span class="opt">可选</span></td><td>整句返回 Ogg Opus 而不是 WAV，小很多<span class="prule">默认 <code>false</code></span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/tts&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;晚安&quot;, &quot;opus_file&quot;: true}&#x27;</span> \
+  -o speech.ogg</code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>Shell</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-c"># 返回的是音频字节</span>
+Content-Type: audio/ogg   <span class="t-c"># opus_file=false 时是 audio/wav</span></code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-voice-stt">
+  <h3>语音识别</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/voice/stt</code><span class="lock">需要登录</span></p>
+  <p>上传一段录音（<code>multipart/form-data</code>），返回识别出的文字。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>file</code></td><td>表单</td><td><code>string</code></td><td><span class="req">必填</span></td><td>录音文件：webm、ogg、mp4、wav 等</td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/stt&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -F file=@speech.webm</code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;今天过得怎么样&quot;</span>}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-voice-config">
+  <h3>语音服务</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/voice/config</code><span class="lock">需要登录</span></p>
+  <p>这台服务器提供哪些语音和视觉服务、有哪些声音可选。</p>
+  <h4>参数</h4>
+  <p class="none">无参数。</p>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/voice/config&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{
+  <span class="t-k">&quot;stt&quot;</span>: {<span class="t-k">&quot;provider&quot;</span>: <span class="t-s">&quot;dashscope&quot;</span>, <span class="t-k">&quot;server&quot;</span>: <span class="t-b">true</span>},
+  <span class="t-k">&quot;tts&quot;</span>: {<span class="t-k">&quot;provider&quot;</span>: <span class="t-s">&quot;qwen&quot;</span>, <span class="t-k">&quot;server&quot;</span>: <span class="t-b">true</span>, <span class="t-k">&quot;voices&quot;</span>: […], <span class="t-k">&quot;default&quot;</span>: <span class="t-s">&quot;…&quot;</span>},
+  <span class="t-k">&quot;vlm&quot;</span>: {<span class="t-k">&quot;provider&quot;</span>: <span class="t-s">&quot;openai&quot;</span>, <span class="t-k">&quot;simulated&quot;</span>: <span class="t-b">false</span>},
+  <span class="t-k">&quot;hear&quot;</span>: <span class="t-b">true</span>
+}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-post-vision-describe">
+  <h3>看图</h3>
+  <p class="ep-line"><span class="m m-post">POST</span><code>/vision/describe</code><span class="lock">需要登录</span></p>
+  <p>让模型描述一张图，或回答关于它的问题。</p>
+  <h4>参数</h4>
+  <div class="table-wrap"><table class="params"><thead><tr><th>参数</th><th>位置</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>image</code></td><td>请求体</td><td><code>string</code></td><td><span class="req">必填</span></td><td>图片，data URL<span class="prule">≤ 8000000字</span></td></tr><tr><td><code>question</code></td><td>请求体</td><td><code>string</code></td><td><span class="opt">可选</span></td><td>想问的问题（可选）<span class="prule">≤ 200字</span></td></tr></tbody></table></div>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/vision/describe&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> \
+  -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;image&quot;: &quot;data:image/jpeg;base64,…&quot;, &quot;question&quot;: &quot;这是什么？&quot;}&#x27;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;text&quot;</span>: <span class="t-s">&quot;一只蓝色的像素小鲸鱼。&quot;</span>}</code></pre></div></div>
+  </div>
+</section></section><section class="egroup" id="g-status"><h2>服务状态</h2><section class="ep" id="ep-get-health">
+  <h3>健康检查</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/health</code><span class="lock open">无需登录</span></p>
+  <p>服务是否在线。不用登录。</p>
+  <h4>参数</h4>
+  <p class="none">无参数。</p>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/health&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;ok&quot;</span>: <span class="t-b">true</span>}</code></pre></div></div>
+  </div>
+</section>
+<section class="ep" id="ep-get-credits">
+  <h3>今日额度</h3>
+  <p class="ep-line"><span class="m m-get">GET</span><code>/credits</code><span class="lock">需要登录</span></p>
+  <p>今天的额度和已用量。用完后接口返回 429，第二天恢复。</p>
+  <h4>参数</h4>
+  <p class="none">无参数。</p>
+  <div class="ep-ex">
+    <div><h4>请求示例</h4><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">curl</span> <span class="t-s">&quot;$API/credits&quot;</span> \
+  -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span></code></pre></div></div>
+    <div><h4>返回示例</h4><div class="code"><div class="code-h"><span>JSON</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>{<span class="t-k">&quot;limit&quot;</span>: <span class="t-n">100.0</span>, <span class="t-k">&quot;spent&quot;</span>: <span class="t-n">12.5</span>, <span class="t-k">&quot;per_cny&quot;</span>: <span class="t-n">10.0</span>, <span class="t-k">&quot;image&quot;</span>: <span class="t-n">2.5</span>}</code></pre></div></div>
+  </div>
+</section></section>
+</article>
+</div>
+  </main>
+  <div class="foot-wrap">
+      <footer class="foot site-foot">
+        <div><h4>KRINO MATRIX</h4><p class="legal">© 2026 杭州决策矩阵科技有限公司<br><a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">浙ICP备2026093639号</a><br><a href="mailto:support@krinomatrix.com">support@krinomatrix.com</a></p></div>
+        <div><h4>产品</h4><a href="/cn/products/world/">KRINO WORLD</a></div>
+        <div><h4>公司</h4><a href="../../apocalypse/">启示与应验</a><a href="../../vision/#tree">战略</a><a href="../../about/">关于</a><a href="../../developers/">开发者</a><a href="../../contact/">联系</a></div>
+        <div><h4>法律</h4><a href="../../privacy/">隐私政策</a><a href="../../terms/">服务条款</a><a href="../../cookies/">Cookie 政策</a></div>
+        <p class="region-line">地区: <b>中国大陆</b> · <a class="region-to" href="../../../global/developers/api/" data-region="global" hreflang="en" lang="en"><span class="hide-sm">International · </span>EN</a></p>
+      </footer>
+  </div>
+  <div class="cookie" hidden role="region" aria-label="Cookie">
+    <p>本站不做追踪，也不接任何统计。只用一个 Cookie 记住你选的地区。<a href="../../cookies/">了解更多</a></p>
+    <button type="button">知道了</button>
+  </div>
+  <script src="../../../portal.js"></script>
+</body>
+</html>

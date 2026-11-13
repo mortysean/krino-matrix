@@ -6588,6 +6588,16 @@
       "type": "boolean",
       "title": "Stream",
       "default": false
+     },
+     "opus_stream": {
+      "type": "boolean",
+      "title": "Opus Stream",
+      "default": false
+     },
+     "opus_file": {
+      "type": "boolean",
+      "title": "Opus File",
+      "default": false
      }
     },
     "type": "object",

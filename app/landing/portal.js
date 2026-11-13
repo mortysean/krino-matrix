@@ -1,6 +1,6 @@
 // krinomatrix.com 官网的小脚本：地区选择、Cookie 提示、像素字、像素图标、翻页。没有统计、没有第三方。
 (() => {
-  const store = {  // 本地存储只记一样：Cookie 提示关没关。无痕模式拿不到也照常显示
+  const store = {  // 本地存储只记两样：Cookie 提示关没关、开发者文档选的代码写法。无痕模式拿不到也照常显示
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* 无痕模式 */ } },
   };
@@ -116,6 +116,55 @@
   addEventListener("resize", () => {  // 跨过宽窄分界才重画像素字
     if ((innerWidth > 760) !== wide) { wide = !wide; document.querySelectorAll("canvas[data-pixel]").forEach(drawPixelText); }
   });
+
+  // ---------- 开发者中心：复制代码、Python / cURL 切换、目录 ----------
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest(".copy");
+    if (!b) return;
+    const text = b.closest(".code").querySelector("pre").innerText;
+    const done = () => {
+      const label = b.dataset.label ||= b.textContent;
+      b.textContent = b.dataset.done; b.classList.add("done");
+      setTimeout(() => { b.textContent = label; b.classList.remove("done"); }, 1400);
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, () => {});
+    else {  // 非 https 的本地预览没有剪贴板接口
+      const ta = Object.assign(document.createElement("textarea"), { value: text });
+      document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); done();
+    }
+  });
+  function pickTab(k, save) {  // 选了哪种写法，整页的切换一起换，下次打开也记得
+    document.querySelectorAll(".tabs").forEach((t) => {
+      if (!t.querySelector(`[role=tab][data-tab="${k}"]`)) return;
+      t.querySelectorAll("[role=tab]").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === k));
+      t.querySelectorAll("[role=tabpanel]").forEach((p) => { p.hidden = p.dataset.tab !== k; });
+    });
+    if (save) store.set("km_code_tab", k);
+  }
+  document.addEventListener("click", (e) => { const b = e.target.closest(".tab-h [role=tab]"); if (b) pickTab(b.dataset.tab, true); });
+  if (store.get("km_code_tab")) pickTab(store.get("km_code_tab"));
+  const side = document.querySelector(".dev-side");
+  if (side) {
+    const tg = side.querySelector(".dev-toggle");
+    tg.addEventListener("click", () => tg.setAttribute("aria-expanded", side.classList.toggle("open")));
+    side.addEventListener("click", (e) => { if (e.target.closest(".dev-nav a")) { side.classList.remove("open"); tg.setAttribute("aria-expanded", false); } });
+    // 读到哪一节，目录里就亮哪一项（只看本页的锚点）
+    const links = new Map();
+    side.querySelectorAll(".dev-nav > a[href*='#']").forEach((a) => {
+      const u = new URL(a.href, location.href);
+      if (u.pathname === location.pathname) { const el = document.getElementById(decodeURIComponent(u.hash.slice(1))); if (el) links.set(el, a); }
+    });
+    let lit = null;
+    const spy = new IntersectionObserver((es) => {
+      const vis = es.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      const a = vis && links.get(vis.target);
+      if (!a || a === lit) return;
+      lit?.classList.remove("on"); a.classList.add("on"); lit = a;
+      const r = a.getBoundingClientRect(), s = side.getBoundingClientRect();  // 目录自己能滚时，把亮的那项滚进视野
+      if (side.scrollHeight > side.clientHeight + 4 && (r.top < s.top || r.bottom > s.bottom - 40)) side.scrollTop += r.top - s.top - side.clientHeight / 3;
+    }, { rootMargin: "-80px 0px -65% 0px" });
+    links.forEach((_, el) => spy.observe(el));
+  }
 
   // ---------- 翻页 ----------
   const deck = document.querySelector(".deck");

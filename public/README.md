@@ -16,7 +16,7 @@ The open parts of [KRINO MATRIX](https://krinomatrix.com): a client SDK and API 
 KRINO WORLD is a platform of AI characters that remember you. You can talk to them by text or voice in the browser, at [krinomatrix.com/cn/products/world/](https://krinomatrix.com/cn/products/world/) (mainland China) or [krinomatrix.com/global/products/world/](https://krinomatrix.com/global/products/world/) (international). The SDK uses the same API as the app.
 
 ```bash
-pip install "git+https://github.com/mortysean/krino-matrix#subdirectory=sdk/python"
+pip install krino-world
 ```
 
 ```python

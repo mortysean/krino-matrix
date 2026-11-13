@@ -1,19 +1,19 @@
 <!doctype html>
-<!-- 由 app/landing_src/build.py 生成，别直接改：改 content/cn/developers.html 或 regions.py 再重跑 -->
+<!-- 由 app/landing_src/build.py 生成，别直接改：改 devdocs.py 或 regions.py 再重跑 -->
 <html lang="zh-CN" data-lang="zh" data-region="cn">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>开发者 · 决策矩阵 KRINO MATRIX</title>
-  <meta name="description" content="决策矩阵开发者中心：开放接口、SDK 与文档正在整理中，接口、SDK、客户端和推理框架将开源。想提前接入请联系我们。">
+  <title>开发者中心 · 决策矩阵 KRINO MATRIX</title>
+  <meta name="description" content="KRINO WORLD 开放接口：快速开始、API 参考和 Python SDK（pip install krino-world）。">
   <link rel="canonical" href="https://krinomatrix.com/cn/developers/">
   <link rel="alternate" hreflang="zh-CN" href="https://krinomatrix.com/cn/developers/">
   <link rel="alternate" hreflang="en" href="https://krinomatrix.com/global/developers/">
   <link rel="alternate" hreflang="x-default" href="https://krinomatrix.com/global/developers/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="决策矩阵 KRINO MATRIX">
-  <meta property="og:title" content="开发者 · 决策矩阵 KRINO MATRIX">
-  <meta property="og:description" content="决策矩阵开发者中心：开放接口、SDK 与文档正在整理中，接口、SDK、客户端和推理框架将开源。想提前接入请联系我们。">
+  <meta property="og:title" content="开发者中心 · 决策矩阵 KRINO MATRIX">
+  <meta property="og:description" content="KRINO WORLD 开放接口：快速开始、API 参考和 Python SDK（pip install krino-world）。">
   <meta property="og:url" content="https://krinomatrix.com/cn/developers/">
   <meta property="og:image" content="https://krinomatrix.com/assets/krino.png">
   <meta property="og:locale" content="zh_CN">
@@ -30,25 +30,140 @@
       <a class="hide-sm" href="../products/">产品</a>
       <a class="hide-sm" href="../apocalypse/">启示与应验</a>
       <a class="hide-sm" href="../vision/#tree">战略</a>
+      <a class="hide-sm" href="../developers/" aria-current="page">开发者</a>
       <a class="hide-sm" href="../about/">关于</a>
       <a class="region-sw" href="../../global/developers/" data-region="global" hreflang="en" lang="en"><span class="hide-sm">International · </span>EN</a>
-      <a class="cta" href="/cn/products/world/">Enter Krino</a>
+      <a class="cta" href="/cn/products/world/">登录</a>
     </nav>
   </header>
-  <main class="page">
-<section class="sec">
-      <p class="tag">// DEVELOPERS</p>
-      <h1 class="title">开发者<em>中心</em></h1>
-      <p class="lead">我们正在把角色背后的能力整理成开放接口：API 文档、SDK 文档和 SDK。接口、SDK、客户端和推理框架将开源；人格、记忆与关系不开源。文档还没有公开；想提前接入或参与测试，请写信给我们。</p>
-      <div class="cards">
-        <div class="card"><b>CHARACTER</b><h3>角色与记忆</h3><p>创建角色、对话，以及读取和纠正角色记得的事。</p></div>
-        <div class="card"><b>VOICE</b><h3>声音</h3><p>按一句描述设计声音，流式合成与识别。</p></div>
-        <div class="card"><b>DEVICE</b><h3>设备接入</h3><p>让角色出现在桌面、眼镜，以及其他厂商的可穿戴设备上。</p></div>
-        <div class="card"><b>OPEN SOURCE</b><h3>开源</h3><p>接口定义、SDK、参考客户端和推理框架开源，可以自己阅读、修改、部署。</p></div>
-      </div>
-      <p class="note">以上是规划方向，不代表已开放的功能（<a href="../vision/#node-openApi">在战略树上看进度</a>）。联系：<a href="mailto:support@krinomatrix.com?subject=开发者接入">support@krinomatrix.com</a>（标题注明“开发者接入”）。</p>
-    </section>
+  <main class="devdoc">
+<div class="dev">
+<nav class="dev-side" aria-label="docs">
+<button type="button" class="dev-toggle" aria-expanded="false">目录</button><div class="dev-nav">
+<h4><a href="../developers/">开始使用</a></h4>
+<a href="../developers/#overview">概览</a>
+<a href="../developers/#quickstart">快速开始</a>
+<a href="../developers/#basics">基本信息</a>
+<h4><a href="../developers/api/">API 参考</a></h4>
+<a href="../developers/api/#base">接口地址</a>
+<a href="../developers/api/#auth">鉴权</a>
+<a href="../developers/api/#streaming">流式回复</a>
+<a href="../developers/api/#errors">错误码</a>
+<h5><a href="../developers/api/#g-account">账号</a></h5>
+<a href="../developers/api/#ep-post-auth-register"><span class="m m-post">POST</span>注册</a>
+<a href="../developers/api/#ep-post-auth-login"><span class="m m-post">POST</span>登录</a>
+<a href="../developers/api/#ep-post-auth-logout"><span class="m m-post">POST</span>退出登录</a>
+<a href="../developers/api/#ep-get-me"><span class="m m-get">GET</span>账号信息</a>
+<a href="../developers/api/#ep-patch-me"><span class="m m-patch">PATCH</span>修改设置</a>
+<a href="../developers/api/#ep-delete-me"><span class="m m-delete">DELETE</span>注销账号</a>
+<h5><a href="../developers/api/#g-characters">角色</a></h5>
+<a href="../developers/api/#ep-get-characters"><span class="m m-get">GET</span>角色列表</a>
+<a href="../developers/api/#ep-get-characters-cid"><span class="m m-get">GET</span>角色详情</a>
+<a href="../developers/api/#ep-get-characters-cid-export"><span class="m m-get">GET</span>导出角色</a>
+<h5><a href="../developers/api/#g-chat">对话</a></h5>
+<a href="../developers/api/#ep-post-sessions"><span class="m m-post">POST</span>开始对话</a>
+<a href="../developers/api/#ep-get-sessions"><span class="m m-get">GET</span>对话列表</a>
+<a href="../developers/api/#ep-get-sessions-sid"><span class="m m-get">GET</span>对话详情</a>
+<a href="../developers/api/#ep-post-sessions-sid-messages"><span class="m m-post">POST</span>发消息</a>
+<a href="../developers/api/#ep-post-sessions-sid-stream"><span class="m m-post">POST</span>发消息（流式）</a>
+<a href="../developers/api/#ep-post-sessions-sid-events"><span class="m m-post">POST</span>互动事件</a>
+<a href="../developers/api/#ep-post-sessions-sid-end"><span class="m m-post">POST</span>结束对话</a>
+<a href="../developers/api/#ep-delete-sessions-sid"><span class="m m-delete">DELETE</span>删除对话</a>
+<h5><a href="../developers/api/#g-memory">记忆</a></h5>
+<a href="../developers/api/#ep-get-memories"><span class="m m-get">GET</span>记忆列表</a>
+<a href="../developers/api/#ep-post-memories"><span class="m m-post">POST</span>添加记忆</a>
+<a href="../developers/api/#ep-patch-memories-mid"><span class="m m-patch">PATCH</span>修改记忆</a>
+<a href="../developers/api/#ep-post-memories-mid-forget"><span class="m m-post">POST</span>忘掉</a>
+<a href="../developers/api/#ep-post-memories-mid-restore"><span class="m m-post">POST</span>找回</a>
+<a href="../developers/api/#ep-delete-memories-mid"><span class="m m-delete">DELETE</span>彻底删除</a>
+<a href="../developers/api/#ep-get-memories-candidates"><span class="m m-get">GET</span>待确认的记忆</a>
+<a href="../developers/api/#ep-post-memories-candidates-cand-id-accept"><span class="m m-post">POST</span>确认</a>
+<a href="../developers/api/#ep-delete-memories-candidates-cand-id"><span class="m m-delete">DELETE</span>拒绝</a>
+<a href="../developers/api/#ep-get-memory-jobs-job-id"><span class="m m-get">GET</span>记忆整理进度</a>
+<a href="../developers/api/#ep-get-relations-cid-export"><span class="m m-get">GET</span>导出关系</a>
+<a href="../developers/api/#ep-post-relations-cid-import"><span class="m m-post">POST</span>导入关系</a>
+<h5><a href="../developers/api/#g-voice">语音与视觉</a></h5>
+<a href="../developers/api/#ep-post-voice-tts"><span class="m m-post">POST</span>语音合成</a>
+<a href="../developers/api/#ep-post-voice-stt"><span class="m m-post">POST</span>语音识别</a>
+<a href="../developers/api/#ep-get-voice-config"><span class="m m-get">GET</span>语音服务</a>
+<a href="../developers/api/#ep-post-vision-describe"><span class="m m-post">POST</span>看图</a>
+<h5><a href="../developers/api/#g-status">服务状态</a></h5>
+<a href="../developers/api/#ep-get-health"><span class="m m-get">GET</span>健康检查</a>
+<a href="../developers/api/#ep-get-credits"><span class="m m-get">GET</span>今日额度</a>
+<h4><a href="../developers/sdk/">Python SDK</a></h4>
+<a href="../developers/sdk/#install">安装</a>
+<a href="../developers/sdk/#client">Client</a>
+<a href="../developers/sdk/#sdk-plumbing">通用请求</a>
+<a href="../developers/sdk/#sdk-account">账号</a>
+<a href="../developers/sdk/#sdk-characters">角色</a>
+<a href="../developers/sdk/#sdk-chat">对话</a>
+<a href="../developers/sdk/#sdk-memory">记忆</a>
+<a href="../developers/sdk/#sdk-voice">语音</a>
+<a href="../developers/sdk/#event">Event</a>
+<a href="../developers/sdk/#krinoerror">KrinoError</a>
+<h4>资源</h4>
+<a href="../../assets/krino-world-openapi.json" download>openapi.json</a>
+<a href="https://github.com/mortysean/krino-matrix" target="_blank" rel="noopener">GitHub ↗</a>
+<a href="https://pypi.org/project/krino-world/" target="_blank" rel="noopener">PyPI ↗</a>
+</div></nav>
+<article class="dev-main">
+<section class="dev-hero" id="overview">
+  <p class="tag">// DEVELOPERS</p>
+  <h1 class="title">开发者<em>中心</em></h1>
+  <p class="lead">用 HTTP 接口或 Python SDK，把会记得你的 AI 角色接进你自己的应用：对话、记忆、语音、视觉。KRINO WORLD 网页版用的就是同一套接口，它能做的你都能做。</p>
+  <div class="dev-doors">
+    <a href="#quickstart"><b>01</b><h3>快速开始</h3><p>三步跑通第一次对话</p></a>
+    <a href="../developers/api/"><b>02</b><h3>API 参考</h3><p>每个接口的参数、请求和返回示例</p></a>
+    <a href="../developers/sdk/"><b>03</b><h3>Python SDK</h3><p><code>pip install krino-world</code></p></a>
+  </div>
+</section>
+<section id="quickstart">
+  <h2>快速开始</h2>
+  <ol class="dev-steps">
+    <li><h3>准备账号</h3>
+      <p>在 <a href="/cn/products/world/">KRINO WORLD</a> 注册一个账号，或者直接调用 <a href="../developers/api/#ep-post-auth-register">注册接口</a>。账号按地区分开：本站的账号只能用在本站的接口上，和国际站不通。</p></li>
+    <li><h3>安装 SDK</h3>
+      <div class="code"><div class="code-h"><span>Shell</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">pip</span> install krino-world</code></pre></div>
+      <p>需要 Python 3.10 以上，唯一的依赖是 httpx。不用 Python 也行，所有功能都是普通的 HTTP 接口。</p></li>
+    <li><h3>第一次对话</h3>
+      <div class="tabs"><div class="tab-h" role="tablist"><button type="button" role="tab" data-tab="py" aria-selected="true">Python</button><button type="button" role="tab" data-tab="curl" aria-selected="false">cURL</button></div><div role="tabpanel" data-tab="py"><div class="code"><div class="code-h"><span>Python</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">from</span> krino_world <span class="t-k">import</span> Client
 
+<span class="t-k">with</span> Client(region=<span class="t-s">&quot;cn&quot;</span>) <span class="t-k">as</span> kw:
+    kw.login(<span class="t-s">&quot;me&quot;</span>, <span class="t-s">&quot;your-password&quot;</span>)         <span class="t-c"># 或者 kw.register(...)，token 自动存在客户端上</span>
+    character = kw.characters()[<span class="t-n">0</span>]           <span class="t-c"># 新账号自带官方角色</span>
+    session = kw.start_session(character[<span class="t-s">&quot;id&quot;</span>])
+    <span class="t-k">print</span>(session[<span class="t-s">&quot;greeting&quot;</span>])
+
+    turn = kw.send(session[<span class="t-s">&quot;id&quot;</span>], <span class="t-s">&quot;今天过得怎么样？&quot;</span>)
+    <span class="t-k">print</span>(turn[<span class="t-s">&quot;reply&quot;</span>][<span class="t-s">&quot;content&quot;</span>])</code></pre></div></div><div role="tabpanel" data-tab="curl" hidden><div class="code"><div class="code-h"><span>cURL</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code>API=https://krinomatrix.com/cn/products/world/api
+
+<span class="t-c"># 1. 登录，留下 token</span>
+TOKEN=$(<span class="t-k">curl</span> -s $API/auth/login -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;username&quot;: &quot;me&quot;, &quot;password&quot;: &quot;your-password&quot;}&#x27;</span> | <span class="t-k">jq</span> -r .token)
+
+<span class="t-c"># 2. 选一个角色，开始对话</span>
+CHARACTER_ID=$(<span class="t-k">curl</span> -s $API/characters -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> | <span class="t-k">jq</span> -r <span class="t-s">&#x27;.[0].id&#x27;</span>)
+SESSION_ID=$(<span class="t-k">curl</span> -s $API/sessions -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&quot;{\&quot;character_id\&quot;: \&quot;$CHARACTER_ID\&quot;}&quot;</span> | <span class="t-k">jq</span> -r .id)
+
+<span class="t-c"># 3. 说一句话</span>
+<span class="t-k">curl</span> -s $API/sessions/$SESSION_ID/messages -H <span class="t-s">&quot;Authorization: Bearer $TOKEN&quot;</span> -H <span class="t-s">&#x27;Content-Type: application/json&#x27;</span> \
+  -d <span class="t-s">&#x27;{&quot;text&quot;: &quot;今天过得怎么样？&quot;}&#x27;</span> | <span class="t-k">jq</span> -r .reply.content</code></pre></div></div></div>
+      <p>想让回复一个字一个字地出来，用流式：</p>
+      <div class="code"><div class="code-h"><span>Python</span><button type="button" class="copy" data-done="已复制">复制</button></div><pre><code><span class="t-k">for</span> event <span class="t-k">in</span> kw.stream(session[<span class="t-s">&quot;id&quot;</span>], <span class="t-s">&quot;讲个故事吧&quot;</span>):
+    <span class="t-k">if</span> event.name == <span class="t-s">&quot;delta&quot;</span>:
+        <span class="t-k">print</span>(event.data[<span class="t-s">&quot;text&quot;</span>], end=<span class="t-s">&quot;&quot;</span>, flush=<span class="t-k">True</span>)
+    <span class="t-k">elif</span> event.name == <span class="t-s">&quot;error&quot;</span>:
+        <span class="t-k">print</span>(<span class="t-s">&quot;\n&quot;</span>, event.data[<span class="t-s">&quot;message&quot;</span>])</code></pre></div></li>
+  </ol>
+</section>
+<section id="basics">
+  <h2>基本信息</h2>
+  <div class="table-wrap"><table class="kv"><thead><tr><th>项目</th><th>说明</th></tr></thead><tbody><tr><td>接口地址</td><td><code>https://krinomatrix.com/cn/products/world/api</code></td></tr><tr><td>鉴权</td><td>登录拿到 token，请求头带 <code>Authorization: Bearer &lt;token&gt;</code></td></tr><tr><td>数据格式</td><td>请求和返回都是 JSON（UTF-8）；流式回复是 server-sent events；语音合成返回音频</td></tr><tr><td>额度</td><td>每个账号每天有额度，用完返回 <code>429</code>，第二天恢复</td></tr><tr><td>报错</td><td><code>{"detail": "…"}</code>，说明是给人看的。<a href="../developers/api/#errors">错误码</a></td></tr><tr><td>开源</td><td>SDK 和接口定义以 Apache-2.0 开源：<a href="https://github.com/mortysean/krino-matrix" target="_blank" rel="noopener">GitHub</a></td></tr></tbody></table></div>
+  <p class="note">有问题、想要更高的额度或测试账号，写信到 <a href="mailto:support@krinomatrix.com?subject=Developer">support@krinomatrix.com</a></p>
+</section>
+</article>
+</div>
   </main>
   <div class="foot-wrap">
       <footer class="foot site-foot">

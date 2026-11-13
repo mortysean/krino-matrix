@@ -1,12 +1,14 @@
 # krino-world (Python)
 
-**English** | [简体中文](README.zh-CN.md)
+**English** | [简体中文](https://github.com/mortysean/krino-matrix/blob/main/sdk/python/README.zh-CN.md)
 
-A Python client for the [KRINO WORLD API](../../docs/api/README.md). It needs Python 3.10+ and its only dependency is `httpx`.
+A Python client for the [KRINO WORLD API](https://github.com/mortysean/krino-matrix/blob/main/docs/api/README.md). It needs Python 3.10+ and its only dependency is `httpx`.
 
 ```bash
-pip install "git+https://github.com/mortysean/krino-matrix#subdirectory=sdk/python"
+pip install krino-world
 ```
+
+Full reference and quick start: [krinomatrix.com/global/developers](https://krinomatrix.com/global/developers/) ([mainland China site](https://krinomatrix.com/cn/developers/)).
 
 ## Usage
 
@@ -51,4 +53,4 @@ with Client(region="global") as kw:          # "cn" for the mainland China site
 - Your own server: `Client(base_url="http://127.0.0.1:8630")`.
 - Reuse a token: `Client(region="cn", token="…")`.
 - A refused request raises `KrinoError`, with `.status` (the HTTP status) and `.message` (the server's explanation).
-- The two regions have separate accounts. See [Base URLs](../../docs/api/README.md#base-urls).
+- The two regions have separate accounts. See [Base URLs](https://github.com/mortysean/krino-matrix/blob/main/docs/api/README.md#base-urls).
