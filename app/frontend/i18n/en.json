@@ -822,7 +822,6 @@
   "十几秒到半分钟": "10–30 seconds",
   "声音": "Voice",
   "大约一分钟": "about a minute",
-  "已用 {s} 秒 · {hint} · 可以先做别的，好了会通知你": "{s}s so far · {hint} · feel free to do something else, we'll let you know",
   "形象": "Portrait",
   "形象没画出来，可以在工作台里再画一次": "The portrait didn't come out; you can draw it again in the workbench",
   "接着看": "Review",
@@ -1016,5 +1015,7 @@
   "抱歉，无法为你创建账号。": "Sorry, we can't create an account for you.",
   "抱歉，这个账号不能使用 KRINO WORLD。": "Sorry, this account can't use KRINO WORLD.",
   "无法继续使用": "Unable to continue",
-  "很抱歉，这个账号不能使用 KRINO WORLD。": "Sorry, this account can't use KRINO WORLD."
+  "很抱歉，这个账号不能使用 KRINO WORLD。": "Sorry, this account can't use KRINO WORLD.",
+  "已用 {t}": "{t} elapsed",
+  "{hint} · 可以先做别的，好了会通知你": "{hint} · feel free to do something else, we'll let you know"
 }

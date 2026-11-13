@@ -12,29 +12,47 @@ dock.setAttribute("aria-live", "polite");
 document.body.appendChild(dock);
 
 const secs = (j) => Math.max(0, Math.round((Date.now() - j.started) / 1000));
+const clock = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;  // 已用时间：分:秒
 const STEP_LABELS = { soul: "灵魂", portrait: "立绘", voice: "声音", motion: "动图" };
 
+// 卡片的内容（不含已用时间）。只有它变了（步骤打勾、动图做到第几段、做完）才重画这张卡片；
+// 已用时间每秒只改那一小段文字。整张重画会让卡片的出现动画、像素动画、转圈都从头来，看起来一直在闪
+function cardHTML(key, j) {
+  if (j.done) {
+    const msg = j.kind === "soul" ? t("{name} 的灵魂写好了", { name: j.name }) : j.kind === "motion"
+      ? (j.ok ? t("{name} 的动图做好了", { name: j.name }) : t("{name} 的动图没做成", { name: j.name })) : t("{name} 创建好了", { name: j.name });
+    const go = j.kind === "soul" ? t("接着看") : t("去聊天");
+    return `<span class="cd-ok">✓</span>
+      <div class="cd-body"><b>${esc(msg)}</b>${j.kind === "char" && !j.ok ? `<span class="muted small">${esc(t("形象没画出来，可以在工作台里再画一次"))}</span>` : ""}${j.kind === "motion" && !j.ok ? `<span class="muted small">${esc(t("没扣积分，可以在工作台里再试一次"))}</span>` : ""}</div>
+      <button class="small" data-cd-go="${esc(key)}">${esc(go)}</button><button class="link small cd-x" data-cd-x="${esc(key)}" aria-label="${esc(t("关闭"))}">✕</button>`;
+  }
+  const steps = Object.entries(j.steps).map(([k, ok]) => `<li class="${ok ? "ok" : "run"}">${ok ? "✓" : "<i></i>"} ${esc(t(STEP_LABELS[k]))}${
+    k === "motion" && !ok && j.motion?.total ? ` ${j.motion.done}/${j.motion.total}` : ""}</li>`).join("");
+  const title = j.kind === "soul" ? t("正在写灵魂") : j.kind === "motion" ? t("正在给 {name} 做动图", { name: j.name }) : t("正在创建 {name}", { name: j.name });
+  const hint = j.kind === "soul" ? t("十几秒到半分钟") : "motion" in j.steps ? t("大约 10 分钟") : t("大约一分钟");
+  return `<div class="cd-anim" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <div class="cd-body"><b>${esc(title)}</b><ul class="cd-steps">${steps}</ul>
+    <span class="muted small"><span class="cd-time"></span> · ${esc(t("{hint} · 可以先做别的，好了会通知你", { hint }))}</span></div>`;
+}
+
 function render() {
-  dock.innerHTML = [...jobs.entries()].map(([key, j]) => {
-    if (j.done) {
-      const msg = j.kind === "soul" ? t("{name} 的灵魂写好了", { name: j.name }) : j.kind === "motion"
-        ? (j.ok ? t("{name} 的动图做好了", { name: j.name }) : t("{name} 的动图没做成", { name: j.name })) : t("{name} 创建好了", { name: j.name });
-      const go = j.kind === "soul" ? t("接着看") : t("去聊天");
-      return `<div class="cd-card done" data-key="${esc(key)}"><span class="cd-ok">✓</span>
-        <div class="cd-body"><b>${esc(msg)}</b>${j.kind === "char" && !j.ok ? `<span class="muted small">${esc(t("形象没画出来，可以在工作台里再画一次"))}</span>` : ""}${j.kind === "motion" && !j.ok ? `<span class="muted small">${esc(t("没扣积分，可以在工作台里再试一次"))}</span>` : ""}</div>
-        <button class="small" data-cd-go="${esc(key)}">${esc(go)}</button><button class="link small cd-x" data-cd-x="${esc(key)}" aria-label="${esc(t("关闭"))}">✕</button></div>`;
+  for (const el of [...dock.children]) if (!jobs.has(el.dataset.key)) el.remove();  // 关掉的、做完被点走的
+  for (const [key, j] of jobs) {
+    let el = [...dock.children].find((x) => x.dataset.key === key);
+    if (!el) {  // 新的任务：新建一张卡片（只有这时播放出现动画）
+      el = document.createElement("div");
+      el.dataset.key = key;
+      dock.appendChild(el);
     }
-    const steps = Object.entries(j.steps).map(([k, ok]) => `<li class="${ok ? "ok" : "run"}">${ok ? "✓" : "<i></i>"} ${esc(t(STEP_LABELS[k]))}${
-      k === "motion" && !ok && j.motion?.total ? ` ${j.motion.done}/${j.motion.total}` : ""}</li>`).join("");
-    const title = j.kind === "soul" ? t("正在写灵魂") : j.kind === "motion" ? t("正在给 {name} 做动图", { name: j.name }) : t("正在创建 {name}", { name: j.name });
-    const hint = j.kind === "soul" ? t("十几秒到半分钟") : "motion" in j.steps ? t("大约 10 分钟") : t("大约一分钟");
-    return `<div class="cd-card" data-key="${esc(key)}"><div class="cd-anim" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-      <div class="cd-body"><b>${esc(title)}</b><ul class="cd-steps">${steps}</ul>
-      <span class="muted small">${esc(t("已用 {s} 秒 · {hint} · 可以先做别的，好了会通知你", { s: secs(j), hint }))}</span></div></div>`;
-  }).join("");
+    const html = cardHTML(key, j);
+    if (el.dataset.html !== html) { el.innerHTML = html; el.dataset.html = html; el.className = "cd-card" + (j.done ? " done" : ""); }
+    const time = el.querySelector(".cd-time");
+    if (time) time.textContent = t("已用 {t}", { t: clock(secs(j)) });
+  }
   dock.classList.toggle("hidden", !jobs.size);
   const ready = [...jobs.values()].filter((j) => j.done).length;
-  document.title = (ready ? `(${ready}) ` : "") + document.title.replace(/^\(\d+\) /, "");
+  const title = (ready ? `(${ready}) ` : "") + document.title.replace(/^\(\d+\) /, "");
+  if (document.title !== title) document.title = title;
 }
 
 dock.addEventListener("click", (e) => {
