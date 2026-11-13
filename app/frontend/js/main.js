@@ -28,7 +28,7 @@ $("#auth-form").addEventListener("submit", async (e) => {
   const body = { username: f.get("username"), password: f.get("password") };
   if (S.site?.edition === "global") {  // 国际站：只为成年人提供服务
     const err = (m) => { $("#auth-error").textContent = t(m); };
-    if (!f.get("adult")) return err("KRINO WORLD 只为年满 18 周岁的用户提供服务，请确认你已年满 18 周岁");
+    if (!f.get("over18")) return err("KRINO WORLD 只为年满 18 周岁的用户提供服务，请确认你已年满 18 周岁");
     if (action === "register") {
       const b = f.get("birth");
       if (!/^\d{4}-\d{2}$/.test(b || "")) return err("请填写出生年月");

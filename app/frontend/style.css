@@ -923,6 +923,6 @@ label.check input { margin-top: 3px; }
 .report-reply { color: var(--ok); margin-top: 4px; }
 
 /* 国际站登录页：出生年月、已满 18 岁 */
-.adult-only { display: none; }
-html[data-edition="global"] .adult-only { display: flex; }
-html[data-edition="global"] label.field.adult-only { flex-direction: column; }
+.age-check { display: none; }
+html[data-edition="global"] .age-check { display: flex; }
+html[data-edition="global"] label.field.age-check { flex-direction: column; }

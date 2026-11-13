@@ -22,8 +22,8 @@ function apply() {
   $("#ai-note")?.classList.toggle("hidden", st.edition !== "cn");
   if (st.needs.length) return gate();
   $("#guard-gate")?.remove();
-  if (st.service_block) return adultOnly();
-  $("#guard-adult")?.remove();
+  if (st.service_block) return ageBlock();
+  $("#guard-age")?.remove();
   if (st.minor && (st.curfew_now || st.remaining_minutes === 0)) return lock();
   $("#guard-lock")?.remove();
 }
@@ -86,20 +86,20 @@ function gate() {
 }
 
 // ---------- 国际站：只为成年人提供服务 ----------
-function adultOnly() {
-  if ($("#guard-adult")) return;
+function ageBlock() {
+  if ($("#guard-age")) return;
   const st = G.st, el = document.createElement("div");
-  el.id = "guard-adult"; el.className = "guard-cover";
+  el.id = "guard-age"; el.className = "guard-cover";
   el.innerHTML = `<div class="guard-card"><h2>${t("KRINO WORLD 只为成年人提供服务")}</h2>
     <p>${t(st.service_block === "minor" ? "很抱歉，KRINO WORLD 只为年满 18 周岁的用户提供服务。" : "从你的聊天看，你可能未满 18 周岁，服务已暂停。如果判断错了，请提交申诉，我们核实后会恢复。")}</p>
     ${st.service_block === "suspected" ? (st.appealed ? `<p class="muted small">${t("申诉已提交，核实后处理")}</p>`
-      : `<textarea id="ad-text" rows="3" maxlength="500" placeholder="${esc(t("说明一下情况（比如你的真实年龄、刚才说的是别人），我们核实后会处理。"))}"></textarea>
-         <div class="row"><button class="ghost small" id="ad-appeal">${t("提交申诉")}</button></div>`) : ""}
-    <div class="row"><span class="grow"></span><button class="link small" id="ad-logout">${t("退出登录")}</button></div></div>`;
+      : `<textarea id="ag-text" rows="3" maxlength="500" placeholder="${esc(t("说明一下情况（比如你的真实年龄、刚才说的是别人），我们核实后会处理。"))}"></textarea>
+         <div class="row"><button class="ghost small" id="ag-appeal">${t("提交申诉")}</button></div>`) : ""}
+    <div class="row"><span class="grow"></span><button class="link small" id="ag-logout">${t("退出登录")}</button></div></div>`;
   document.body.appendChild(el);
-  $("#ad-logout", el).onclick = () => bus.emit("logout");
-  $("#ad-appeal", el)?.addEventListener("click", async () => {
-    const content = $("#ad-text", el).value.trim();
+  $("#ag-logout", el).onclick = () => bus.emit("logout");
+  $("#ag-appeal", el)?.addEventListener("click", async () => {
+    const content = $("#ag-text", el).value.trim();
     if (content.length < 2) return toast("写一句说明吧");
     try { await api("/api/guard/appeal", { body: { content } }); await refreshGuard(); el.remove(); apply(); } catch (e) { fail(e); }
   });
@@ -171,7 +171,7 @@ export function helpCard(a) {  // 危机时：求助电话（可以直接点着�
 
 export async function minorNotice() {
   await refreshGuard();
-  if (G.st?.service_block) return null;  // 国际站：直接挡住（adultOnly），不再弹未成年人模式的说明
+  if (G.st?.service_block) return null;  // 国际站：直接挡住（ageBlock），不再弹未成年人模式的说明
   const ok = await modal("已切换到未成年人模式", `<p>${t("从刚才的聊天看，你可能还未满 18 周岁，已经为你打开未成年人模式：她只会以朋友的身份陪你，每天的使用时间和夜间使用会受到限制。")}</p>
     <p class="muted small">${t("如果判断错了，可以在“设置 → 未成年人模式”里申诉，我们核实后会帮你恢复。")}</p>`, null, { okText: "知道了", cancel: false });
   return ok;
