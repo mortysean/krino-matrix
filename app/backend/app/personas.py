@@ -362,7 +362,7 @@ def _motion_job(c: Character) -> dict:
     j = (c.origin or {}).get("motion_job")
     if not j or time.time() - float(j.get("started", 0)) > PENDING_MAX_S:
         return {}
-    return {"motion_job": {"done": int(j.get("done", 0)), "total": int(j.get("total", 0))}}
+    return {"motion_job": {"done": int(j.get("done", 0)), "total": int(j.get("total", 0)), "started": int(j.get("started", 0))}}
 
 
 # 两位官方角色各自的形象：会动的 Q 版和立绘。工作台里她们只能在自己的这两个里换

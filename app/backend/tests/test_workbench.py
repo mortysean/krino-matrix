@@ -304,6 +304,12 @@ def test_looks_are_only_her_own(user):
     assert not any("krino" in x["src"] or "whale" in x["src"] for x in c["looks"])
     # 补做动图：官方角色不行；自己的角色（有立绘）可以，后台做（测试里是模拟，不真做）
     assert user.post("/api/workbench/motion", json={"character_id": k["id"]}).status_code == 400
+    # 不真做（模拟），直接看接口：正在做的动图带着开始时间，刷新页面后“已用时间”接着算
+    from app.workbench import _set_origin
+    _set_origin(cid, motion_job={"done": 3, "total": 8, "started": int(time.time()) - 125})
+    j = user.ok("get", f"/api/characters/{cid}")["motion_job"]
+    assert j["done"] == 3 and int(time.time()) - j["started"] >= 125
+    _set_origin(cid, motion_job=None)
     assert user.ok("post", "/api/workbench/motion", json={"character_id": cid})["ok"] is True
 
 

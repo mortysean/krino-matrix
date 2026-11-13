@@ -469,10 +469,11 @@ def _make_motion(cid: str, user_id: str, image_src: str, key: str) -> dict | Non
     from . import motion
 
     total = len(motion.clip_names())
-    _set_origin(cid, **{key: {"done": 0, "total": total, "started": int(time.time())}})
+    started = int(time.time())  # 开始的时间只记一次：页面刷新后“已用时间”接着算，不从 0 开始
+    _set_origin(cid, **{key: {"done": 0, "total": total, "started": started}})
     try:
         out = motion.make(user_id, settings.media_dir / image_src[len("/media/"):],
-                          progress=lambda d, t: _set_origin(cid, **{key: {"done": d, "total": t, "started": int(time.time())}}))
+                          progress=lambda d, t: _set_origin(cid, **{key: {"done": d, "total": t, "started": started}}))
     except Exception as e:  # noqa: BLE001
         log.warning("角色 %s 的动图没做出来：%s", cid, e)
         events.error("motion", f"{type(e).__name__}: {e}")

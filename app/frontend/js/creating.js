@@ -81,7 +81,7 @@ async function poll() {
     if (!c) continue;
     if (c.gone) { jobs.delete(key); continue; }
     if (j.kind === "char" && c.pending) { j.steps = steps(c.progress); j.motion = c.progress?.motion; continue; }
-    if (j.kind === "motion" && c.motion_job) { j.motion = c.motion_job; continue; }
+    if (j.kind === "motion" && c.motion_job) { j.motion = c.motion_job; j.started = startedAt(c.motion_job); continue; }
     j.done = true;
     j.ok = j.kind === "motion" ? c.behavior?.portrait?.kind === "chibi" : !!c.behavior?.portrait;
     S.chars = await api("/api/characters").catch(() => S.chars);
@@ -118,9 +118,12 @@ export function charStarted(c, { motion = false } = {}) {
   run();
 }
 
+// 服务器记着什么时候开始的（秒）：刷新页面、换设备打开，已用时间都接着算
+const startedAt = (j) => (j?.started ? j.started * 1000 : Date.now());
+
 // 已有的角色补做动图（工作台里点的）：做的时候照常能聊
 export function motionStarted(c) {
-  jobs.set("m:" + c.id, { kind: "motion", id: c.id, name: c.name, started: Date.now(), steps: { motion: false }, motion: c.motion_job });
+  jobs.set("m:" + c.id, { kind: "motion", id: c.id, name: c.name, started: startedAt(c.motion_job), steps: { motion: false }, motion: c.motion_job });
   run();
 }
 
@@ -128,7 +131,7 @@ export function motionStarted(c) {
 function resume() {
   for (const c of S.chars || []) {
     if (c.pending && !jobs.has(c.id)) charStarted(c);
-    if (c.motion_job && !jobs.has("m:" + c.id)) jobs.set("m:" + c.id, { kind: "motion", id: c.id, name: c.name, started: Date.now(), steps: { motion: false }, motion: c.motion_job });
+    if (c.motion_job && !jobs.has("m:" + c.id)) jobs.set("m:" + c.id, { kind: "motion", id: c.id, name: c.name, started: startedAt(c.motion_job), steps: { motion: false }, motion: c.motion_job });
   }
   if (jobs.size) run();
 }
