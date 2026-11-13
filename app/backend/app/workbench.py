@@ -13,7 +13,7 @@ import io
 import logging
 import random
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 import httpx
@@ -372,18 +372,37 @@ def _finish_character(cid: str, user_id: str, look_prompt: str, voice: dict, gre
             with SessionLocal() as vdb:
                 return _own_voice(vdb, db.get(User, user_id), dict(voice), greeting)
 
+        def mark(step: str) -> None:  # 哪一步先做完就先记下来（页面上的“创建中”卡片按它打勾）
+            with SessionLocal() as pdb:
+                c = pdb.get(Character, cid)
+                if c is not None:
+                    o = dict(c.origin or {})
+                    o["done"] = sorted({*o.get("done", []), step})
+                    c.origin = o
+                    pdb.commit()
+
+        new_voice = voice
         with ThreadPoolExecutor(2) as pool:
             fi, fv = pool.submit(draw), pool.submit(speak)
-            try:
-                image = fi.result()
-            except Exception as e:  # noqa: BLE001
-                error = getattr(e, "detail", str(e))
-                log.warning("新角色 %s 的形象没画出来：%s", cid, error)
-            try:
-                new_voice = fv.result()
-            except Exception:  # noqa: BLE001
-                log.exception("新角色 %s 的声音没设计出来", cid)
-                new_voice = voice
+            for f in as_completed((fi, fv)):
+                if f is fi:
+                    try:
+                        image = fi.result()
+                    except Exception as e:  # noqa: BLE001
+                        error = getattr(e, "detail", str(e))
+                        log.warning("新角色 %s 的形象没画出来：%s", cid, error)
+                    if fv.done():
+                        break  # 两件都做完了：最后一起写回，不用单独打勾
+                    mark("portrait")
+                else:
+                    try:
+                        new_voice = fv.result()
+                    except Exception:  # noqa: BLE001
+                        log.exception("新角色 %s 的声音没设计出来", cid)
+                    if fi.done():
+                        break
+                    mark("voice")
+        db.expire_all()  # mark() 用别的会话改过 origin
         c = db.get(Character, cid)
         if c is None:  # 等的时候被删了
             return
@@ -392,7 +411,7 @@ def _finish_character(cid: str, user_id: str, look_prompt: str, voice: dict, gre
             b["portrait"] = {"kind": "image", "src": image}
         b["voice"] = {**(b.get("voice") or {}), **new_voice}
         c.behavior = b
-        o = {k: v for k, v in (c.origin or {}).items() if k != "pending"}
+        o = {k: v for k, v in (c.origin or {}).items() if k not in ("pending", "done")}
         if error:
             o["portrait_error"] = str(error)[:120]
         c.origin = o

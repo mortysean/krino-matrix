@@ -47,15 +47,19 @@ bus.on("logout", logout);
 // ---------- 角色 ----------
 function renderChars() {
   $("#char-list").innerHTML = S.chars.map((c) => `
-    <div class="char-item ${c.id === S.charId ? "active" : ""}" data-id="${c.id}" style="--c:${esc(c.color)}">
+    <div class="char-item ${c.id === S.charId ? "active" : ""} ${c.pending ? "creating" : ""}" data-id="${c.id}" style="--c:${esc(c.color)}">
       ${avaHTML(c)}
-      <div class="char-text"><div class="name">${esc(c.name)}${c.pending ? `<i class="pending-tag" title="${esc(t("形象和声音在后台做"))}">${esc(t("创建中"))}</i>` : ""}</div><div class="muted small tagline" title="${esc(c.tagline)}">${esc(c.tagline)}</div></div>
+      <div class="char-text"><div class="name">${esc(c.name)}${c.pending ? `<i class="pending-tag" title="${esc(t("正在画形象、设计声音，做好了会通知你"))}">${esc(t("创建中"))}</i>` : ""}</div><div class="muted small tagline" title="${esc(c.tagline)}">${esc(c.tagline)}</div></div>
     </div>`).join("");
-  $$(".char-item").forEach((el) => (el.onclick = () => select(el.dataset.id)));
+  $$(".char-item").forEach((el) => (el.onclick = () => {
+    const c = S.chars.find((x) => x.id === el.dataset.id);  // 还在创建：等全部做好再进去
+    if (c?.pending) return toast(t("{name} 还在创建，做好了会通知你", { name: c.name }));
+    select(el.dataset.id);
+  }));
 }
 
 async function select(id, view) {
-  if (!S.chars.find((c) => c.id === id)) id = S.chars[0]?.id;
+  if (!S.chars.find((c) => c.id === id && !c.pending)) id = (S.chars.find((c) => !c.pending) || S.chars[0])?.id;  // 还在创建的角色不进去
   if (!id) return;
   const changed = id !== S.charId;
   S.charId = id; storeSet("krino_char", id);

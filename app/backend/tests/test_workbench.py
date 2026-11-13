@@ -276,6 +276,7 @@ def test_new_character_is_created_at_once_and_finished_in_background(user):
     r = user.ok("post", "/api/workbench/character", json={"draft": {"persona": {"name": "后台小鲸", "greeting": "你好"}, "appearance": "一头小鲸鱼"}})
     c = r["character"]
     assert r["created"] and c["name"] == "后台小鲸" and c["pending"] is True and not c["portrait"]
+    assert c["progress"]["soul"] is True and c["progress"]["started"] > 0  # 页面右下角的进度卡片按它打勾
     assert any(x["id"] == c["id"] for x in user.ok("get", "/api/characters"))  # 已经在角色列表里，能聊
     for _ in range(50):
         c = user.ok("get", f"/api/characters/{c['id']}")
@@ -283,3 +284,4 @@ def test_new_character_is_created_at_once_and_finished_in_background(user):
             break
         time.sleep(0.1)
     assert c["pending"] is False and c["behavior"]["portrait"]["src"].startswith("/media/")
+    assert "progress" not in c and "done" not in (c.get("origin") or {})

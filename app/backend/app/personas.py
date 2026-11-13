@@ -337,7 +337,7 @@ def summary(c: Character) -> dict:
             "edited": c.version > 1, "workshop": (c.origin or {}).get("workshop"), "portrait": (c.behavior or {}).get("portrait"),
             "voice": (c.behavior or {}).get("voice"), "greeting": p.get("greeting", ""),
             "default_expression": (c.behavior or {}).get("default_expression"),
-            "model": c.model, "ai": True, "pending": _pending(c)}
+            "model": c.model, "ai": True, "pending": _pending(c), **_progress(c)}
 
 
 PENDING_MAX_S = 600  # 后台补形象 / 声音最多等这么久；超过（比如中途重启了服务）就不再显示“正在创建”
@@ -349,6 +349,15 @@ def _pending(c: Character) -> bool:
 
     ts = (c.origin or {}).get("pending")
     return bool(ts) and time.time() - float(ts) < PENDING_MAX_S
+
+
+def _progress(c: Character) -> dict:
+    """创建中的角色做到哪了：灵魂建角色时就有了；形象、声音哪个先做完就先打勾；started 是开始的时间（秒）。"""
+    if not _pending(c):
+        return {}
+    o = c.origin or {}
+    done = set(o.get("done") or [])
+    return {"progress": {"soul": True, "portrait": "portrait" in done, "voice": "voice" in done, "started": int(o["pending"])}}
 
 
 def full(c: Character) -> dict:

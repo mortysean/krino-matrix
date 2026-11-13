@@ -845,6 +845,35 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 .tv-bar input { flex: 1; min-width: 180px; }
 .tv-typing { animation: pulse 1.4s ease-in-out infinite; margin: 0; }
 
+/* 新角色的创建进度：右下角卡片（creating.js），关掉窗口、换页面都还在 */
+#create-dock { position: fixed; right: 18px; top: 64px; z-index: 65; display: flex; flex-direction: column; gap: 8px; width: min(340px, calc(100vw - 32px)); }
+#create-dock.hidden { display: none; }
+.cd-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--ink-2); border: 1px solid var(--line-2);
+  border-left: 3px solid var(--char); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); animation: cd-in .4s var(--ease); }
+@keyframes cd-in { from { opacity: 0; transform: translateY(14px); } }
+.cd-card.done { border-left-color: var(--ok); }
+.cd-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cd-body b { font-weight: 500; font-size: 13px; }
+.cd-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 12px; font-size: 12px; }
+.cd-steps li { display: flex; align-items: center; gap: 5px; color: var(--muted); }
+.cd-steps li.ok { color: var(--ok); }
+.cd-steps li i { width: 9px; height: 9px; border: 1.5px solid var(--char); border-top-color: transparent; border-radius: 50%; animation: cd-spin .8s linear infinite; }
+.cd-ok { color: var(--ok); font-size: 18px; }
+.cd-x { padding: 2px 4px; color: var(--muted); }
+/* 四个像素方块轮流亮：和门户的像素风一致 */
+.cd-anim { flex: none; display: grid; grid-template-columns: 12px 12px; gap: 3px; }
+.cd-anim span { width: 12px; height: 12px; background: var(--char); opacity: .2; animation: cd-pix 1.2s steps(1) infinite; }
+.cd-anim span:nth-child(2) { animation-delay: .3s; } .cd-anim span:nth-child(4) { animation-delay: .6s; } .cd-anim span:nth-child(3) { animation-delay: .9s; }
+@keyframes cd-pix { 0%, 24% { opacity: 1; } 25%, 100% { opacity: .2; } }
+@keyframes cd-spin { to { transform: rotate(360deg); } }
+.gen-wait { display: flex; align-items: center; gap: 14px; padding: 14px 0; }
+.char-item.creating { cursor: progress; }
+.char-item.creating .ava { position: relative; overflow: hidden; }
+.char-item.creating .ava::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .28) 50%, transparent 70%);
+  background-size: 250% 100%; animation: cd-shimmer 1.6s linear infinite; }
+@keyframes cd-shimmer { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .cd-anim span, .cd-steps li i, .char-item.creating .ava::after { animation: none; } .cd-anim span { opacity: .6; } }
+
 /* 新角色：形象和声音还在后台做 */
 .pending-tag { font: normal 10px/1 var(--mono); letter-spacing: .08em; color: #3df5ff; border: 1px solid rgba(61, 245, 255, .5); padding: 2px 5px; margin-left: 6px;
   vertical-align: 2px; animation: pulse 1.4s steps(3) infinite; }

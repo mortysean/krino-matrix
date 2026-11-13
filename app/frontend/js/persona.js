@@ -6,6 +6,7 @@ import { $, $$, S, api, avaHTML, bus, confirmBox, curChar, download, esc, fail, 
 import { speak, voiceConfig } from "./voice.js";
 import { bodyDirty, bodyForget, bodyPanel, bodyPortrait, bodyPrompt } from "./workbench.js";
 import { soulGraph } from "./soulgraph.js";
+import { askNotify, charStarted, soulFinished, soulStarted } from "./creating.js";
 
 const P = { schema: null, dirty: false, advanced: false };
 // 对话示例最影响她怎么说话（开源角色卡的通行写法），所以和开场白一起放在最显眼的位置
@@ -141,35 +142,16 @@ export async function addCharacter() {
       <button class="link small" id="go-ws">${t("去工坊挑一个 →")}</button></div>
     <div id="gen-out"></div>`, null, { okText: "关闭", cancel: false, wide: true });
   if (saved) { $("#gen-prompt").value = saved.prompt; await draftForm(saved.draft); }
-  if (D.writing) { $("#gen-prompt").value = D.writing; $("#gen-out").innerHTML = `<p class="muted small">${t("还在写，写好了会显示在这里…")}</p>`; }
+  if (D.writing) { $("#gen-prompt").value = D.writing; $("#gen-out").innerHTML = writingHTML(); }
   await p;
 }
 
-// 新角色的形象和声音在后台做：每隔几秒看一眼，做好了换上并告诉一声。刷新页面也会接着看（角色带着 pending）
-const watching = new Set();
-function watchPending() {
-  for (const c of S.chars || []) {
-    if (!c.pending || watching.has(c.id)) continue;
-    watching.add(c.id);
-    (async () => {
-      for (let i = 0; i < 90; i++) {
-        await new Promise((r) => setTimeout(r, 4000));
-        const x = await api("/api/characters/" + c.id).catch((e) => (e.status === 404 ? { gone: true } : null));
-        if (x?.gone) break;
-        if (x && !x.pending) {
-          bodyForget(c.id);
-          await reloadChars();
-          if (S.charId === c.id) bus.emit("character:changed");
-          toast(x.behavior?.portrait ? t("{name} 的形象和声音好了", { name: x.name }) : t("{name} 的形象没画出来，可以在工作台里再画一次", { name: x.name }), 5000);
-          break;
-        }
-      }
-      watching.delete(c.id);
-    })();
-  }
-}
-bus.on("chars", watchPending);
-bus.on("chars:loaded", watchPending);
+// 新角色的形象和声音在后台做，进度和“做好了”的通知在 creating.js（页面右下角的卡片）。做好了：工作台里的旧草稿作废
+bus.on("creating:done", (id) => { bodyForget(id); if (S.charId === id) bus.emit("character:changed"); });
+bus.on("newchar:open", () => addCharacter());
+
+const writingHTML = () => `<div class="gen-wait"><div class="cd-anim" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <p class="muted small">${t("正在查资料、写灵魂，十几秒到半分钟。可以先关掉这个窗口，写好了会通知你")}</p></div>`;
 
 async function draftForm(d) {
   const sc = await schema();
@@ -193,7 +175,7 @@ async function draftForm(d) {
         ${MORE_FIELDS.map((k) => `<label>${esc(tr(labels[k]))}<textarea data-d="${k}" rows="2">${esc(p[k] || "")}</textarea></label>`).join("")}
         <label>${t("风格")}<select data-d-style>${Object.keys(sc.styles).map((x) => `<option value="${esc(x)}" ${x === (d.behavior?.style || "温柔") ? "selected" : ""}>${esc(tr(x))}</option>`).join("")}</select></label>
       </details>
-      <div class="row"><button id="draft-go">${t("创建角色")}</button><span class="muted small">${t("马上就能聊；形象和声音在后台做，大约一分钟，可以关掉窗口")}</span></div>
+      <div class="row"><button id="draft-go">${t("创建角色")}</button><span class="muted small">${t("还要画形象、设计声音，大约一分钟。可以关掉窗口，全部做好了会通知你")}</span></div>
     </div>`;
 }
 
@@ -201,15 +183,16 @@ document.addEventListener("click", async (e) => {  // 弹窗里的按钮（弹�
   if (e.target.id === "gen-go") {
     const prompt = $("#gen-prompt").value.trim();
     if (!prompt) return $("#gen-prompt").focus();
-    e.target.disabled = true; $("#gen-out").innerHTML = `<p class="muted small">${t("正在查资料、写灵魂，十几秒到半分钟。可以先关掉这个窗口，写好了会告诉你")}</p>`;
-    D.writing = prompt;
+    e.target.disabled = true; $("#gen-out").innerHTML = writingHTML();
+    D.writing = prompt; askNotify(); soulStarted();
     try {
       const d = await api("/api/characters/generate", { body: { prompt } });
       const open = !$("#modal").classList.contains("hidden") && $("#gen-out");
       D.saved = { draft: d, prompt };
+      soulFinished(d.persona?.name || "", { show: !open });  // 窗口关着：右下角卡片提示“写好了”，点一下接着看
       if (open) { D.prompt = prompt; await draftForm(d); }
-      else { toast(t("{name} 的灵魂写好了，点“新角色”接着看", { name: d.persona?.name || "" }), 6000); }
     } catch (err) {
+      soulFinished("", { ok: false });
       if ($("#gen-out") && !$("#modal").classList.contains("hidden")) $("#gen-out").innerHTML = `<p class="error">${esc(err.message)}</p>`; else fail(err);
     } finally { D.writing = ""; e.target.disabled = false; }
   }
@@ -241,12 +224,13 @@ document.addEventListener("click", async (e) => {  // 弹窗里的按钮（弹�
     else if (vstyle && D.design) behavior.voice.voice = "";  // 描述改过：创建时按新描述设计
     const body = { draft: { persona, behavior, lore: d.lore || [], appearance: $("[data-d=appearance]").value.trim() }, prompt: D.prompt || "" };
     e.target.disabled = true; e.target.textContent = t("创建中…");
-    try {  // 角色马上建好、窗口马上关；形象和声音在后台做，大约一分钟，好了会告诉你
+    askNotify();
+    try {  // 灵魂马上存好、窗口马上关；形象和声音在后台做（大约一分钟），右下角显示进度，全部做好了才通知、才能进去聊
       const { character: c } = await api("/api/workbench/character", { body });
       D.saved = null;
       $("#modal").classList.add("hidden");
-      toast(c.pending ? t("{name} 建好了，可以先聊着。形象和声音在后台做，大约一分钟", { name: c.name }) : t("欢迎 {name}！", { name: c.name }), 5000);
-      await reloadChars(c.id); bus.emit("select", { id: c.id, view: "chat" });
+      if (c.pending) { charStarted(c); await reloadChars(); }
+      else { toast(t("欢迎 {name}！", { name: c.name }), 5000); await reloadChars(c.id); bus.emit("select", { id: c.id, view: "chat" }); }
     } catch (err) { fail(err); e.target.disabled = false; e.target.textContent = t("创建角色"); }
   }
   if (e.target.id === "go-ws") { $("#modal").classList.add("hidden"); bus.emit("goto", "workshop"); }
