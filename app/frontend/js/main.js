@@ -8,6 +8,7 @@ import { initWorkshop, workshopPage } from "./workshop.js";
 import { initGlasses, leaveGlasses } from "./glasses.js";
 import { settingsPage } from "./settings.js";
 import { socialPage } from "./social.js";
+import { startGuard } from "./guard.js";
 
 const PAGES = { chat: null, persona: personaPage, social: socialPage, workshop: workshopPage, settings: settingsPage };
 
@@ -111,6 +112,7 @@ async function boot() {
   await select(S.chars.find((c) => c.id === S.charId)?.id || S.chars[0]?.id, fromPet ? "persona" : "chat");
   refreshAsks();
   bus.emit("chars:loaded");  // 有还在后台创建的角色：接着等它做完（persona.js）
+  startGuard();  // 年龄、未成年人模式、使用时长（guard.js）
   hideBoot();
 }
 

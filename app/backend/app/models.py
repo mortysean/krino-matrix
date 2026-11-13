@@ -91,6 +91,33 @@ class ApiKey(Base):
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class UsageDay(Base):
+    """每人每天在应用里待了多久（页面开着、在前台时每分钟报一次，见 guard.ping）。未成年人的时长限制、
+    连续使用提醒、沉迷提醒都按它算。day 是用户当地的日期。"""
+    __tablename__ = "usage_days"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    day: Mapped[str] = mapped_column(String(10), primary_key=True)  # YYYY-MM-DD
+    seconds: Mapped[int] = mapped_column(Integer, default=0)
+    streak_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # 这一段连续使用从什么时候开始
+    last_ping: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Report(Base):
+    """投诉举报、疑似未成年人的申诉。运营在后台处理并答复（guard.py 的 /api/guard/admin/reports）。"""
+    __tablename__ = "reports"
+
+    id: Mapped[str] = _id()
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(16))  # content | service | privacy | other | minor_appeal
+    content: Mapped[str] = mapped_column(Text)
+    message_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 举报的是哪条回复
+    status: Mapped[str] = mapped_column(String(12), default="open")  # open | done
+    reply: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 # ---------- 人设 ----------
 
 class Character(Base):

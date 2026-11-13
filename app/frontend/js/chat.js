@@ -11,6 +11,7 @@ import { listen, speak, stopSpeaking, sttAvailable, sttMode } from "./voice.js";
 import { createVoiceMode } from "./voicemode.js";
 import { pixelBackdrop } from "./pixelbg.js";
 import { renderDrawer, refreshAsks } from "./memory.js";
+import { G, helpCard, minorNotice, reportForm } from "./guard.js";
 
 const GESTURES = [["wave", "挥手"], ["pat_head", "摸摸头"], ["high_five", "击掌"], ["poke", "戳一下"], ["cheer_up", "加油"]];
 
@@ -67,6 +68,9 @@ function perform(actions, { speakIt = false } = {}) {
     else if (a.type === "animate") C.stage?.play(a.name).catch(() => {});
     else if (a.type === "perceive_request") toast("她想看看：点输入框左边的图片按钮发一张图", 5000);
     else if (a.type === "remember_suggest") rememberChip(a);
+    else if (a.type === "help") setTimeout(() => helpCard(a), 300);
+    else if (a.type === "minor_detected") minorNotice();
+    else if (a.type === "exit") { C.exited = true; setTimeout(() => VM?.stop(), 1500); }  // 说了“退出”：停掉语音对话，不再主动搭话
   }
   const say = (actions || []).find((a) => a.type === "say");
   if (!say) return;
@@ -165,6 +169,7 @@ function msgHTML(m) {
     ${story ? `<div class="who">${t("虚构故事")}</div>` : ""}
     ${sourcesHTML(m.meta?.sources)}
     <div class="mem-pill-slot" data-for="${m.id}">${memPillHTML(C.jobs[m.id])}</div>
+    ${G.st?.edition === "cn" && typeof m.id === "number" ? `<div class="msg-tools"><button class="link" data-report="${m.id}">${t("举报")}</button></div>` : ""}
     ${S.me?.dev ? devTraceHTML(m) : ""}</div></div>`;
 }
 
@@ -194,6 +199,7 @@ function devTraceHTML(m) {
 }
 
 function bindMsgTools(root) {
+  $$("[data-report]", root).forEach((b) => (b.onclick = () => reportForm(+b.dataset.report)));
   $$('[data-act="remember"]', root).forEach((b) => (b.onclick = () => {
     const m = C.session.messages.find((x) => x.id == b.dataset.id);
     bus.emit("memory:new", { content: m.content, source_message_id: m.id });
@@ -278,6 +284,7 @@ async function send(text, { source = "app", audio = null, signal = null } = {}) 
     if (e.name === "AbortError") { composer(); C.stage?.play("idle").catch(() => {}); return { ok: false, aborted: true }; }  // 语音对话里你接着说了：这一轮撤回，不算出错
     if (!audio) $("#chat-input").value = text;
     composer();
+    if (e.status === 403) bus.emit("guard:refresh");
     C.stage?.setExpression("worried");
     fail(e);
     return { ok: false };
@@ -355,10 +362,11 @@ async function sendEvent(body) {
   finally { C.pending = false; $("#gestures")?.classList.remove("busy"); }
 }
 
-function activity() { C.lastActivity = Date.now(); C.idleCount = 0; }
+function activity() { C.lastActivity = Date.now(); C.idleCount = 0; C.exited = false; }
 setInterval(() => {
   const it = S.me?.settings?.interaction || {};
-  if (S.view !== "chat" || document.hidden || C.pending || !C.session || C.session.ended || it.proactive === false || VM?.active) return;
+  if (S.view !== "chat" || document.hidden || C.pending || !C.session || C.session.ended || it.proactive === false || VM?.active || C.exited) return;
+  if (G.st?.needs?.length || document.querySelector("#guard-lock")) return;
   if (Date.now() - C.lastActivity < (it.idle_seconds || 45) * 1000) return;
   C.idleCount += 1; C.lastActivity = Date.now();
   sendEvent({ type: "idle", idle_count: C.idleCount });

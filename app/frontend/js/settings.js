@@ -1,6 +1,7 @@
 // 04 设置：常用的只有几个开关，改了立刻生效（不用点保存）。技术细节都收在“高级”里。
 import { $, $$, S, api, confirmBox, esc, fail, fmtTime, modal, storeSet, t, toast, tr } from "./core.js";
 import { glassesPanel } from "./glasses.js";
+import { settingsSections } from "./guard.js";
 
 async function save(patch) {
   try { S.me = await api("/api/me", { method: "PATCH", body: patch }); toast("已保存", 1200); }
@@ -37,12 +38,14 @@ export async function settingsPage() {
     ${sw("social", "share_life", "她可以模糊地提一句你的近况", "比如“我家那位最近在忙”；私密的事从来不说")}
     <div class="section-title mono">CREDITS · ${t("积分")}</div>
     <div class="credits-box" id="s-credits"><p class="muted small">${t("加载中…")}</p></div>
+    <div id="s-guard"></div>
     <div class="section-title mono">DEVELOPER · ${t("API 密钥")}</div>
     <div id="s-keys"><p class="muted small">${t("加载中…")}</p></div>
     <details id="adv"><summary>${t("高级")}</summary><div id="adv-body"><p class="muted small">${t("加载中…")}</p></div></details>
     <div class="row"><button class="link small danger-link" id="s-delete">${t("注销账号")}</button></div></div>`;
   api("/api/credits").then(creditsBox).catch(() => $("#s-credits")?.remove());
   keysBox();
+  settingsSections($("#s-guard"));
   let timer; $("#s-name").oninput = (e) => { clearTimeout(timer); timer = setTimeout(() => save({ display_name: e.target.value }).then(() => ($("#me-name").textContent = S.me.display_name)), 600); };
   $$("[data-g]").forEach((el) => (el.onchange = () => save({ [el.dataset.g]: { [el.dataset.k]: el.checked } })));
   $("#s-sens").onchange = (e) => save({ save_sensitive: e.target.checked });

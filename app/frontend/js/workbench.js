@@ -4,7 +4,7 @@
 //   自己创建的角色：创建时画的立绘、做的动图，加上在这里新画的、改过的、上传的。
 // 一键原则：写一句 → “画新形象”（一张，画风参考官方角色）或“在这张上改”/“一键美化”；有立绘没动图的可以“做动图”。
 // 生成的立绘先是草稿，点页面顶上的“保存”才写进角色。
-import { $, $$, S, api, bus, esc, fail, t, toast } from "./core.js";
+import { $, $$, S, api, bus, confirmBox, esc, fail, t, toast } from "./core.js";
 import { createChibi } from "./chibi.js";
 import { motionStarted } from "./creating.js";
 
@@ -61,6 +61,7 @@ export async function bodyPanel(host, c, { onChange } = {}) {
     if (p && !tiles.some((x) => x.src === p.src)) tiles.unshift({ ...p });
     const off = d.busy || !info.ready ? "disabled" : "";
     const hasMotion = tiles.some((x) => x.kind === "chibi"), working = c.motion_job || c.pending;
+    const savedSrc = c.behavior.portrait?.src;  // 正在用的那个不能删：先换上别的、保存，再删
     const motionBase = img && p.src.startsWith("/media/") ? p : tiles.find((x) => x.kind === "image" && x.src.startsWith("/media/"));
     host.innerHTML = `
       <div class="wb-stage">
@@ -68,8 +69,9 @@ export async function bodyPanel(host, c, { onChange } = {}) {
         ${d.busy ? `<div class="wb-busy"><i></i>${esc(d.busy)}</div>` : ""}
       </div>
       <div class="section-title mono">${t("她的形象 · 点一个换上")}</div>
-      <div class="pick-portrait">${tiles.map((x) => `<button class="portrait-opt ${p?.src === x.src ? "active" : ""}" data-portrait='${esc(JSON.stringify({ kind: x.kind, src: x.src, ...(x.still ? { still: x.still } : {}) }))}'>
-          ${x.kind === "image" ? `<img src="${esc(x.src)}" alt=""><em>${t(x.fresh ? "新画的" : "立绘")}</em>` : x.kind === "chibi" ? `<img src="${esc(x.still || stillOf(x.src))}" alt=""><i class="chibi-tag">${t("会动")}</i><em>${t("动图")}</em>` : '<span class="l2d-tag">Live2D</span>'}</button>`).join("")}
+      <div class="pick-portrait">${tiles.map((x) => `<div class="portrait-cell"><button class="portrait-opt ${p?.src === x.src ? "active" : ""}" data-portrait='${esc(JSON.stringify({ kind: x.kind, src: x.src, ...(x.still ? { still: x.still } : {}) }))}'>
+          ${x.kind === "image" ? `<img src="${esc(x.src)}" alt=""><em>${t(x.fresh ? "新画的" : "立绘")}</em>` : x.kind === "chibi" ? `<img src="${esc(x.still || stillOf(x.src))}" alt=""><i class="chibi-tag">${t("会动")}</i><em>${t("动图")}</em>` : '<span class="l2d-tag">Live2D</span>'}</button>
+          ${own && x.src !== savedSrc ? `<button class="look-del" data-del-look="${esc(x.src)}" title="${esc(t("删除这个形象"))}" aria-label="${esc(t("删除这个形象"))}">✕</button>` : ""}</div>`).join("")}
         ${own ? `<label class="portrait-opt upload"><input type="file" id="portrait-file" accept="image/png,image/webp,image/jpeg" hidden><span>＋</span><em>${t("上传立绘")}</em></label>` : ""}</div>
       ${own ? `
       <label>${t("想换个样子？写一句她的样子，或者想改哪里")}
@@ -105,6 +107,27 @@ export async function bodyPanel(host, c, { onChange } = {}) {
       changed();
     }));
     if ($("#portrait-file", host)) $("#portrait-file", host).onchange = (e) => upload(e.target.files[0]);
+    $$("[data-del-look]", host).forEach((b) => (b.onclick = () => removeLook(b.dataset.delLook)));
+  }
+
+  // 删除一个形象（先确认）。没保存过的新画的：只从这次的草稿里拿掉；保存过的：从她的形象里删掉，马上生效
+  async function removeLook(src) {
+    const kept = (c.looks || []).some((x) => x.src === src);
+    if (!(await confirmBox(t("删除这个形象"), `<p>${t(kept ? "删掉之后就不在她的形象里了，不能恢复。" : "这张还没保存，删掉就没了。")}</p>`, "删除"))) return;
+    const x = cur();
+    x.candidates = x.candidates.filter((u) => u !== src);
+    if (x.portrait?.src === src) x.portrait = c.behavior.portrait ? { ...c.behavior.portrait } : null;  // 草稿里选着它：退回已保存的那个
+    if (kept) {
+      try {
+        const fresh = await api(`/api/characters/${c.id}`);  // 只改形象列表，右栏没保存的修改不受影响
+        const looks = (fresh.looks || []).filter((l) => l.src !== src).map(({ kind, src: s2, still }) => ({ kind, src: s2, ...(still ? { still } : {}) }));
+        const r = await api(`/api/characters/${c.id}`, { method: "PUT", body: { behavior: { ...fresh.behavior, looks } } });
+        c.behavior = r.behavior; c.looks = r.looks ?? looks; c.version = r.version; x.version = r.version;
+        S.chars = await api("/api/characters");
+        toast("删掉了");
+      } catch (e) { fail(e); }
+    }
+    onChange?.(); render();
   }
 
   async function generate(base, preset) {

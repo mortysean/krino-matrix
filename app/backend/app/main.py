@@ -12,7 +12,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import auth, chat, credits, devices, events, memory, personas, policy, social, tavern, voice, workbench, workshop
+from . import auth, chat, credits, devices, events, guard, memory, personas, policy, social, tavern, voice, workbench, workshop
 from .config import ROOT_DIR, locale, settings
 from .i18n import tr
 from .db import SessionLocal, migrate
@@ -74,7 +74,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="KRINO WORLD", version="0.1.0", lifespan=lifespan)
-for module in (auth, personas, chat, memory, policy, voice, workshop, workbench, credits, devices, events, social, tavern):
+for module in (auth, personas, chat, memory, policy, voice, workshop, workbench, credits, devices, events, social, tavern, guard):
     app.include_router(module.router)
 
 

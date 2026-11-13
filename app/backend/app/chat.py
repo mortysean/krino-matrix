@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import credits, cues, events, memory, policy
+from . import credits, cues, events, guard, memory, policy
 from .auth import current_user, user_settings
 from .config import chat_model_for, locale, settings
 from .db import SessionLocal, get_db
@@ -74,6 +74,9 @@ class Plan:
     audio_text: str = ""             # 语音转成文字交给联网模型时的原话
     transcript: object = None        # 同时在记的原话（Future）：存进对话记录
     recent_leads: set = field(default_factory=set)  # 最近几句回复开头用过的颜文字：这次不再重复
+    exit: bool = False               # 国内版：用户要求退出，固定一句道别、不调模型（guard.wants_exit）
+    crisis: str | None = None        # 国内版：self_harm | fraud，回复后附求助电话（guard.crisis_of）
+    minor_hit: bool = False          # 这一句看出可能是未成年人（guard.looks_minor），前端提示并给申诉入口
 
 
 # 需要最新信息的说法：天气、新闻、价格、比分、日期、“查一下”……（宁可多带几次，也别漏掉明显该查的）
@@ -176,6 +179,16 @@ def plan_turn(db: Session, user: User, sess: ChatSession, *, event: str, text: s
             sess.title = text[:30]
     p = Plan(user_id=user.id, session_id=sess.id, character_id=char.id,
              user_message_id=user_msg.id if user_msg else None, decision=decision, event_type=event)
+    if event == "message" and text:
+        if guard.wants_exit(text):  # 说了“退出”“不聊了”：马上结束，不挽留（第十九条）
+            p.exit, p.fixed_text = True, guard.EXIT_TEXT
+            return p
+        said = guard.looks_minor(text)
+        if said and guard.mark_suspected(db, user, said):
+            p.minor_hit = True
+        p.crisis = guard.crisis_of(text)
+        if p.crisis:
+            guard.record_risk(user, char.id, p.crisis, text)
 
     primary = decision.primary.action
     if primary == "NO_ACTION":
@@ -211,7 +224,7 @@ def plan_turn(db: Session, user: User, sess: ChatSession, *, event: str, text: s
                        summary=memory.latest_summary(db, user.id, char.id), lore=lore,
                        bond=memory.bond_prompt(bond, char.name), current=memory.current_prompt(bond), mode=p.mode,
                        perception=p.perception, gesture=policy.gesture_text(gesture) if gesture else None, web=web)
-    p.system, p.recall, p.skipped = ctx.system, ctx.used, ctx.skipped
+    p.system, p.recall, p.skipped = ctx.system + guard.prompt_section(user, p.crisis), ctx.used, ctx.skipped
     p.history = _history(db, sess.id) or [{"role": "user", "content": event_text("quiet")}]
     recent = db.scalars(select(Message.content).where(Message.session_id == sess.id, Message.role == "assistant")
                         .order_by(Message.id.desc()).limit(3)).all()
@@ -266,6 +279,7 @@ def finalize(db: Session, p: Plan, raw: str) -> dict:
     text = parsed.text if parsed else (p.fixed_text or "")
     if text and p.recent_leads:
         text = cues.drop_lead(text, p.recent_leads)
+    um, heard = None, ""
     if p.audio and p.user_message_id:  # 语音：把她听到的原话存成你这句话（对话记录、记忆整理、标题都用它）
         um = db.get(Message, p.user_message_id)
         heard = ""
@@ -282,6 +296,21 @@ def finalize(db: Session, p: Plan, raw: str) -> dict:
                 sess.title = um.content[:30]
     acts = _actions(p, char, text, parsed.expression if parsed else None, parsed.cues if parsed else None, user.settings,
                     parsed.animation if parsed else None)
+    if p.audio and p.user_message_id and um is not None and heard:  # 语音：识别出原话后再看一遍（退出、危机、未成年人）
+        if guard.wants_exit(heard):
+            p.exit = True
+        said = guard.looks_minor(heard)
+        if said and guard.mark_suspected(db, user, said):
+            p.minor_hit = True
+        if not p.crisis and (k := guard.crisis_of(heard)):
+            p.crisis = k
+            guard.record_risk(user, char.id, k, heard)
+    if p.exit:
+        acts.append({"type": "exit"})
+    if p.crisis:
+        acts.append({"type": "help", "kind": p.crisis, "lines": guard.HOTLINES[p.crisis]})
+    if p.minor_hit:
+        acts.append({"type": "minor_detected"})
     reply = None
     if text:
         reply = Message(session_id=sess.id, role="assistant", content=text,
@@ -593,6 +622,7 @@ def list_sessions(character_id: str, user: User = Depends(current_user), db: Ses
 @router.post("")
 def create_session(body: SessionIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     c = get_owned(db, user, body.character_id)
+    guard.check(db, user, c.id)
     s = ChatSession(user_id=user.id, character_id=c.id)
     db.add(s)
     memory.apply_decay(db, user.id, c.id)  # 新会话开始时顺便整理淡化
@@ -612,6 +642,7 @@ def send(sid: str, body: MessageIn, user: User = Depends(current_user), db: Sess
     credits.check(db, user)
     s = _open(db, user, sid)
     _same_character(s, body.character_id)
+    guard.check(db, user, s.character_id)
     if not body.text.strip() and not body.image:
         raise HTTPException(400, "说点什么吧")  # 语音走 /stream
     p = plan_turn(db, user, s, event="message", text=body.text.strip(), image=decode_image(body.image), source=body.source)
@@ -628,6 +659,7 @@ def send_stream(sid: str, body: MessageIn, request: Request, user: User = Depend
     credits.check(db, user)
     s = _open(db, user, sid)
     _same_character(s, body.character_id)
+    guard.check(db, user, s.character_id)
     audio = decode_audio(body.audio) if body.audio else None
     if not body.text.strip() and not audio and not body.image:
         raise HTTPException(400, "说点什么吧")
@@ -646,6 +678,7 @@ def send_event(sid: str, body: EventIn, user: User = Depends(current_user), db: 
     credits.check(db, user)
     s = _open(db, user, sid)
     _same_character(s, body.character_id)
+    guard.check(db, user, s.character_id)
     p = plan_turn(db, user, s, event=body.type, text=body.text.strip(), gesture=body.gesture,
                   image=decode_image(body.image), idle_count=body.idle_count)
     try:

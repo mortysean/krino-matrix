@@ -114,7 +114,10 @@ def is_admin(user: User) -> bool:
 
 
 def user_out(u: User) -> dict:
-    return {"id": u.id, "username": u.username, "display_name": u.display_name, "settings": user_settings(u),
+    s = user_settings(u)
+    if "guard" in s:  # 监护人密码之类的不往外给
+        s["guard"] = {k: v for k, v in s["guard"].items() if k not in ("pin", "pin_lock")}
+    return {"id": u.id, "username": u.username, "display_name": u.display_name, "settings": s,
             "workshop_admin": is_admin(u), "companion_limit": settings.companion_limit}
 
 
