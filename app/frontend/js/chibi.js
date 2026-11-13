@@ -110,9 +110,21 @@ export function createChibi(box) {
     S.clip = first; wrap.dataset.clip = first;
     vids[front].play().catch(() => {});
     S.ready = true;
-    // 高清片段每段 1 MB 多，不在后台一口气全下（会占满带宽，反而让你点的那个动作要等）：
-    // 只提前下“说话”；其余的由视频边下边播，播放器背后那一个会提前装好下一段；浏览器会缓存，下次就快了
-    fetchClip(S.def.talk);
+    // 不在后台一口气全下（会占满带宽，反而让你点的那个动作要等）：先下“说话”，之后一段一段地下待机小动作和常用动作，
+    // 同一时间只下一段。没下好的由视频边下边播，播放器背后那一个会提前装好下一段；浏览器会缓存，下次就快了
+    fetchClip(S.def.talk).then(warmUp);
+  }
+
+  function warmUp() {  // 省流量模式和 2G 网络不预下
+    const c = navigator.connection;
+    if (c?.saveData || /2g/.test(c?.effectiveType || "")) return;
+    const names = [...new Set([...(S.def.idle || []), ...Object.values(S.def.moves || {}).flat(), ...Object.values(S.def.faces || {}).flat()])];
+    const step = () => {  // 每段只试一次，下不下来就算了
+      let n;
+      while (S.alive && (n = names.shift()) && (!has(n) || S.blobs[n] || loading[n]));
+      if (S.alive && n) fetchClip(n).then(() => setTimeout(step, 300));
+    };
+    step();
   }
 
   const loading = {};

@@ -110,5 +110,6 @@
   ]
  },
  "head": "/static/assets/whale-girl-head.png",
- "still": "still.webp"
+ "still": "still.webp",
+ "encoded": "vp9 h576 crf40 hqdn3d"
 }
