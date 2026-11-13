@@ -63,13 +63,15 @@ app/e2e/shots/
 pet/
 EOF
 
-# 服务器上的配置：第一次生成，之后保留（里面有密钥）
+# 服务器上的配置：第一次生成，之后保留（里面有密钥）。
+# 写的时候用 noclobber：文件已经在就绝不覆盖。只靠上面这次检查不够——SSH 偶尔连不上时 test 也返回失败，
+# 2026-11-13 杭州的 .env 就这样被一份新生成的默认配置盖掉了（数据库密码变了，迁移连不上）
 if ! "${SSH[@]}" "test -f $DEST/.env"; then
   KEY="$(grep -E '^(OPENROUTER_API_KEY|LLM_OPENROUTER_API_KEY)=' "$ROOT/.env" | head -1 | cut -d= -f2-)"
   ICP="$(grep -E '^ICP_NUMBER=' "$ROOT/.env" | head -1 | cut -d= -f2-)"
   DBPW="$(openssl rand -hex 16)"
   log "生成服务器配置 $DEST/.env"
-  "${SSH[@]}" "umask 077; cat > $DEST/.env" <<EOF
+  "${SSH[@]}" "umask 077; set -o noclobber; cat > $DEST/.env" <<EOF || { log "$DEST/.env 已经存在，保留原样"; }
 # KRINO WORLD 服务器配置（$EDITION 版）。由 scripts/deploy.sh 第一次部署时生成，之后不会被覆盖。
 SITE_EDITION=$EDITION
 DATABASE_URL=postgresql+psycopg://krino:$DBPW@localhost:5432/krino_world
