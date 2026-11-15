@@ -22,6 +22,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from . import credits, events
@@ -72,7 +73,11 @@ def house_friends(db: Session, user: User) -> None:
         for b in mine[i + 1:]:
             f = _find_fr(db, a.id, b.id)
             if f is None:
-                db.add(Friendship(a_id=a.id, b_id=b.id, status="accepted", note="house", accepted_at=now()))
+                try:  # 圈子首页和朋友圈是一起取的，两个请求可能同时在建这一对：另一个建好了就行
+                    with db.begin_nested():
+                        db.add(Friendship(a_id=a.id, b_id=b.id, status="accepted", note="house", accepted_at=now()))
+                except IntegrityError:
+                    pass
             elif f.status != "accepted":
                 f.status, f.accepted_at = "accepted", now()
     db.commit()

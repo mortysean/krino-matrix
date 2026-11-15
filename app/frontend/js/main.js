@@ -3,11 +3,11 @@ import { $, $$, S, api, avaHTML, bus, esc, fail, storeGet, storeSet, t, toast, t
 import { applyDom, setLocale } from "./i18n.js";
 import { initChat } from "./chat.js";
 import { initMemory, refreshAsks } from "./memory.js";
-import { initPersona, personaDirty, personaPage } from "./persona.js";
-import { initWorkshop, workshopPage } from "./workshop.js";
+import { initPersona, personaDirty, personaPage, personaPrefetch } from "./persona.js";
+import { initWorkshop, workshopPage, workshopPrefetch } from "./workshop.js";
 import { initGlasses, leaveGlasses } from "./glasses.js";
 import { settingsPage } from "./settings.js";
-import { socialPage } from "./social.js";
+import { socialPage, socialPrefetch } from "./social.js";
 import { ageDenied, denyAge, dobFields, readDob, startGuard } from "./guard.js";
 
 const PAGES = { chat: null, persona: personaPage, social: socialPage, workshop: workshopPage, settings: settingsPage };
@@ -100,7 +100,20 @@ async function show(view) {
   bus.emit("view", view);
   try { await PAGES[view]?.(); } catch (e) { fail(e); }
 }
-$$(".nav button").forEach((b) => (b.onclick = () => show(b.dataset.view)));
+// 提前取：鼠标移到导航上（手机上是手指按下）就开始取那一页的数据，点下去时多半已经回来了；启动后空闲时各页先取一遍。
+// 取回来的记在 core.js 里，页面先用它马上画出来，再换成最新的
+const PREFETCH = { persona: personaPrefetch, social: socialPrefetch, workshop: workshopPrefetch };
+function prefetch(view) {
+  const now = Date.now();
+  if (!S.me || view === S.view || now - (prefetch.at[view] || 0) < 5000) return;
+  prefetch.at[view] = now;
+  PREFETCH[view]?.();
+}
+prefetch.at = {};
+$$(".nav button").forEach((b) => {
+  b.onclick = () => show(b.dataset.view);
+  b.onpointerenter = b.onfocus = () => prefetch(b.dataset.view);
+});
 
 // ---------- 启动 ----------
 async function boot() {
@@ -124,6 +137,8 @@ async function boot() {
   bus.emit("chars:loaded");  // 有还在后台创建的角色：接着等它做完（persona.js）
   startGuard();  // 年龄、未成年人模式、使用时长（guard.js）
   hideBoot();
+  const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1500));
+  setTimeout(() => idle(() => Object.keys(PREFETCH).forEach(prefetch)), 2000);  // 聊天页先加载完，再在空闲时取
 }
 
 // 站点版本：决定商标（国内版中文商标，海外版英文）、界面语言、页脚备案号

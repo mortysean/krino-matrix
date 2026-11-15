@@ -42,15 +42,46 @@ function setOnline(ok, why) {
   bus.emit("online", { ok, why });
 }
 
+// 页面切换要快：GET 的结果记一份。回到看过的页面先用 peek() 拿到的这份马上画出来，同时照常去取最新的；
+// 悬停在导航上、启动后空闲时提前取好（main.js 的 prefetch）。同一个地址正在取，就共用这一次请求。
+// 改了东西（非 GET）就把记下的全部作废，免得先闪一下改之前的样子；聊天、语音、在线计时这些很频繁、
+// 又不影响别的页面的，只作废自己那一类（/api/<第一段>）。
+const CACHE = new Map(), INFLIGHT = new Map();
+const NOISY = ["sessions", "voice", "guard"];
+let epoch = 0;  // 作废一次加一：作废之前发出的请求回来了也不记
+export const peek = (path) => CACHE.get(path);
+const group = (path) => path.split(/[/?]/)[2];
+function invalidate(path) {
+  epoch += 1;
+  const g = NOISY.includes(group(path)) ? group(path) : null;
+  for (const m of [CACHE, INFLIGHT]) for (const k of [...m.keys()]) if (!g || group(k) === g) m.delete(k);
+}
+bus.on("logout", () => invalidate("/api/"));
+
 // 所有接口调用都走这里：带上令牌、统一错误、断网提示
-export async function api(path, opts = {}) {
+export function api(path, opts = {}) {
+  const method = opts.method || (opts.body ? "POST" : "GET");
+  if (method !== "GET") {
+    invalidate(path);
+    return request(path, opts, method).finally(() => invalidate(path));  // 改完再作废一次：改的过程中取回来的也是旧的
+  }
+  if (opts.raw || opts.signal) return request(path, opts, method);
+  if (INFLIGHT.has(path)) return INFLIGHT.get(path);
+  const at = epoch;
+  const p = request(path, opts, method).then((d) => { if (at === epoch) CACHE.set(path, d); return d; })
+    .finally(() => { if (INFLIGHT.get(path) === p) INFLIGHT.delete(path); });
+  INFLIGHT.set(path, p);
+  return p;
+}
+
+async function request(path, opts, method) {
   const headers = { ...(opts.headers || {}) };
   if (S.token) headers.Authorization = "Bearer " + S.token;
   let body = opts.body;
   if (body && !(body instanceof FormData)) { headers["Content-Type"] = "application/json"; body = JSON.stringify(body); }
   let res;
   try {
-    res = await fetch(url(path), { method: opts.method || (body ? "POST" : "GET"), headers, body, signal: opts.signal });
+    res = await fetch(url(path), { method, headers, body, signal: opts.signal });
   } catch (e) {
     if (e.name === "AbortError") throw e;
     setOnline(false, t("连不上服务器，正在重试…"));

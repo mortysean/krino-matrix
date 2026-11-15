@@ -22,6 +22,21 @@ def test_every_character_has_a_unique_public_id(user, other):
     assert len(set(ids)) == len(ids)
 
 
+def test_housemates_survive_two_requests_making_them_at_once(user, monkeypatch):
+    """圈子首页和朋友圈一起取：两个请求都没看到这对室友、都去建，后到的不能 500，也不能建出第二份。"""
+    from app.db import SessionLocal
+    from app.models import Friendship, User
+
+    user.ok("get", "/api/social")  # 先到的那个已经建好了
+    monkeypatch.setattr(social, "_find_fr", lambda db, x, y: None)  # 后到的那个查的时候还没看到
+    with SessionLocal() as db:
+        social.house_friends(db, db.get(User, user.info["id"]))
+    monkeypatch.undo()
+    assert user.ok("get", "/api/social/feed") == []
+    with SessionLocal() as db:
+        assert len(db.query(Friendship).filter(Friendship.a_id.in_([user.krino["id"], user.official["id"]])).all()) == 1
+
+
 def test_housemates_are_friends_and_can_gossip(user):
     """同一个主人的角色天生是室友；让她们私信，两边轮流说，结束后各自记下对对方的印象。"""
     ov = user.ok("get", "/api/social")

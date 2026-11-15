@@ -2,7 +2,7 @@
 // 下面左栏是肉体（形象：修改 / 整套表情，见 workbench.js；声音），可以改，点一次“保存”生效；
 // 右栏是灵魂的神经网络视图（soulgraph.js），只看不改：改灵魂就不是她了（OOC）。灵魂只在“新角色”里设计。
 // “导出”得到一个文件（灵魂 + 肉体，图片内嵌），可以直接上传工坊；不常用的（历史版本、还原、告别）收进“更多”。
-import { $, $$, S, api, avaHTML, bus, confirmBox, curChar, download, esc, fail, fmtTime, modal, t, toast, tr } from "./core.js";
+import { $, $$, S, api, avaHTML, bus, confirmBox, curChar, download, esc, fail, fmtTime, modal, peek, t, toast, tr } from "./core.js";
 import { speak, voiceConfig } from "./voice.js";
 import { bodyDirty, bodyForget, bodyLooks, bodyPanel, bodyPortrait, bodyPrompt } from "./workbench.js";
 import { soulGraph } from "./soulgraph.js";
@@ -14,12 +14,25 @@ const MORE_FIELDS = ["background", "values", "interests", "preferences", "worldv
 const schema = async () => (P.schema ||= await api("/api/persona-schema"));
 async function reloadChars(selectId) { S.chars = await api("/api/characters"); bus.emit("chars", selectId); }
 
+// 看过的角色先用记下的那份马上画出来（core.js 的 peek），同时去取最新的；变了、而且还没动手改，才重画一次
 export async function personaPage() {
+  const id = S.charId, path = "/api/characters/" + id;
+  const hit = P.schema && peek(path);
+  const fresh = Promise.all([api(path), schema(), voiceConfig(), api("/api/characters")]);
+  if (hit) draw(hit, await voiceConfig());
+  const [c, , vc, chars] = await fresh.catch((e) => (fail(e), []));
+  if (!c || S.charId !== id) return;
+  S.chars = chars;
+  if (hit && (S.view !== "persona" || personaDirty() || JSON.stringify(c) === JSON.stringify(hit))) {
+    if (!personaDirty()) P.c = c;  // 没重画：后面判断“改没改过”用最新的
+    return;
+  }
+  draw(c, vc);
+}
+
+function draw(c, vc) {
   const root = $("#persona-page");
-  const [c, sc, vc] = await Promise.all([api("/api/characters/" + S.charId), schema(), voiceConfig()]).catch((e) => (fail(e), []));
-  if (!c) return;
   VOICE_LABELS = vc.tts.labels || {};
-  S.chars = await api("/api/characters");
   P.dirty = false;
   P.c = c;
   const p = c.persona, b = c.behavior;
@@ -306,6 +319,7 @@ async function versions(c, v) {
 }
 
 export const personaDirty = () => P.dirty || (!!P.c && S.view === "persona" && bodyDirty(P.c));
+export function personaPrefetch() { if (S.charId) api("/api/characters/" + S.charId).catch(() => {}); schema().catch(() => {}); voiceConfig(); }
 export function initPersona() {}
 
 

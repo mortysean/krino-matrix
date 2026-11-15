@@ -180,7 +180,7 @@ button:disabled::before { display: none; }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .view { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 28px 36px; overflow-y: auto; }
-.view.view-enter { animation: rise .5s var(--ease); }
+.view.view-enter { animation: rise .25s var(--ease); }  /* 切页面要跟手：长了像卡 */
 .page-head { margin-bottom: 18px; }
 .page-head h2 { margin: 0 0 6px; font-size: 28px; font-weight: 300; letter-spacing: .02em; }
 .page-head p { margin: 0; max-width: 680px; }

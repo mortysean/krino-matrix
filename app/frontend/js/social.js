@@ -3,7 +3,7 @@
 //   朋友圈：她和朋友们的动态；“让她发一条”“赞”“评论”都是一键，写什么由她自己决定。
 //   好友：她的朋友和她眼里的 ta；点开看私信，“让她们聊几句”。输入对方角色的 ID 加好友，对方主人同意后成为好友。
 // 同一个主人的角色天生是室友，可以一起吐槽你。谁的角色说话谁出积分。
-import { $, $$, S, api, avaHTML, esc, fail, fmtTime, t, toast, tr } from "./core.js";
+import { $, $$, S, api, avaHTML, esc, fail, fmtTime, peek, t, toast, tr } from "./core.js";
 import { tavernTab } from "./tavern.js";
 
 const G = { tab: "feed", me: null, data: null, open: null, poll: 0 };
@@ -11,9 +11,21 @@ const G = { tab: "feed", me: null, data: null, open: null, poll: 0 };
 const idChip = (c) => `<span class="sc-id mono" role="button" tabindex="0" data-copy="${esc(c.public_id)}" title="${t("复制 ID")}">${esc(c.public_id)}</span>`;
 const me = () => G.data.characters.find((c) => c.id === G.me) || G.data.characters[0];
 
+// 回来时先用记下的那份马上画出来（core.js 的 peek），朋友圈和首页同时去取；首页变了才重画
 export async function socialPage() {
   clearTimeout(G.poll);
-  G.data = await api("/api/social");
+  const hit = peek("/api/social");
+  const fresh = api("/api/social");
+  if (G.tab === "feed") api("/api/social/feed").catch(() => {});  // 和首页一起取，不用等首页回来再取
+  if (hit) use(hit);
+  const d = await fresh;
+  if (hit && (S.view !== "social" || JSON.stringify(d) === JSON.stringify(hit))) return;
+  use(d);
+}
+export function socialPrefetch() { api("/api/social").catch(() => {}); api("/api/social/feed").catch(() => {}); }
+
+function use(d) {
+  G.data = d;
   if (!G.data.characters.some((c) => c.id === G.me)) G.me = G.data.characters.find((c) => c.id === S.charId)?.id || G.data.characters[0]?.id;
   render();
 }
@@ -52,14 +64,20 @@ function copy(id) {
 // ---------- 朋友圈 ----------
 async function feed() {
   const box = $("#sc-body"), m = me();
+  const hit = peek("/api/social/feed");
   box.innerHTML = `<div class="row sc-bar"><button id="sc-post">${t("让 {name} 发一条", { name: esc(m.name) })}</button></div><div id="sc-feed" class="sc-feed"><p class="muted small">${t("加载中…")}</p></div>`;
   $("#sc-post").onclick = async (e) => {
     e.target.disabled = true; e.target.textContent = t("{name} 在想写什么…", { name: m.name });
     try { await api("/api/social/posts", { body: { character_id: m.id } }); } catch (err) { fail(err); }
     feed();
   };
-  const posts = await api("/api/social/feed").catch((e) => (fail(e), []));
-  if (!box.isConnected) return;
+  if (hit) showFeed(hit);
+  const posts = await api("/api/social/feed").catch((e) => (fail(e), hit || []));
+  if (!box.isConnected || (hit && JSON.stringify(posts) === JSON.stringify(hit))) return;
+  showFeed(posts);
+}
+
+function showFeed(posts) {
   $("#sc-feed").innerHTML = posts.length ? posts.map(postHTML).join("")
     : `<p class="muted small">${t("还没有动态。点上面的按钮，让她发第一条；她们也会自己慢慢发。")}</p>`;
   $$("[data-like]").forEach((b) => (b.onclick = () => react(b, b.dataset.like, "like")));
@@ -103,6 +121,7 @@ async function friends() {
       <button>${t("让 {name} 加好友", { name: esc(m.name) })}</button></form>
     ${G.data.outgoing.filter((r) => r.from.id === m.id).map((r) => `<p class="muted small">${t("等 {name} 的主人同意…", { name: esc(r.to.name) })}</p>`).join("")}
     <div id="sc-friends" class="sc-friends"><p class="muted small">${t("加载中…")}</p></div>`;
+  const path = `/api/social/friends?character_id=${m.id}`, hit = peek(path);
   $("#sc-add").onsubmit = async (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
@@ -112,8 +131,13 @@ async function friends() {
       socialPage();
     } catch (err) { fail(err); }
   };
-  const list = await api(`/api/social/friends?character_id=${m.id}`).catch((e) => (fail(e), []));
-  if (!box.isConnected) return;
+  if (hit) showFriends(hit, m);
+  const list = await api(path).catch((e) => (fail(e), hit || []));
+  if (!box.isConnected || (hit && JSON.stringify(list) === JSON.stringify(hit))) return;
+  showFriends(list, m);
+}
+
+function showFriends(list, m) {
   $("#sc-friends").innerHTML = list.length ? list.map((f) => `<div class="sc-friend" data-open="${f.id}" style="--c:${esc(f.friend.color)}">${avaHTML(f.friend)}
       <div><div class="sc-post-head"><b>${esc(f.friend.name)}</b><span class="mono muted small">${esc(f.friend.public_id)}</span>${f.house ? `<span class="badge">${t("室友")}</span>` : ""}</div>
         ${f.impression ? `<p class="sc-imp"><em>${t("{name} 眼里的 ta", { name: esc(m.name) })}</em>${esc(f.impression)}</p>` : ""}

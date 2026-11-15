@@ -1,6 +1,6 @@
 // 03 工坊：一个网格。卡片上直接“领养”（一键导入成自己的角色并去聊天），点卡片看详情。
 // 发布在“工作台 → 发布到工坊”，或者这里右上角“上传”（工作台“导出”的文件带着形象，可以直接上传）。管理员多一个“审核”入口。
-import { $, $$, S, api, bus, confirmBox, download, esc, fail, fmtTime, modal, t, toast, tr } from "./core.js";
+import { $, $$, S, api, bus, confirmBox, download, esc, fail, fmtTime, modal, peek, t, toast, tr } from "./core.js";
 
 const W = { q: "", category: "", sort: "hot", page: 1, items: [], meta: null, mine: false };
 
@@ -16,7 +16,12 @@ function cardHTML(i, k = 0) {
       <div class="ws-foot"><span class="muted small">${esc(tr(i.author))} · ↓${i.installs}${i.status !== "published" ? " · " + esc(tr(i.status_label)) : ""}</span>${btn}</div></div></div>`;
 }
 
+const itemsPath = () => "/api/workshop/items?" + new URLSearchParams({ q: W.q, category: W.category, sort: W.sort, page: W.page, mine: W.mine });
+export function workshopPrefetch() { meta().catch(() => {}); W.page = 1; api(itemsPath()).catch(() => {}); }
+
 export async function workshopPage() {
+  W.page = 1;
+  api(itemsPath()).catch(() => {});  // 和分类一起取，不用等分类回来再取
   const m = await meta();
   const root = $("#ws-page");
   root.innerHTML = `<div class="ws-bar">
@@ -38,10 +43,17 @@ export async function workshopPage() {
   load();
 }
 
+// 第一页看过的话先用记下的那份马上画出来（core.js 的 peek），同时去取最新的；回来的不是最新的条件（搜索打字快）就不要
 async function load(append = false) {
   if (!append) W.page = 1;
-  const p = new URLSearchParams({ q: W.q, category: W.category, sort: W.sort, page: W.page, mine: W.mine });
-  const r = await api("/api/workshop/items?" + p).catch((e) => (fail(e), { items: [], more: false }));
+  const path = itemsPath(), hit = !append && peek(path);
+  if (hit) grid(hit, false);
+  const r = await api(path).catch((e) => (fail(e), hit || { items: [], more: false }));
+  if (path !== itemsPath() || !$("#ws-grid") || (hit && JSON.stringify(r) === JSON.stringify(hit))) return;
+  grid(r, append);
+}
+
+function grid(r, append) {
   W.items = append ? W.items.concat(r.items) : r.items;
   $("#ws-grid").innerHTML = W.items.length ? W.items.map(cardHTML).join("") : `<p class="muted ws-empty">${W.mine ? t("你还没有发布过角色。在“工作台”里点“发布到工坊”。") : t("没有找到。换个词试试？")}</p>`;
   $("#ws-more").classList.toggle("hidden", !r.more);
