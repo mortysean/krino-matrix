@@ -1,5 +1,5 @@
 {
- "_note": "Krino Tree / 宣言页的界面文字（中英）。四个阶段是对外的展示分组，名称和说明在这里改；节点内容在 v3.zh.json / v3.en.json，进度在 status.json。",
+ "_note": "Krino Tree / 宣言页的界面文字（中英）。四个阶段是对外的展示分组，名称和说明在这里改；节点内容在 nodes.zh.json / nodes.en.json，进度在 status.json。",
  "en": {
   "page_title": "Krino Tree",
   "page_desc": "How Krino Matrix plans to get there (the Krino Tree, our interactive roadmap), and what exists today.",
@@ -64,9 +64,9 @@
   },
   "columns": {
    "树干": "Trunk",
-   "感知与静默交互": "Perception & silent interaction",
+   "感知与情感解码": "Perception & emotion decoding",
    "一生记忆": "Lifelong memory",
-   "人格与行为孪生": "Persona & behavioral twin",
+   "人格与灵魂推断": "Persona & soul inference",
    "微创接口": "Minimally invasive interfaces",
    "高通道接口": "High-channel interfaces",
    "记忆假体与记忆桥": "Memory prosthesis & memory bridge",

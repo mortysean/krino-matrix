@@ -5,13 +5,12 @@
   manifesto/en.json          宣言原文（官网版，逐段；tools/extract_manifesto.py 从 docx 抽取）
   manifesto/zh.json          中文译文（逐段对应英文，国内站显示）
   apocalypse/entries.json    “启示与应验”栏目的条目（宣言是第一条）
-  tree/v3.zh.json            科技树 V3 母版（原样抽取）  tree/v3.en.json         英文译文
-  tree/additions.json        V3 之外新增的节点（开放矩阵），载入时合并
-  tree/structure.json        四个阶段 → V3 分段/枝干/顺序，逐条依赖
+  tree/nodes.zh.json         科技树母版（现为 V5，原样抽取） tree/nodes.en.json     英文译文
+  tree/structure.json        四个阶段 → 母版的分段/枝干/顺序，逐条依赖
   tree/status.json           实际进度（只写核实过的）    tree/labels.json        界面文字
-官网只放给用户看的“官网版”宣言；给投资人的完整英文版留在 docs/哲学/，不上官网。V3 母版里出自投资人版的说法
+官网只放给用户看的“官网版”宣言；给投资人的完整英文版留在 docs/哲学/，不上官网。母版里出自投资人版的说法
 （公理四“垄断”、护城河）在官网上显示时去掉（_public），母版数据不动。
-节点的两个维度分开：性质（产品/研究/外部突破/阶段终点）来自 V3；进度（已完成/研发中/已规划/远期）只来自 status.json，
+节点的两个维度分开：性质（产品/研究/外部突破/阶段终点）来自母版；进度（已完成/研发中/已规划/远期）只来自 status.json，
 阶段终点和汇合门由前置自动算。
 """
 import html
@@ -29,8 +28,8 @@ def _load(p):
     return json.loads((DATA / p).read_text(encoding="utf-8"))
 
 
-V3 = _load("tree/v3.zh.json")
-EN = _load("tree/v3.en.json")
+TREE = _load("tree/nodes.zh.json")
+EN = _load("tree/nodes.en.json")
 ST = _load("tree/structure.json")
 STATUS = _load("tree/status.json")
 LABELS = _load("tree/labels.json")
@@ -38,12 +37,6 @@ MANIFESTO = {"en": _load("manifesto/en.json"), "zh": _load("manifesto/zh.json")}
 assert [len(x["paragraphs"]) for x in MANIFESTO["zh"]["sections"]] == [len(x["paragraphs"]) for x in MANIFESTO["en"]["sections"]], \
     "manifesto/zh.json 要和 en.json 逐段对应：英文改了，中文同步改"
 APOCALYPSE = _load("apocalypse/entries.json")
-for _nid, _a in _load("tree/additions.json")["nodes"].items():  # V3 之外新增的节点并进母版（只在内存里）
-    _z = dict(_a["zh"])
-    for _k, _t in (("sci", "SCI"), ("open", "OPEN"), ("unlock", "UNLOCK"), ("dur", "DUR"), ("tag", "TAGS")):
-        V3[_t][_nid] = _z.pop(_k, "")
-    V3["NODES"][_nid] = _z
-    EN[_nid] = _a["en"]
 
 PHASE_OF, COL_OF = {}, {}
 for ph in ST["phases"]:
@@ -62,23 +55,23 @@ def strip(s):
 
 
 def validate():
-    """数据一致性：56 个节点各在且只在一个位置；依赖都指向存在的节点；多重前置和 V3 的 MULTI_EDGES 一致；
+    """数据一致性：每个节点各在且只在一个位置；依赖都指向存在的节点；多重前置和母版的 MULTI_EDGES 一致；
     英文译文齐全；写成已完成的必须有核实依据。出错直接停，别生成一个错的站。"""
-    ids = set(V3["NODES"])
+    ids = set(TREE["NODES"])
     placed = [n for ph in ST["phases"] for c in ph["columns"] for n in c["nodes"]] + \
              [n for ph in ST["phases"] for n in ph.get("root", []) + ph.get("gates", []) + [ph["end"]]]
     errs = []
     if sorted(placed) != sorted(ids):
-        errs.append(f"阶段里的节点和 V3 不一致：多 {set(placed) - ids}，少 {ids - set(placed)}，重复 {[n for n in placed if placed.count(n) > 1]}")
+        errs.append(f"阶段里的节点和母版不一致：多 {set(placed) - ids}，少 {ids - set(placed)}，重复 {[n for n in placed if placed.count(n) > 1]}")
     if set(REQ) != ids:
         errs.append(f"requires 缺 {ids - set(REQ)}")
     for n, rs in list(REQ.items()) + list(ANY.items()):
         for r in rs:
             if r not in ids:
                 errs.append(f"{n} 依赖了不存在的 {r}")
-    for n, rs in (V3.get("MULTI_EDGES") or {}).items():  # V3(1) 不画跨节点连线，没有这个对象；有就逐条比对
+    for n, rs in (TREE.get("MULTI_EDGES") or {}).items():  # 母版（V3 起）不画跨节点连线，没有这个对象；有就逐条比对
         if set(rs) != set(REQ[n]):
-            errs.append(f"{n} 的依赖 {REQ[n]} 和 V3 多重前置 {rs} 不一致")
+            errs.append(f"{n} 的依赖 {REQ[n]} 和母版多重前置 {rs} 不一致")
     for n in ids:
         if n not in EN or not EN[n].get("summary") or not EN[n].get("body"):
             errs.append(f"{n} 缺英文译文")
@@ -106,7 +99,7 @@ def ancestors(nid):
 def compute_status():
     """进度：status.json 里写了的照写；阶段终点和汇合门按前置算；其余按阶段默认值。"""
     st = {}
-    for n in V3["NODES"]:
+    for n in TREE["NODES"]:
         if n in STATUS["nodes"]:
             st[n] = STATUS["nodes"][n]["status"]
         elif n not in MILESTONES:
@@ -129,7 +122,7 @@ def compute_status():
 def nature(nid):
     if nid in MILESTONES:
         return "milestone"
-    return V3["NODES"][nid]["cls"]
+    return TREE["NODES"][nid]["cls"]
 
 
 def _nover(x):
@@ -159,14 +152,14 @@ def text(nid, lang):
 
 
 def _text(nid, lang):
-    """节点文字：中文直接用 V3 原文，英文用译文。"""
+    """节点文字：中文直接用母版原文，英文用译文。"""
     if lang == "zh":
-        n = V3["NODES"][nid]
+        n = TREE["NODES"][nid]
         return {"name": n["name"], "summary": strip(n["cap"]), "body": n.get("body", ""), "cap": n.get("cap", ""),
                 "val": n.get("val", ""), "pass": n.get("pass", ""), "pre": n.get("pre", ""), "mode": n.get("mode", ""),
                 "when": n.get("when", ""), "man": n.get("man", ""), "tags": n.get("tags", []), "clsLabel": n.get("clsLabel", ""),
-                "sci": V3["SCI"].get(nid, ""), "open": V3["OPEN"].get(nid, ""), "unlock": V3["UNLOCK"].get(nid, ""),
-                "dur": V3["DUR"].get(nid, ""), "tag": V3["TAGS"].get(nid, "")}
+                "sci": TREE["SCI"].get(nid, ""), "open": TREE["OPEN"].get(nid, ""), "unlock": TREE["UNLOCK"].get(nid, ""),
+                "dur": TREE["DUR"].get(nid, ""), "tag": TREE["TAGS"].get(nid, "")}
     e = EN[nid]
     return {k: e.get(k, [] if k == "tags" else "") for k in
             ("name", "summary", "body", "cap", "val", "pass", "pre", "mode", "when", "man", "tags", "clsLabel", "sci", "open", "unlock", "dur", "tag")}
@@ -196,7 +189,7 @@ def tree_data(region_cfg):
     L = LABELS[lang]
     st = compute_status()
     nodes = {}
-    for nid in V3["NODES"]:
+    for nid in TREE["NODES"]:
         t = text(nid, lang)
         s = STATUS["nodes"].get(nid, {})
         ext = sorted(a for a in ancestors(nid) if nature(a) == "external")

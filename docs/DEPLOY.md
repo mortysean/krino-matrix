@@ -39,7 +39,7 @@ KRINO WORLD 有两个版本，代码是同一套，用 `SITE_EDITION` 区分：
 - 信息架构：首页首屏的 **Enter Krino** 和顶栏按钮直接进对应地区的应用；顶栏另外有 产品（`/<地区>/products/`，软件、硬件、开放平台的介绍页）/ 启示与应验（`/<地区>/apocalypse/`，预言与更新通报，宣言是第一条，条目在 `data/apocalypse/entries.json`）/ Krino Tree / 关于。开发者、联系在页脚，旧地址都保留。
 - 宣言与 Krino Tree（`/<地区>/vision/`、`/<地区>/manifesto/`）全部由数据生成，和界面分开，在 `app/landing_src/data/`：
   - `manifesto/en.json` 宣言英文原文（官网版，逐段，用 `tools/extract_manifesto.py` 从 `docs/哲学/官网版V3.6.1.docx` 抽取；给投资人的 `使命宣言英文版` 不上官网）
-  - `tree/v3.zh.json` 科技树 V3 母版（`docs/长期科技树V3(1).html` 原样抽取，`tools/extract_v3.js`）；`tree/v3.en.json` 英文译文；`tree/structure.json` 四个阶段与逐条依赖；`tree/labels.json` 界面文字
+  - `tree/nodes.zh.json` 科技树母版（现为 V5：`docs/长期科技树V5(1).html` 原样抽取，`tools/extract_tree.js`；出新版时重新抽取）；`tree/nodes.en.json` 英文译文（母版改了哪些字段就同步翻译哪些）；`tree/structure.json` 四个阶段与逐条依赖；`tree/labels.json` 界面文字
   - **`tree/status.json` 节点实际进度**：只写核实过的；改了重跑 build。阶段终点和汇合门按前置自动算，写“已完成”必须给依据
 - 地区记忆：用户在入口或“切换地区”点了哪个地区，就记在 Cookie `km_region`（Path=/，一年）。再打开根域名时 Caddy 直接 302 到那个地区；`/?choose=1` 不跳。没选过时入口页按 `/edge.json`（到了哪台服务器）推荐，但不跳转，搜索引擎看到的是入口页本身。
 - **按路径分源站**：DNS 不能按路径分流，所以靠 Caddy。两台都提供 `krinomatrix.com`，本机地区的路径和共用文件本机出，另一个地区的路径反代给对方源站（HTTPS，SNI/Host 为 `krinomatrix.com`，带 `X-Krino-Edge` 防回环）。结果是不管访客被 DNS 分到哪台，`/cn/*` 一定来自杭州、`/global/*` 一定来自东京。

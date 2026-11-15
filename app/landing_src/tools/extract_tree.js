@@ -1,5 +1,6 @@
-// 从长期科技树V3.html 抽出数据对象（只执行到数据定义为止，DOM 全部用空桩）。用法：node extract_v3.js 长期科技树V3.html 输出.json
-// 抽出来后由 build 用的 data/tree/v3.zh.json 只保留数据字段；V3 更新时重跑本脚本再覆盖。
+// 从长期科技树的 HTML（docs/长期科技树V5(1).html 等）抽出数据对象（只执行到数据定义为止，DOM 全部用空桩）。
+// 用法：node extract_tree.js 长期科技树V5.html 输出.json。build 用的 data/tree/nodes.zh.json 就是它的输出加上 _note / source；
+// 出新版时重跑本脚本再覆盖，然后把改动的字段同步翻译进 nodes.en.json。
 const fs = require("fs"), vm = require("vm");
 const html = fs.readFileSync(process.argv[2], "utf8");
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);

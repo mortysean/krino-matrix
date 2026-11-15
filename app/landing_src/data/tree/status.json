@@ -1,5 +1,5 @@
 {
- "_note": "Krino Tree 节点的实际进度。和节点性质（产品/研究/外部突破/阶段终点）是两回事：性质来自 V3，进度只来自这里。只写核实过的；没写的节点按 defaults 取（按阶段：前两阶段 planned，后两阶段 vision）。阶段终点和汇合门（structure.json 的 milestones）不在这里写，由前置自动算：前置全部 completed 才算 completed（ASCENSION 是四道门任一）。改进度只改这个文件再重跑 build.py；写 completed 必须给出 evidence，build 会检查。",
+ "_note": "Krino Tree 节点的实际进度。和节点性质（产品/研究/外部突破/阶段终点）是两回事：性质来自母版（nodes.zh.json），进度只来自这里。只写核实过的；没写的节点按 defaults 取（按阶段：前两阶段 planned，后两阶段 vision）。阶段终点和汇合门（structure.json 的 milestones）不在这里写，由前置自动算：前置全部 completed 才算 completed（ASCENSION 是四道门任一）。改进度只改这个文件再重跑 build.py；写 completed 必须给出 evidence，build 会检查。",
  "checked": "2026-11-12",
  "defaults": {
   "seed": "planned",
