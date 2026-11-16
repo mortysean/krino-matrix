@@ -1,6 +1,6 @@
 """关闭注册（REGISTRATION=closed）时，在服务器上手动建账号。和网页注册一样，新账号自带两位官方角色。
 
-    cd ~/krino-world/app/backend && set -a && . ../../.env && set +a
+    cd /home/krino/krino-world/app/backend && set -a && . ../../.env && set +a
     PYTHONPATH=. ../../.venv/bin/python ../../scripts/add_user.py 用户名 [密码]
 
 不给密码就随机生成一个并打印出来。

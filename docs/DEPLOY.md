@@ -79,11 +79,26 @@ scripts/deploy.sh global ubuntu@<海外 IP>   # app（接口 /api/）/ 官网 /g
 scripts/deploy.sh cn     sean@<国内 IP>     # cn（接口 /api/）/ 官网 /cn/
 ```
 
-- 装在服务器用户的主目录：`~/krino-world`，配置在 `~/krino-world/.env`（第一次部署时生成，之后不覆盖）。改完配置：`sudo systemctl restart krino-world`。
+- 代码和服务在专用的非 sudo 账号 `krino` 下：`/home/krino/krino-world`，配置在 `/home/krino/krino-world/.env`（`user@host` 只用来 sudo 装软件）（第一次部署时生成，之后不覆盖）。改完配置：`sudo systemctl restart krino-world`。
 - 装好 PostgreSQL、Python 3.11、Caddy，建库迁移，注册 systemd 服务 `krino-world`，Caddy 自动申请 HTTPS 证书。
 - 官网由 Caddy 直接提供（每次部署从 `app/landing/` 拷到 `/var/www/krinomatrix`）；后端的 `/landing/` 只用来本地预览。
 - 服务器上已经有别的 Caddy 配置时，脚本不会改它，只会提示在 `/etc/caddy/Caddyfile` 末尾加一行 `import /etc/caddy/krino-world.caddy`。
 - 语音密钥：国内版填 `DASHSCOPE_API_KEY`，海外版填 `OPENAI_API_KEY`。
+
+### 快照与回滚
+
+每次 `deploy.sh` 部署前，会在服务器上自动拍一份快照（`scripts/snapshot.sh`），存在 `/home/krino/deploy-bak/snap-<时间>-<当时的提交>/`，只保留最近 5 份。
+快照包括代码和 `.venv`（硬链接，几乎不占空间）、`.env`、数据库（`pg_dump`）。用户上传的 `data/media/` 和日志不进快照，回滚时也不动。
+部署的是哪个提交记在服务器上的 `~/krino-world/.deployed`；本地有没提交的改动时，提交号后面带 `-dirty`。
+
+```bash
+scripts/deploy.sh global ubuntu@43.153.189.97 snapshots                        # 列出快照
+scripts/deploy.sh global ubuntu@43.153.189.97 rollback                         # 回到最新一份快照（只回退代码和配置）
+scripts/deploy.sh global ubuntu@43.153.189.97 rollback snap-20261117-054357-23d080a
+RESTORE_DB=1 scripts/deploy.sh global ubuntu@... rollback                      # 数据库也回到快照那一刻：之后的新数据会丢
+```
+
+建议的更新顺序：先部署海外版并测试，没问题再部署国内版；海外版有问题就 `rollback`。
 
 自己用 Nginx 时，注意 `/api/sessions/*/stream` 是 SSE 流式输出，要关掉代理缓冲；`/api/devices/ws` 是 WebSocket，要转发 Upgrade 头：
 
