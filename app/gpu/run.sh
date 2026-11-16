@@ -21,7 +21,7 @@ GPU_AUX=${GPU_AUX:-4}
 MODELS=$(cd .. && pwd)/models
 LOGS=../logs
 mkdir -p "$LOGS"
-TUNNEL_HOSTS=${TUNNEL_HOSTS:-"ubuntu@43.153.189.97 sean@111.229.152.63"}  # 海外版、国内版
+TUNNEL_HOSTS=${TUNNEL_HOSTS:-"krino@43.153.189.97 krino@111.229.152.63"}  # 海外版、国内版（网站专用的非 sudo 账号）
 
 tunnel_loop() {  # 一个网站服务器一个循环：ssh 断了 5 秒后重连
   local host=$1
