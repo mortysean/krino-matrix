@@ -24,6 +24,13 @@ if [ "${LANDING:-0}" = 1 ]; then
     rm -rf "$WEB_ROOT.new" "$WEB_ROOT.old"
     cp -r "$DEST/app/landing" "$WEB_ROOT.new"
     chmod -R a+rX "$WEB_ROOT.new"
+    # 宣言、科技树和 portal.css 要留给 $APP_USER 写（目录整个重建，不重新授权就会丢）
+    if [ -n "${APP_USER:-}" ]; then
+      command -v setfacl >/dev/null || apt-get install -y -qq acl
+      for f in global/manifesto/index.html global/vision/tree.json portal.css; do
+        if [ -f "$WEB_ROOT.new/$f" ]; then setfacl -m "u:$APP_USER:rw" "$WEB_ROOT.new/$f"; fi
+      done
+    fi
     [ -d "$WEB_ROOT" ] && mv "$WEB_ROOT" "$WEB_ROOT.old"
     mv "$WEB_ROOT.new" "$WEB_ROOT"
     rm -rf "$WEB_ROOT.old"
