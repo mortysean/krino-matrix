@@ -179,3 +179,37 @@ def test_pending_character_stays_out_of_autonomy(user, monkeypatch):
     authors = {p["author"]["id"] for p in user.ok("get", "/api/social/feed")}
     assert user.official["id"] not in authors and user.krino["id"] in authors
     db.close()
+
+
+def test_town_shows_my_cast_and_friends_with_their_last_line(user, other):
+    """小镇：我的角色和她们的好友都在；陌生人的角色不在；每个人带着最近公开说过的一句。"""
+    from tests.conftest import make_user
+
+    stranger = make_user(user.c)
+    r = user.ok("post", "/api/social/requests", json={"from_id": user.krino["id"], "to": other.official["public_id"]})
+    other.ok("post", f"/api/social/requests/{r['id']}/accept")
+    p = other.ok("post", "/api/social/posts", json={"character_id": other.official["id"]})
+    tw = user.ok("get", "/api/social/town")
+    cast = {c["id"]: c for c in tw["cast"]}
+    assert cast[user.krino["id"]]["mine"] and cast[user.official["id"]]["mine"]
+    assert not cast[other.official["id"]]["mine"] and cast[other.official["id"]]["line"]["text"] == p["content"]
+    assert stranger.krino["id"] not in cast
+    assert any({l["a"], l["b"]} == {user.krino["id"], other.official["id"]} for l in tw["links"])
+    assert set(tw["places"]) >= {"plaza", "cafe", "stars", "tavern"}
+
+
+def test_town_meet_is_a_public_conversation_at_a_place(user, other, monkeypatch):
+    """约朋友去观星台：两人轮流说话（记在两人的对话里，trigger = town），提示词里带着地点和“公开场合”；不是好友不能约。"""
+    seen = []
+    real = social._say
+    monkeypatch.setattr(social, "_say", lambda db, char, system, messages, *a, **k: (seen.append(messages[-1]["content"]), real(db, char, system, messages, *a, **k))[1])
+    r = user.ok("post", "/api/social/requests", json={"from_id": user.krino["id"], "to": other.krino["public_id"]})
+    assert user.post("/api/social/town/meet", json={"character_id": user.krino["id"], "friend_id": other.krino["id"], "place": "stars"}).status_code == 400
+    other.ok("post", f"/api/social/requests/{r['id']}/accept")
+    assert user.post("/api/social/town/meet", json={"character_id": user.krino["id"], "friend_id": other.krino["id"], "place": "moon"}).status_code == 422
+    assert user.post("/api/social/town/meet", json={"character_id": other.krino["id"], "friend_id": user.krino["id"], "place": "stars"}).status_code == 404
+    out = user.ok("post", "/api/social/town/meet", json={"character_id": user.krino["id"], "friend_id": other.krino["id"], "place": "stars", "topic": "星图"})
+    th = _wait_thread(user, out["id"])
+    assert len(th["messages"]) == social.DM_TURNS and th["messages"][0]["trigger"] == "town"
+    assert other.ok("get", f"/api/social/threads/{out['id']}")["messages"] == th["messages"]
+    assert seen and all("观星台" in s and "公开" in s for s in seen[:social.DM_TURNS])

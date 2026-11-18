@@ -3,8 +3,10 @@
 //   朋友圈：她和朋友们的动态；“让她发一条”“赞”“评论”都是一键，写什么由她自己决定。
 //   好友：她的朋友和她眼里的 ta；点开看私信，“让她们聊几句”。输入对方角色的 ID 加好友，对方主人同意后成为好友。
 // 同一个主人的角色天生是室友，可以一起吐槽你。谁的角色说话谁出积分。
+// 最上面是像素小镇（town.js）：她们按日程在镇上生活，点人物、点房子就能用下面这些功能，下面的标签页照旧都在。
 import { $, $$, S, api, avaHTML, esc, fail, fmtTime, peek, t, toast, tr } from "./core.js";
 import { tavernTab } from "./tavern.js";
+import { loadTown, mountTown } from "./town.js";
 
 const G = { tab: "feed", me: null, data: null, open: null, poll: 0 };
 
@@ -22,7 +24,7 @@ export async function socialPage() {
   if (hit && (S.view !== "social" || JSON.stringify(d) === JSON.stringify(hit))) return;
   use(d);
 }
-export function socialPrefetch() { api("/api/social").catch(() => {}); api("/api/social/feed").catch(() => {}); }
+export function socialPrefetch() { api("/api/social").catch(() => {}); api("/api/social/feed").catch(() => {}); api("/api/social/town").catch(() => {}); }
 
 function use(d) {
   G.data = d;
@@ -30,9 +32,23 @@ function use(d) {
   render();
 }
 
+// 小镇点了房子 / 人物：切到下面对应的标签页，滚过去
+function openTab(tab, { me: id = null, open = null } = {}) {
+  G.tab = tab; G.open = open;
+  if (id) G.me = id;
+  render();
+  $("#sc-lower")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function render() {
+  if (!$("#sc-town")) $("#social-page").innerHTML = `<div id="sc-top"></div><div id="sc-town" class="town"></div><div id="sc-lower"></div>`;
+  mountTown($("#sc-town"), { me, openTab, changed: () => G.tab === "feed" && !G.open && feed() });
+  renderLower();
+}
+
+function renderLower() {
   const d = G.data, m = me();
-  $("#social-page").innerHTML = `
+  $("#sc-top").innerHTML = `
     <div class="sc-head">
       <div class="sc-mine">${d.characters.map((c) => `<button class="sc-char ${c.id === m.id ? "on" : ""}" data-me="${c.id}" style="--c:${esc(c.color)}">
         ${avaHTML(c)}<span class="sc-char-text"><b>${esc(c.name)}</b>${idChip(c)}</span></button>`).join("")}</div>
@@ -40,21 +56,22 @@ function render() {
     </div>
     ${d.incoming.map((r) => `<div class="sc-req">${avaHTML(r.from)}<span class="sc-req-text"><b>${esc(r.from.name)}</b> <span class="mono muted small">${esc(r.from.public_id)}</span>
         ${t("想和 {name} 交朋友", { name: esc(r.to.name) })}${r.note ? `<em>「${esc(r.note)}」</em>` : ""}</span>
-        <button class="small" data-accept="${r.id}">${t("同意")}</button><button class="ghost small" data-decline="${r.id}">${t("拒绝")}</button></div>`).join("")}
+        <button class="small" data-accept="${r.id}">${t("同意")}</button><button class="ghost small" data-decline="${r.id}">${t("拒绝")}</button></div>`).join("")}`;
+  $("#sc-lower").innerHTML = `
     <div class="chips sc-tabs">${[["feed", "朋友圈"], ["friends", "好友"], ["tavern", "酒馆"]].map(([k, v]) => `<button data-tab="${k}" class="${G.tab === k ? "active" : ""}">${t(v)}</button>`).join("")}
       ${d.settings.autonomy ? `<span class="muted small sc-auto">${t("她们会自己发动态、互相聊天")}</span>` : `<span class="muted small sc-auto">${t("自主活动已关闭（设置里可以打开）")}</span>`}</div>
     <div id="sc-body"></div>`;
-  $$("[data-me]").forEach((b) => (b.onclick = (e) => { if (e.target.closest("[data-copy]")) return; G.me = b.dataset.me; G.open = null; render(); }));
+  $$("[data-me]").forEach((b) => (b.onclick = (e) => { if (e.target.closest("[data-copy]")) return; G.me = b.dataset.me; G.open = null; renderLower(); }));
   $$("[data-copy]").forEach((b) => { b.onclick = () => copy(b.dataset.copy); b.onkeydown = (e) => e.key === "Enter" && copy(b.dataset.copy); });
   $$("[data-accept]").forEach((b) => (b.onclick = () => act(`/api/social/requests/${b.dataset.accept}/accept`, "成为好友了")));
   $$("[data-decline]").forEach((b) => (b.onclick = () => act(`/api/social/requests/${b.dataset.decline}/decline`, "已拒绝")));
-  $$("[data-tab]").forEach((b) => (b.onclick = () => { G.tab = b.dataset.tab; G.open = null; render(); }));
+  $$("[data-tab]").forEach((b) => (b.onclick = () => { G.tab = b.dataset.tab; G.open = null; renderLower(); }));
   if (G.tab === "tavern") return tavernTab($("#sc-body"));
   (G.tab === "feed" ? feed : G.open ? thread : friends)();
 }
 
 async function act(url, msg) {
-  try { await api(url, { method: "POST" }); toast(t(msg)); socialPage(); } catch (e) { fail(e); }
+  try { await api(url, { method: "POST" }); toast(t(msg)); socialPage(); loadTown(); } catch (e) { fail(e); }
 }
 
 function copy(id) {
@@ -143,7 +160,7 @@ function showFriends(list, m) {
         ${f.impression ? `<p class="sc-imp"><em>${t("{name} 眼里的 ta", { name: esc(m.name) })}</em>${esc(f.impression)}</p>` : ""}
         <p class="muted small">${f.busy ? t("正在聊…") : f.last ? esc(f.last.content) : t("还没聊过")}</p></div></div>`).join("")
     : `<p class="muted small">${t("还没有朋友。把上面的 ID 发给朋友，或者输入朋友角色的 ID。")}</p>`;
-  $$("[data-open]").forEach((el) => (el.onclick = () => { G.open = el.dataset.open; render(); }));
+  $$("[data-open]").forEach((el) => (el.onclick = () => { G.open = el.dataset.open; renderLower(); }));
 }
 
 async function thread() {
@@ -151,6 +168,10 @@ async function thread() {
   clearTimeout(G.poll);
   const th = await api(`/api/social/threads/${G.open}`).catch((e) => (fail(e), null));
   if (!th || !box.isConnected) return;
+  if (![th.a.id, th.b.id].includes(m.id)) {  // 从小镇点进来的对话，可能是我另一个角色的：换成她
+    const mine = G.data.characters.find((c) => c.id === th.a.id || c.id === th.b.id);
+    if (mine) { G.me = mine.id; return renderLower(); }
+  }
   const other = th.a.id === m.id ? th.b : th.a;
   const by = { [th.a.id]: th.a, [th.b.id]: th.b };
   box.innerHTML = `<div class="row sc-bar"><button class="link small" id="sc-back">← ${t("好友")}</button>
@@ -161,7 +182,7 @@ async function thread() {
       ${th.busy ? `<p class="muted small sc-typing">${t("正在聊…")}</p>` : ""}</div>
     <form class="sc-add" id="sc-chat"><input name="topic" placeholder="${t("给她们一个话题（可以不填）")}" maxlength="80">
       <button ${th.busy ? "disabled" : ""}>${t("让她们聊几句")}</button></form>`;
-  $("#sc-back").onclick = () => { G.open = null; clearTimeout(G.poll); render(); };
+  $("#sc-back").onclick = () => { G.open = null; clearTimeout(G.poll); renderLower(); };
   const tl = $("#sc-thread"); tl.scrollTop = tl.scrollHeight;
   $("#sc-chat").onsubmit = async (e) => {
     e.preventDefault();

@@ -117,6 +117,7 @@ T = {
         "dm_topic_none": "（随便聊聊近况，或者分享你想到的事）",
         "dm_reply": "（继续和{name}私信，回 ta 一句。想结束聊天就自然地道别。）",
         "dm_says": "{name}：{text}",
+        "at_place": "\n（你们在小镇的{place}碰面了。这是公开场合，旁边可能有别人，别说私密的事。）",
         "impress": "这是你和好友{name}刚才的私信：\n{chat}\n\n你之前对 ta 的印象：{old}\n\n用一两句话（第一人称，你自己的口吻）写下你现在对{name}的看法和你们的关系。只输出这句话。",
         "self_reflect": "这是你最近在圈子里说过的话：\n{lines}\n\n你之前对自己的认识：{old}\n\n用一两句话（第一人称）写下你现在怎么看自己——你在意什么、你和朋友们相处时是什么样的。只输出这句话。",
         "none": "（还没有）",
@@ -143,6 +144,7 @@ T = {
         "dm_topic_none": " (catch up, or share something on your mind)",
         "dm_reply": "(Keep chatting with {name}; reply once. Say bye naturally if you want to wrap up.)",
         "dm_says": "{name}: {text}",
+        "at_place": "\n(You two ran into each other at {place} in town. It's a public spot and others may be around: nothing private.)",
         "impress": "Here's the DM you just had with your friend {name}:\n{chat}\n\nYour previous impression: {old}\n\nIn one or two sentences (first person, your own voice), write how you see {name} and your friendship now. Output only that.",
         "self_reflect": "Here's what you've said in Circles lately:\n{lines}\n\nHow you saw yourself before: {old}\n\nIn one or two sentences (first person), write how you see yourself now — what you care about, what you're like with friends. Output only that.",
         "none": "(nothing yet)",
@@ -266,7 +268,8 @@ def _history(db: Session, f: Friendship, limit: int = 12) -> list[CharMessage]:
     return rows[::-1]
 
 
-def dm_turn(db: Session, f: Friendship, speaker: Character, other: Character, *, topic: str = "", trigger: str = "auto") -> CharMessage | None:
+def dm_turn(db: Session, f: Friendship, speaker: Character, other: Character, *, topic: str = "", trigger: str = "auto",
+            place: str = "") -> CharMessage | None:
     """她在这段私信里说一句：之前的话按她的视角排（她说的是 assistant，对方说的是 user）。"""
     hist = _history(db, f)
     msgs: list[dict] = []
@@ -282,6 +285,8 @@ def dm_turn(db: Session, f: Friendship, speaker: Character, other: Character, *,
         ask = L()["dm_start"].format(name=other.name, topic=t)
     else:
         ask = L()["dm_reply"].format(name=other.name)
+    if place:
+        ask += L()["at_place"].format(place=place_name(place))
     if msgs and msgs[-1]["role"] == "user":
         msgs[-1]["content"] += "\n\n" + ask
     else:
@@ -327,7 +332,7 @@ def _set_knows(db: Session, me: str, other: str, text: str) -> None:
     db.commit()
 
 
-def run_dm(fid: str, starter_id: str, topic: str = "", turns: int = DM_TURNS, trigger: str = "owner") -> None:
+def run_dm(fid: str, starter_id: str, topic: str = "", turns: int = DM_TURNS, trigger: str = "owner", place: str = "") -> None:
     """一段私信：发起的角色先说，然后两边轮流；谁说话谁的主人出积分。结束后两边各自更新对对方的印象。"""
     with _BUSY_LOCK:
         if fid in _BUSY:
@@ -341,7 +346,7 @@ def run_dm(fid: str, starter_id: str, topic: str = "", turns: int = DM_TURNS, tr
         said: list[CharMessage] = []
         speaker, listener = a, b
         for i in range(turns):
-            m = dm_turn(db, f, speaker, listener, topic=topic if i == 0 else "", trigger=trigger if i == 0 else "reply")
+            m = dm_turn(db, f, speaker, listener, topic=topic if i == 0 else "", trigger=trigger if i == 0 else "reply", place=place)
             if m is None:
                 break
             said.append(m)
@@ -349,7 +354,7 @@ def run_dm(fid: str, starter_id: str, topic: str = "", turns: int = DM_TURNS, tr
         if len({m.author_id for m in said}) == 2:
             update_impression(db, a, b, said)
             update_impression(db, b, a, said)
-        events.record("social", "dm", user_id=a.owner_id, character_id=a.id, payload={"turns": len(said), "trigger": trigger})
+        events.record("social", "dm", user_id=a.owner_id, character_id=a.id, payload={"turns": len(said), "trigger": trigger, "place": place})
     except Exception:  # noqa: BLE001  后台任务不能把服务带崩
         log.exception("私信失败")
     finally:
@@ -574,6 +579,70 @@ def delete_post(pid: str, user: User = Depends(current_user), db: Session = Depe
     db.delete(p)
     db.commit()
     return {"ok": True}
+
+
+# ---------- 小镇：圈子的地图画面 ----------
+# 地图、日程、走路全在浏览器里算（按时间和角色 id 固定），服务器不存位置、不常驻任何东西；这里只给“谁在镇上”和“她们最近说过的一句”。
+# 主人可以让她约一位朋友去某个地方碰面：就是一段带地点的私信（trigger = town），两边主人都能看，谁说话谁出积分。
+
+PLACES = {
+    "plaza": ("广场", "the plaza"), "cafe": ("咖啡馆", "the café"), "board": ("公告板", "the notice board"),
+    "tavern": ("酒馆", "the tavern"), "stars": ("观星台", "the stargazing deck"), "post": ("邮局", "the post office"),
+}
+TOWN_CAST = 24  # 镇上最多画几个角色（我的角色 + 她们的好友）
+
+
+def place_name(key: str) -> str:
+    n = PLACES.get(key)
+    return (n[1] if locale() == "en" else n[0]) if n else key
+
+
+@router.get("/town")
+def town(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """小镇：我的角色、她们的好友（名片）、谁和谁是朋友、每个人最近公开过的一句话（动态或碰面时说的）。"""
+    house_friends(db, user)
+    mine = list_owned(db, user)
+    ids = [c.id for c in mine]
+    frs = _fr_of(db, ids)
+    others = list(dict.fromkeys(_other(f, x) for f in frs for x in ids if x in (f.a_id, f.b_id) and _other(f, x) not in ids))
+    cast = mine + [c for c in (db.get(Character, i) for i in others[:max(0, TOWN_CAST - len(mine))]) if c is not None]
+    who = [c.id for c in cast]
+    last: dict[str, dict] = {}
+    for p in db.scalars(select(Post).where(Post.author_id.in_(who), Post.created_at >= now() - timedelta(days=7))
+                        .order_by(Post.created_at.desc()).limit(80)):
+        last.setdefault(p.author_id, {"text": p.content, "at": p.created_at.isoformat(), "kind": "post"})
+    fids = [f.id for f in frs]
+    for m in db.scalars(select(CharMessage).where(CharMessage.friendship_id.in_(fids), CharMessage.created_at >= now() - timedelta(days=7))
+                        .order_by(CharMessage.id.desc()).limit(120)) if fids else []:
+        cur = last.get(m.author_id)
+        if cur is None or cur["at"] < m.created_at.isoformat():
+            last[m.author_id] = {"text": m.content, "at": m.created_at.isoformat(), "kind": "talk", "fid": m.friendship_id}
+    return {"cast": [{**card(c), "mine": c.id in ids, "line": last.get(c.id)} for c in cast],
+            "links": [{"id": f.id, "a": f.a_id, "b": f.b_id, "busy": f.id in _BUSY} for f in frs if f.a_id in who and f.b_id in who],
+            "places": {k: place_name(k) for k in PLACES}}
+
+
+class MeetIn(BaseModel):
+    character_id: str
+    friend_id: str
+    place: str = Field(pattern="^(" + "|".join(PLACES) + ")$")
+    topic: str = Field(default="", max_length=80)
+
+
+@router.post("/town/meet")
+def meet(body: MeetIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """让她约一位朋友去某个地方碰面聊几句（后台进行，前端轮询这段对话）。"""
+    me = get_owned(db, user, body.character_id)
+    f = _find_fr(db, me.id, body.friend_id)
+    if f is None or f.status != "accepted":
+        raise HTTPException(400, "还不是好友")
+    credits.check(db, user)
+    if f.id in _BUSY:
+        raise HTTPException(409, "ta 们正在聊")
+    threading.Thread(target=run_dm, args=(f.id, me.id, body.topic.strip()),
+                     kwargs={"trigger": "town", "place": body.place}, name="social-meet", daemon=True).start()
+    events.record("social", "meet", user_id=user.id, character_id=me.id, payload={"place": body.place})
+    return {"ok": True, "id": f.id, "busy": True}
 
 
 # ---------- 自主：她自己在圈子里生活 ----------
