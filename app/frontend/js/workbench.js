@@ -42,7 +42,7 @@ export function bodyPrompt(cid, text) { (drafts[cid] ||= { version: -1, candidat
 
 const stillOf = (src) => src.replace(/chibi\.json$/, "still.webp");
 
-export async function bodyPanel(host, c, { onChange } = {}) {
+export async function bodyPanel(host, c, { onChange, controls } = {}) {
   info ||= await api("/api/workbench").catch(() => ({ ready: false, limit: 0, used: 0, motion: { ready: false } }));
   const d = draft(c);
   const changed = () => { onChange?.(); render(); };
@@ -63,12 +63,7 @@ export async function bodyPanel(host, c, { onChange } = {}) {
     const hasMotion = tiles.some((x) => x.kind === "chibi"), working = c.motion_job || c.pending;
     const savedSrc = c.behavior.portrait?.src;  // 正在用的那个不能删：先换上别的、保存，再删
     const motionBase = img && p.src.startsWith("/media/") ? p : tiles.find((x) => x.kind === "image" && x.src.startsWith("/media/"));
-    host.innerHTML = `
-      <div class="wb-stage">
-        ${img ? `<img src="${esc(p.src)}" alt="">` : p?.kind === "chibi" ? `<div class="wb-chibi"></div>` : p ? `<span class="l2d-tag">Live2D</span>` : `<div class="wb-empty">${t("还没有形象：在下面写一句描述，点“生成新形象”")}</div>`}
-        ${d.busy ? `<div class="wb-busy"><i></i>${esc(d.busy)}</div>` : ""}
-      </div>
-      <div class="section-title mono">${t("她的形象 · 点一个换上")}</div>
+    const tools = `
       <div class="pick-portrait">${tiles.map((x) => `<div class="portrait-cell"><button class="portrait-opt ${p?.src === x.src ? "active" : ""}" data-portrait='${esc(JSON.stringify({ kind: x.kind, src: x.src, ...(x.still ? { still: x.still } : {}) }))}'>
           ${x.kind === "image" ? `<img src="${esc(x.src)}" alt=""><em>${t(x.fresh ? "新画的" : "立绘")}</em>` : x.kind === "chibi" ? `<img src="${esc(x.still || stillOf(x.src))}" alt=""><i class="chibi-tag">${t("会动")}</i><em>${t("动图")}</em>` : '<span class="l2d-tag">Live2D</span>'}</button>
           ${own && x.src !== savedSrc ? `<button class="look-del" data-del-look="${esc(x.src)}" title="${esc(t("删除这个形象"))}" aria-label="${esc(t("删除这个形象"))}">✕</button>` : ""}</div>`).join("")}
@@ -85,6 +80,14 @@ export async function bodyPanel(host, c, { onChange } = {}) {
       ${motionBase && !hasMotion && info.motion?.ready ? `<div class="row wb-motion"><button class="ghost" id="wb-motion" ${working ? "disabled" : ""}>${t(c.motion_job ? "动图做着呢…" : "用这张立绘做动图")}</button>
         <span class="muted small">${t("会做挥手、点头、害羞等动作的 Q 版小人。约 {p} 积分，{m} 分钟，做的时候照常能聊", { p: Math.round(info.motion.points), m: info.motion.minutes })}</span></div>` : ""}`
       : `<p class="muted small">${t("官方角色的形象是固定的：会动的 Q 版和立绘，可以在这两个里换。")}</p>`}`;
+    host.innerHTML = `
+      <div class="wb-stage">
+        ${img ? `<img src="${esc(p.src)}" alt="">` : p?.kind === "chibi" ? `<div class="wb-chibi"></div>` : p ? `<span class="l2d-tag">Live2D</span>` : `<div class="wb-empty">${t("还没有形象：在下面写一句描述，点“生成新形象”")}</div>`}
+        ${d.busy ? `<div class="wb-busy"><i></i>${esc(d.busy)}</div>` : ""}
+      </div>`;
+    const pane = controls?.isConnected ? controls : host;
+    if (pane !== host) pane.innerHTML = tools;
+    else host.insertAdjacentHTML("beforeend", tools);
 
     // Q 版小人：预览区里直接动起来，每隔几秒演一个它会的动作
     const box = $(".wb-chibi", host);
@@ -95,19 +98,19 @@ export async function bodyPanel(host, c, { onChange } = {}) {
         const tick = setInterval(() => { if (!box.isConnected) { clearInterval(tick); ch.destroy(); return; } ch.play(moves[Math.floor(Math.random() * moves.length)]); }, 5200);
       }).catch(() => { box.textContent = t("Q 版小人加载失败"); });
     }
-    if ($("#wb-prompt", host)) $("#wb-prompt", host).oninput = (e) => (d.prompt = e.target.value);
-    if ($("#wb-new", host)) $("#wb-new", host).onclick = () => generate(null);
-    if ($("#wb-edit", host)) $("#wb-edit", host).onclick = () => generate(p.src);
-    if ($("#wb-beauty", host)) $("#wb-beauty", host).onclick = () => generate(p.src, t(BEAUTIFY));
-    if ($("#wb-motion", host)) $("#wb-motion", host).onclick = () => makeMotion(motionBase);
-    $$("[data-portrait]", host).forEach((b) => (b.onclick = () => {
+    if ($("#wb-prompt", pane)) $("#wb-prompt", pane).oninput = (e) => (d.prompt = e.target.value);
+    if ($("#wb-new", pane)) $("#wb-new", pane).onclick = () => generate(null);
+    if ($("#wb-edit", pane)) $("#wb-edit", pane).onclick = () => generate(p.src);
+    if ($("#wb-beauty", pane)) $("#wb-beauty", pane).onclick = () => generate(p.src, t(BEAUTIFY));
+    if ($("#wb-motion", pane)) $("#wb-motion", pane).onclick = () => makeMotion(motionBase);
+    $$("[data-portrait]", pane).forEach((b) => (b.onclick = () => {
       const pick = JSON.parse(b.dataset.portrait);
       if (pick.src === d.portrait?.src) return;
       d.portrait = pick;
       changed();
     }));
-    if ($("#portrait-file", host)) $("#portrait-file", host).onchange = (e) => upload(e.target.files[0]);
-    $$("[data-del-look]", host).forEach((b) => (b.onclick = () => removeLook(b.dataset.delLook)));
+    if ($("#portrait-file", pane)) $("#portrait-file", pane).onchange = (e) => upload(e.target.files[0]);
+    $$("[data-del-look]", pane).forEach((b) => (b.onclick = () => removeLook(b.dataset.delLook)));
   }
 
   // 删除一个形象（先确认）。没保存过的新画的：只从这次的草稿里拿掉；保存过的：从她的形象里删掉，马上生效
@@ -132,7 +135,11 @@ export async function bodyPanel(host, c, { onChange } = {}) {
 
   async function generate(base, preset) {
     const prompt = preset || (d.prompt || "").trim();
-    if (!prompt) { $("#wb-prompt", host).focus(); return toast(base ? "先写一句想怎么改" : "先写一句她的样子"); }
+    if (!prompt) {
+      host.dispatchEvent(new CustomEvent("krino-open-looks", { bubbles: true }));
+      queueMicrotask(() => $("#wb-prompt", controls?.isConnected ? controls : host)?.focus());
+      return toast(base ? "先写一句想怎么改" : "先写一句她的样子");
+    }
     d.busy = t(preset ? "正在美化，大约半分钟…" : base ? "正在修改，大约半分钟…" : "正在画她，大约半分钟…");
     render();
     try {

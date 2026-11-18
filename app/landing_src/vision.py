@@ -3,7 +3,7 @@
 
 数据全在 data/ 下，和界面分开：
   manifesto/en.json          宣言原文（官网版，逐段；tools/extract_manifesto.py 从 docx 抽取）
-  manifesto/zh.json          中文译文（逐段对应英文，国内站显示）
+  manifesto/zh.json          国内站的中文稿（仍是 V3.6.1）。英文 V3.6.3 不要求中文段数对齐，也不把这份旧稿标成新版本
   apocalypse/entries.json    “启示与应验”栏目的条目（宣言是第一条）
   tree/nodes.zh.json         科技树母版（现为 V5，原样抽取） tree/nodes.en.json     英文译文
   tree/structure.json        四个阶段 → 母版的分段/枝干/顺序，逐条依赖
@@ -34,8 +34,28 @@ ST = _load("tree/structure.json")
 STATUS = _load("tree/status.json")
 LABELS = _load("tree/labels.json")
 MANIFESTO = {"en": _load("manifesto/en.json"), "zh": _load("manifesto/zh.json")}
-assert [len(x["paragraphs"]) for x in MANIFESTO["zh"]["sections"]] == [len(x["paragraphs"]) for x in MANIFESTO["en"]["sections"]], \
-    "manifesto/zh.json 要和 en.json 逐段对应：英文改了，中文同步改"
+
+
+def _manifesto_locale_errors():
+    """英文 V3.6.3 自己核对。中文稿是另一份稿，段数不必跟着英文走，也不能把旧中文标成这个新版本。"""
+    en, zh = MANIFESTO["en"], MANIFESTO["zh"]
+    errs = []
+    if en.get("version") != "V3.6.3":
+        errs.append(f"英文官网宣言版本是 {en.get('version')!r}，这一版要核的是 V3.6.3")
+    flow_bodies = [i["text"] for i in en.get("flow") or [] if i.get("role") == "body"]
+    section_bodies = [p for s in en["sections"] for p in s["paragraphs"]]
+    flow_heads = [i["text"] for i in en.get("flow") or [] if i.get("role") == "heading"]
+    section_heads = [s["title"] for s in en["sections"]]
+    if not flow_bodies or flow_bodies != section_bodies or flow_heads != section_heads:
+        errs.append("英文 V3.6.3 的 flow 和 sections 必须逐段、逐标题相同")
+    if zh.get("version") == "V3.6.3":
+        errs.append("中文稿被标成 V3.6.3。没有授权的中文 V3.6.3 原稿，不能把旧中文或一份新译稿标成这个版本")
+    return errs
+
+
+_locale_errs = _manifesto_locale_errors()
+if _locale_errs:
+    raise SystemExit("宣言稿有误：\n  " + "\n  ".join(_locale_errs))
 APOCALYPSE = _load("apocalypse/entries.json")
 
 PHASE_OF, COL_OF = {}, {}
@@ -52,6 +72,38 @@ MILESTONES = set(ST["milestones"])
 
 def strip(s):
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", s or "")).strip()
+
+
+def _manifesto_plain():
+    flow = MANIFESTO["en"].get("flow") or []
+    bodies = [item["text"] for item in flow if item.get("role") == "body"]
+    return "\n".join(bodies)
+
+
+def _verified_quotes(text, plain):
+    """标了 V3.6.3 的引号必须是英文原文的连续子串。待核的括号不算引文。"""
+    body = re.sub(r"<span class=\"cite-pending\">.*?</span>", "", text or "", flags=re.S)
+    body = re.sub(r"\[Pending review:.*?\]", "", html.unescape(re.sub(r"<[^>]+>", "", body)), flags=re.S)
+    idxs = [i for i, ch in enumerate(body) if ch == '"']
+    i = 0
+    bad = []
+    while i < len(idxs):
+        best = None
+        for j in range(len(idxs) - 1, i, -1):
+            inner = body[idxs[i] + 1:idxs[j]]
+            if len(inner) >= 12 and inner in plain:
+                best = j
+                break
+        if best is None:
+            for j in range(i + 1, len(idxs)):
+                inner = body[idxs[i] + 1:idxs[j]]
+                if len(inner) >= 12 and '"' not in inner and inner not in plain:
+                    bad.append(inner)
+                break
+            i += 1
+            continue
+        i = best + 1
+    return bad
 
 
 def validate():
@@ -82,6 +134,16 @@ def validate():
             errs.append(f"{n} 是阶段终点/汇合门，进度由前置自动算，别写在 status.json")
         if s["status"] == "completed" and not (s.get("evidence") and s.get("done")):
             errs.append(f"{n} 标成已完成却没有 evidence/done")
+    errs.extend(_manifesto_locale_errors())
+    plain = _manifesto_plain()
+    for nid, node in EN.items():
+        if not isinstance(node, dict):
+            continue
+        man = node.get("man") or ""
+        if "V3.6.3" not in man:
+            continue
+        for q in _verified_quotes(man, plain):
+            errs.append(f"{nid} 把不是 V3.6.3 原文的句子标成了引文：{q[:80]}")
     if errs:
         raise SystemExit("Krino Tree 数据有误：\n  " + "\n  ".join(errs))
 
@@ -126,10 +188,17 @@ def nature(nid):
 
 
 def _nover(x):
-    """页面上不出现版本号：节点原文里的“宣言 V3.5.9”“V3 原文”等，显示时去掉版本号（母版数据不动）。"""
+    """旧稿版本号不出现在页面上。现行官网宣言是 V3.6.3，这个版本号保留。"""
     if isinstance(x, list):
         return [_nover(i) for i in x]
-    return re.sub(r"\s?V3(?:\.\d+)*\s?", lambda m: " " if m.group(0).startswith(" ") and m.group(0).endswith(" ") else "", x or "")
+
+    def repl(m):
+        s = m.group(0)
+        if "V3.6.3" in s:
+            return s
+        return " " if s[:1] == " " and s[-1:] == " " else ""
+
+    return re.sub(r"\s?V3(?:\.\d+)*\s?", repl, x or "")
 
 
 _PUBLIC_DROP = [  # 出自投资人版宣言、官网版已删去的说法：显示时去掉
@@ -300,21 +369,50 @@ def vision_page(region_cfg):
     return {"title": L["page_title"], "description": L["page_desc"]}, body
 
 
+def _flow_parts(M):
+    """英文页按 Word 的段落流排：空段留下，不把相邻段落并成一段。目录是页面结构，插在第一处标题之前。"""
+    head, rest, n, started = [], [], 0, False
+    for item in M["flow"]:
+        role, text = item["role"], item.get("text", "")
+        if role == "heading":
+            started = True
+        buf = rest if started else head
+        if role == "latin":
+            buf.append(f'<p class="latin">{esc(text)}</p>')
+        elif role == "title":
+            buf.append(f"<h1>{esc(text)}</h1>")
+        elif role == "epigraph":
+            buf.append(f'<blockquote class="epigraph">{esc(text)}</blockquote>')
+        elif role == "blank":
+            buf.append('<p class="docx-blank" aria-hidden="true"></p>')
+        elif role == "heading":
+            n += 1
+            buf.append(f'<h2 id="s{n}"><i>{n:02d}</i>{esc(text)}</h2>')
+        else:
+            buf.append(f"<p>{esc(text)}</p>")
+    return "".join(head), "".join(rest)
+
+
 def manifesto_page(region_cfg):
     lang = lang_of(region_cfg["lang"])
     L = LABELS[lang]
     M = MANIFESTO[lang]
     toc = "".join(f'<a href="#s{i + 1}">{esc(s["title"])}</a>' for i, s in enumerate(M["sections"]))
-    secs = "".join(f'<h2 id="s{i + 1}"><i>{i + 1:02d}</i>{esc(s["title"])}</h2>' + "".join(f"<p>{esc(p)}</p>" for p in s["paragraphs"])
-                   for i, s in enumerate(M["sections"]))
-    body = f"""<p class="tag">// APOCALYPSE &amp; FULFILLMENT · MANIFESTO</p>
-    <p class="meta">{esc(L["full_note"])} · <a href="{{base}}apocalypse/">{L["back"]}</a></p>
-    <article lang="{M["lang"]}">
-    <p class="latin">{esc(M.get("latin", ""))}</p>
+    if M.get("flow"):
+        head, rest = _flow_parts(M)
+        article = f"{head}\n    <nav class=\"toc\" aria-label=\"{L['toc']}\">{toc}</nav>\n    {rest}"
+    else:
+        secs = "".join(f'<h2 id="s{i + 1}"><i>{i + 1:02d}</i>{esc(s["title"])}</h2>' + "".join(f"<p>{esc(p)}</p>" for p in s["paragraphs"])
+                       for i, s in enumerate(M["sections"]))
+        article = f"""<p class="latin">{esc(M.get("latin", ""))}</p>
     <h1>{esc(M["title"])}</h1>
     <blockquote class="epigraph">{esc(M["epigraph"])}</blockquote>
     <nav class="toc" aria-label="{L["toc"]}">{toc}</nav>
-    {secs}
+    {secs}"""
+    body = f"""<p class="tag">// APOCALYPSE &amp; FULFILLMENT · MANIFESTO</p>
+    <p class="meta">{esc(L["full_note"])} · <a href="{{base}}apocalypse/">{L["back"]}</a></p>
+    <article lang="{M["lang"]}">
+    {article}
     </article>
     <p class="meta"><a href="{{base}}vision/#tree">{L["tab_tree"]} →</a></p>"""
     desc = {"zh": '决策矩阵宣言全文：我们为什么存在、相信什么、要去哪里。',

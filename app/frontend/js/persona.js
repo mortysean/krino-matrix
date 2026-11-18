@@ -2,7 +2,7 @@
 // 下面左栏是肉体（形象：修改 / 整套表情，见 workbench.js；声音），可以改，点一次“保存”生效；
 // 右栏是灵魂的神经网络视图（soulgraph.js），只看不改：改灵魂就不是她了（OOC）。灵魂只在“新角色”里设计。
 // “导出”得到一个文件（灵魂 + 肉体，图片内嵌），可以直接上传工坊；不常用的（历史版本、还原、告别）收进“更多”。
-import { $, $$, S, api, avaHTML, bus, confirmBox, curChar, download, esc, fail, fmtTime, modal, peek, t, toast, tr } from "./core.js";
+import { $, $$, S, api, avaHTML, bindDock, bus, confirmBox, curChar, download, esc, fail, fmtTime, modal, peek, t, toast, tr } from "./core.js";
 import { speak, voiceConfig } from "./voice.js";
 import { bodyDirty, bodyForget, bodyLooks, bodyPanel, bodyPortrait, bodyPrompt } from "./workbench.js";
 import { soulGraph } from "./soulgraph.js";
@@ -42,7 +42,7 @@ function draw(c, vc) {
         <button class="link small" data-edit="${x.id}">${t("编辑")}</button></div>`).join("")}
       <button class="cast-card add" id="c-add"><span>＋</span>${t("新角色")}</button></div>
 
-    <div class="editor">
+    <div class="editor studio-editor">
       <div class="editor-head">
         <h2 class="name-title">${esc(p.name)}</h2>
         <span class="muted small mono">v${c.version}</span>
@@ -54,27 +54,44 @@ function draw(c, vc) {
       </div>
       <div class="studio">
         <div class="studio-body">
-          <div class="section-title mono">${t("BODY · 肉体")}</div>
           <div id="body-host"></div>
-          <div class="section-title mono">${t("VOICE · 声音")}</div>
-          <div class="row">
-            ${vc.tts.voices?.length ? `<select data-v="voice" style="flex:1">${voiceOptions(vc.tts, b.voice.voice)}</select>`
-              : `<input data-v="voice" value="${esc(b.voice.voice || "")}" placeholder="${t("音色（服务端语音时用）")}" style="flex:1">`}
-            <button class="ghost small" id="voice-try">▶ ${t("试听")}</button>
+          <div class="studio-corners" role="group" aria-label="${t("形象和声音")}">
+            <button type="button" class="corner" data-dock="looks">${t("形象")}</button>
+            <button type="button" class="corner" data-dock="voice">${t("声音")}</button>
+            <button type="button" class="corner" data-dock="language">${t("语言")}</button>
           </div>
-          ${vc.tts.design ? `<div class="voice-design">
-            <textarea data-v="style" rows="2" placeholder="${t("描述想要的声音：性别年龄、音色、语速、情绪……例如：低沉沙哑的老年巫师，慢条斯理")}">${esc(b.voice.style || "")}</textarea>
-            <div class="voice-tune">${t("微调：")}${VOICE_TUNES.map((x) => `<button type="button" class="tune" data-tune="${esc(t(x))}">${esc(t(x))}</button>`).join("")}</div>
-            <button class="ghost small" id="voice-redesign">${t("按描述设计新声音")}</button>
-          </div>` : ""}
-          <div class="slider-row"><span>${t("语速")}</span><input type="range" min="0.6" max="1.6" step="0.05" data-v="rate" value="${b.voice.rate}"><span>${b.voice.rate}</span></div>
-          <p class="muted small">${voiceNote(vc.tts)}</p>
-          <div class="section-title mono">${t("LANGUAGE · 说话的语言")}</div>
-          <div class="row"><select data-v="language" style="flex:1">${LANGS.map(([v, l]) => `<option value="${v}" ${v === (b.language || "") ? "selected" : ""}>${esc(t(l))}</option>`).join("")}</select></div>
-          <p class="muted small">${t("她回复和朗读用的语言。不管你用什么语言跟她说，她都用这个语言回答。")}</p>
+          <div id="dock-looks" class="studio-dock" hidden role="dialog" aria-modal="true" aria-labelledby="dock-looks-title">
+            <div class="dock-card">
+              <div class="dock-head"><h3 id="dock-looks-title">${t("她的形象 · 点一个换上")}</h3><button type="button" class="ghost small" data-dock-close>${t("关闭")}</button></div>
+              <div id="looks-body"></div>
+            </div>
+          </div>
+          <div id="dock-voice" class="studio-dock" hidden role="dialog" aria-modal="true" aria-labelledby="dock-voice-title">
+            <div class="dock-card">
+              <div class="dock-head"><h3 id="dock-voice-title">${t("声音")}</h3><button type="button" class="ghost small" data-dock-close>${t("关闭")}</button></div>
+              <div class="row">
+                ${vc.tts.voices?.length ? `<select data-v="voice" style="flex:1">${voiceOptions(vc.tts, b.voice.voice)}</select>`
+                  : `<input data-v="voice" value="${esc(b.voice.voice || "")}" placeholder="${t("音色（服务端语音时用）")}" style="flex:1">`}
+                <button class="ghost small" id="voice-try">▶ ${t("试听")}</button>
+              </div>
+              ${vc.tts.design ? `<div class="voice-design">
+                <textarea data-v="style" rows="2" placeholder="${t("描述想要的声音：性别年龄、音色、语速、情绪……例如：低沉沙哑的老年巫师，慢条斯理")}">${esc(b.voice.style || "")}</textarea>
+                <div class="voice-tune">${t("微调：")}${VOICE_TUNES.map((x) => `<button type="button" class="tune" data-tune="${esc(t(x))}">${esc(t(x))}</button>`).join("")}</div>
+                <button class="ghost small" id="voice-redesign">${t("按描述设计新声音")}</button>
+              </div>` : ""}
+              <div class="slider-row"><span>${t("语速")}</span><input type="range" min="0.6" max="1.6" step="0.05" data-v="rate" value="${b.voice.rate}"><span>${b.voice.rate}</span></div>
+              <p class="muted small">${voiceNote(vc.tts)}</p>
+            </div>
+          </div>
+          <div id="dock-language" class="studio-dock" hidden role="dialog" aria-modal="true" aria-labelledby="dock-language-title">
+            <div class="dock-card">
+              <div class="dock-head"><h3 id="dock-language-title">${t("语言")}</h3><button type="button" class="ghost small" data-dock-close>${t("关闭")}</button></div>
+              <div class="row"><select data-v="language" style="flex:1">${LANGS.map(([v, l]) => `<option value="${v}" ${v === (b.language || "") ? "selected" : ""}>${esc(t(l))}</option>`).join("")}</select></div>
+              <p class="muted small">${t("她回复和朗读用的语言。不管你用什么语言跟她说，她都用这个语言回答。")}</p>
+            </div>
+          </div>
         </div>
         <div class="studio-soul">
-          <div class="section-title mono">${t("SOUL · 灵魂")}</div>
           <div id="soul-host"></div>
         </div>
       </div>
@@ -90,8 +107,12 @@ function draw(c, vc) {
     ta.focus(); markDirty(true);
   }));
   soulGraph($("#soul-host", root), c, { onNew: addCharacter });
-  root.oninput = (e) => { if (!e.target.closest("#body-host")) markDirty(true); };  // 每次重画都覆盖，不会越绑越多
-  bodyPanel($("#body-host", root), c, { onChange: markDirty }).then(() => markDirty()).catch(fail);
+  const docks = bindDock(root);
+  root._openLooks && root.removeEventListener("krino-open-looks", root._openLooks);
+  root._openLooks = () => docks.open($("#dock-looks", root));
+  root.addEventListener("krino-open-looks", root._openLooks);
+  root.oninput = (e) => { if (!e.target.closest("#body-host, #looks-body")) markDirty(true); };  // 每次重画都覆盖，不会越绑越多
+  bodyPanel($("#body-host", root), c, { onChange: markDirty, controls: $("#looks-body", root) }).then(() => markDirty()).catch(fail);
   $("#voice-try").onclick = () => speak(p.greeting || t("你好，我在这里。"), collect(root, c).behavior.voice).catch(fail);
   $("#voice-redesign", root)?.addEventListener("click", async (e) => {  // 设计好就选上并试听；点“保存”才算数
     const style = $("[data-v=style]", root).value.trim();
