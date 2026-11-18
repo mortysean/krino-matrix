@@ -12,7 +12,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import auth, chat, credits, devices, events, guard, memory, personas, policy, social, tavern, voice, workbench, workshop
+from . import auth, chat, credits, devices, events, guard, memory, personas, policy, social, tavern, voice, workbench, workshop, world
 from .config import ROOT_DIR, locale, settings
 from .i18n import tr
 from .db import SessionLocal, migrate
@@ -62,6 +62,7 @@ async def lifespan(app: FastAPI):
         from .policy import MatrixPolicy
         threading.Thread(target=MatrixPolicy.evaluator, name="matrix-warmup", daemon=True).start()
     social.start_autonomy()  # 角色们自己在圈子里生活
+    world.start()  # 世界一直在走：她们在哪、在做什么、累不累
     import threading
 
     from .text import tokenize

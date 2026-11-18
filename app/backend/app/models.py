@@ -497,3 +497,35 @@ class TavernMessage(Base):
     author_id: Mapped[str | None] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"))
     content: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+# ---------- 世界：她此刻在哪、在做什么（app/world.py 在服务器上推进；网页小镇、以后的眼镜都只读它） ----------
+
+class CharState(Base):
+    """她此刻在世界里的样子。until 不为空 = 约好的事（碰面）还没完，到点之前不按日程走。"""
+
+    __tablename__ = "char_states"
+
+    char_id: Mapped[str] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"), primary_key=True)
+    place: Mapped[str] = mapped_column(String(16))
+    activity: Mapped[str] = mapped_column(String(16))
+    mood: Mapped[str] = mapped_column(String(12), default="calm")
+    energy: Mapped[float] = mapped_column(Float, default=80)  # 0~100：白天慢慢累，回家睡觉恢复
+    with_id: Mapped[str | None] = mapped_column(ForeignKey("characters.id", ondelete="SET NULL"))
+    since: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class LifeEvent(Base):
+    """她生活里发生过的事：kind = move（去了哪）| meet（和谁碰面）。以后她讲“这几天干了什么”从这里读。"""
+
+    __tablename__ = "life_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    char_id: Mapped[str] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(12))
+    place: Mapped[str] = mapped_column(String(16))
+    activity: Mapped[str] = mapped_column(String(16), default="")
+    other_id: Mapped[str | None] = mapped_column(ForeignKey("characters.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)

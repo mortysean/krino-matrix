@@ -1027,6 +1027,8 @@
   "去哪": "Where",
   "咖啡馆": "Café",
   "在家": "At home",
+  "和 {name} 在一起": "With {name}",
+  "心情：{mood}": "Mood: {mood}",
   "她还没有朋友：去邮局加一个": "No friends yet: add one at the post office",
   "小镇地图": "Town map",
   "广场": "Plaza",

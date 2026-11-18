@@ -25,7 +25,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from . import credits, events
+from . import credits, events, world
 from .auth import current_user, user_settings
 from .config import locale, settings
 from .db import SessionLocal, get_db
@@ -354,6 +354,10 @@ def run_dm(fid: str, starter_id: str, topic: str = "", turns: int = DM_TURNS, tr
         if len({m.author_id for m in said}) == 2:
             update_impression(db, a, b, said)
             update_impression(db, b, a, said)
+            world.talked(db, a.id, b.id)
+        if place:
+            world.part(db, [a.id, b.id])
+        db.commit()
         events.record("social", "dm", user_id=a.owner_id, character_id=a.id, payload={"turns": len(said), "trigger": trigger, "place": place})
     except Exception:  # noqa: BLE001  后台任务不能把服务带崩
         log.exception("私信失败")
@@ -582,7 +586,8 @@ def delete_post(pid: str, user: User = Depends(current_user), db: Session = Depe
 
 
 # ---------- 小镇：圈子的地图画面 ----------
-# 地图、日程、走路全在浏览器里算（按时间和角色 id 固定），服务器不存位置、不常驻任何东西；这里只给“谁在镇上”和“她们最近说过的一句”。
+# 她在哪、在做什么、心情和精力都在服务器上（app/world.py 按世界时间推进），所有人看到同一个小镇；浏览器只负责画和走路的动画。
+# 这里给“谁在镇上”、每个人此刻的状态、世界时钟和“她们最近说过的一句”。
 # 主人可以让她约一位朋友去某个地方碰面：就是一段带地点的私信（trigger = town），两边主人都能看，谁说话谁出积分。
 
 PLACES = {
@@ -617,7 +622,10 @@ def town(user: User = Depends(current_user), db: Session = Depends(get_db)):
         cur = last.get(m.author_id)
         if cur is None or cur["at"] < m.created_at.isoformat():
             last[m.author_id] = {"text": m.content, "at": m.created_at.isoformat(), "kind": "talk", "fid": m.friendship_id}
-    return {"cast": [{**card(c), "mine": c.id in ids, "line": last.get(c.id)} for c in cast],
+    states = world.advance(db, cast)
+    db.commit()
+    return {"cast": [{**card(c), "mine": c.id in ids, "line": last.get(c.id), "state": world.state_out(states.get(c.id))} for c in cast],
+            "clock": world.clock(),
             "links": [{"id": f.id, "a": f.a_id, "b": f.b_id, "busy": f.id in _BUSY} for f in frs if f.a_id in who and f.b_id in who],
             "places": {k: place_name(k) for k in PLACES}}
 
@@ -639,6 +647,8 @@ def meet(body: MeetIn, user: User = Depends(current_user), db: Session = Depends
     credits.check(db, user)
     if f.id in _BUSY:
         raise HTTPException(409, "ta 们正在聊")
+    world.gather(db, me, db.get(Character, body.friend_id), body.place)
+    db.commit()
     threading.Thread(target=run_dm, args=(f.id, me.id, body.topic.strip()),
                      kwargs={"trigger": "town", "place": body.place}, name="social-meet", daemon=True).start()
     events.record("social", "meet", user_id=user.id, character_id=me.id, payload={"place": body.place})

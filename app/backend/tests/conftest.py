@@ -16,6 +16,7 @@ os.environ["KRINO_POLICY"] = "rules"
 os.environ["WORKSHOP_ADMINS"] = "admin_tester"
 os.environ["WORKSHOP_AUTO_HIDE_REPORTS"] = "2"
 os.environ["AUTO_MIGRATE"] = "0"
+os.environ["WORLD_TICK_S"] = "0"  # 测试里不开后台推进，测试自己调 world.tick
 os.environ["LOG_DIR"] = "/tmp/krino-world-test-logs"
 
 from fastapi.testclient import TestClient  # noqa: E402

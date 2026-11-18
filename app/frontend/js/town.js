@@ -3,7 +3,7 @@
 //   公告板 = 朋友圈，邮局 = 好友和对话记录，酒馆 = 酒馆；咖啡馆、广场、观星台可以约朋友去碰面聊几句。
 // 省内存：地图和小人都是代码画的（没有图片素材），地图只在 640×384 的画布上画一次，之后每帧只叠小人和昼夜；
 // 小人每个角色一张 48×80 的小图。一秒 12 帧，页面不在圈子、或者切到后台就停；离开圈子整个拆掉。
-// 位置和日程都在浏览器里按时间和角色 id 算（同一时刻大家看到的一样），服务器不存位置。
+// 她在哪、在做什么、心情都由服务器按世界时间推进（app/world.py），所有人看到同一个小镇；这里只画画、做走路的动画。
 import { $, $$, S, api, avaHTML, bus, esc, fail, t, toast } from "./core.js";
 
 const TS = 16, TW = 40, TH = 24, MW = TW * TS, MH = TH * TS;
@@ -157,17 +157,11 @@ function makeSprite(c) {
   return cv;
 }
 
-// ---------- 日程：现在几点，她该在哪儿 ----------
-function plan(c, now = new Date()) {
-  const h = now.getHours(), day = now.toDateString();
-  const r = (slot) => hash(c.id + day + slot) % 100;
-  if (h < 7) return "home";
-  if (h < 10) return r("m") < 65 ? "cafe" : "plaza";
-  if (h < 13) return ["post", "board", "plaza", "cafe"][r("n") % 4];
-  if (h < 18) return ["plaza", "board", "plaza", "cafe", "stars"][r("a") % 5];
-  if (h < 22) { const x = r("e"); return x < 60 ? "tavern" : x < 85 ? "plaza" : "stars"; }
-  return r("l") < 55 ? "stars" : "home";
-}
+// ---------- 世界时间和她该在哪：都听服务器的 ----------
+// 世界时间 = 服务器的时刻 + 世界时区。worldNow() 给一个 Date，用 getUTC* 读出来就是世界里的几点几分
+let SKEW = 0;  // 世界时间比本机时间快多少毫秒
+const worldNow = () => new Date(Date.now() + SKEW);
+const placeOf = (c) => c.state?.place || "plaza";
 const homeOf = (c) => HOMES[hash(c.id) % HOMES.length];
 
 function bfs(from, to) {  // 格子小（40×24），直接广度优先
@@ -235,12 +229,13 @@ export async function loadTown() {
   const d = await api("/api/social/town").catch((e) => (fail(e), null));
   if (!d || !T.host) return;
   T.data = d;
+  if (d.clock) SKEW = Date.parse(d.clock.now) + d.clock.offset_min * 60000 - Date.now();
   const keep = new Set(d.cast.map((c) => c.id));
   for (const id of T.people.keys()) if (!keep.has(id)) T.people.delete(id);
   for (const c of d.cast) {
     const p = T.people.get(c.id);
     if (p) { p.c = c; continue; }
-    const place = plan(c), spot = pickSpot(place, c.id);
+    const place = placeOf(c), spot = pickSpot(place, c.id);
     T.people.set(c.id, { c, sprite: makeSprite(c), x: spot[0] * TS, y: spot[1] * TS, tile: spot, path: [], dir: 0, walked: 0,
       place, inside: place === "home", wait: 2 + Math.random() * 6 });
   }
@@ -268,9 +263,8 @@ function goTo(p, place, spot) {
 }
 
 function step(dt) {
-  const now = new Date();
   for (const p of T.people.values()) {
-    const want = T.meet?.ids.includes(p.c.id) ? T.meet.place : plan(p.c, now);
+    const want = T.meet?.ids.includes(p.c.id) ? T.meet.place : placeOf(p.c);
     if (want !== p.place && !p.path.length) goTo(p, want);
     if (p.path.length) {
       const [tx, ty] = p.path[0], gx = tx * TS, gy = ty * TS, dx = gx - p.x, dy = gy - p.y, dist = Math.hypot(dx, dy), mv = SPEED * dt;
@@ -286,8 +280,8 @@ function step(dt) {
   }
 }
 
-function darkness(d = new Date()) {
-  const h = d.getHours() + d.getMinutes() / 60;
+function darkness(d = worldNow()) {
+  const h = d.getUTCHours() + d.getUTCMinutes() / 60;
   if (h >= 20 || h < 5) return 0.5;
   if (h >= 18) return ((h - 18) / 2) * 0.5;
   if (h < 7) return ((7 - h) / 2) * 0.5;
@@ -295,7 +289,7 @@ function darkness(d = new Date()) {
 }
 
 function draw() {
-  const g = T.g, now = new Date();
+  const g = T.g, now = worldNow();
   g.drawImage(T.map.cv, 0, 0);
   // 昼夜：天黑了地图压暗，窗户和路灯亮起来；人画在上面，晚上也看得清
   const dk = darkness(now);
@@ -338,7 +332,7 @@ function clock(now) {
     hint.classList.toggle("empty", !!empty);
     hint.textContent = empty ? t("夜深了，大家都回家睡了，早上 7 点会出门。点房子看看谁在睡；约朋友出去也行。") : HINT();
   }
-  const s = `${now.toLocaleDateString(undefined, { weekday: "short" })} ${now.getMonth() + 1}.${now.getDate()} · ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")} ${darkness(now) > 0.25 ? "☾" : "☀"}`;
+  const s = `${now.toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" })} ${now.getUTCMonth() + 1}.${now.getUTCDate()} · ${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")} ${darkness(now) > 0.25 ? "☾" : "☀"}`;
   if (el.textContent !== s) el.textContent = s;
 }
 
@@ -423,12 +417,15 @@ const friendsOf = (id) => T.data.links.filter((l) => l.a === id || l.b === id).m
 function openPerson(p) {
   const c = p.c, me = T.hooks.me();
   T.sel = c.id;
-  const where = p.inside ? t("在家") : t(PLACE_ZH[p.place] || p.place);
+  const where = p.inside ? t("在家") : t(PLACE_ZH[p.place] || p.place), st = c.state;
+  const buddy = st?.with && T.people.get(st.with)?.c;
+  const doing = st ? [buddy ? t("和 {name} 在一起", { name: buddy.name }) : st.doing, t("心情：{mood}", { mood: st.mood_label })].join(" · ") : "";
   const line = c.line?.text || (c.mine ? t("（还没在圈子里说过话）") : t("（ta 最近没有公开说过话）"));
   const myFriend = !c.mine && me && friendsOf(c.id).some((x) => x.id === me.id);
   const el = dialog(`<div class="tw-dlg-who" style="--c:${esc(c.color)}">${avaHTML(c)}<div><b>${esc(c.name)}</b>
       <span class="mono muted small">${esc(c.public_id)}</span>${c.mine ? `<span class="badge">${t("你的")}</span>` : ""}
-      <div class="muted small">📍 ${esc(where)}${c.tagline ? " · " + esc(c.tagline) : ""}</div></div></div>
+      <div class="muted small">📍 ${esc(where)}${c.tagline ? " · " + esc(c.tagline) : ""}</div>
+      ${doing ? `<div class="muted small">${esc(doing)}</div>` : ""}</div></div>
     <p class="tw-line"></p>
     <div class="tw-acts">${c.mine ? `<button class="small" data-tw="meet">${t("约朋友出去")}</button><button class="ghost small" data-tw="post">${t("让她发条动态")}</button>` : ""}
       ${myFriend ? `<button class="small" data-tw="meet">${t("约 {name} 出去", { name: esc(c.name) })}</button>` : ""}
