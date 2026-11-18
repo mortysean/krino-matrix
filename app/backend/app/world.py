@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from .config import locale, settings
 from .db import SessionLocal
-from .models import Bond, Character, CharState, LifeEvent, now
+from .models import Bond, Character, CharState, LifeEvent, User, Visit, now
 
 log = logging.getLogger("krino.world")
 
@@ -38,7 +38,7 @@ ACTS: dict[str, dict[str, tuple[str, str]]] = {
     "post": {"letters": ("寄信", "posting letters")},
     "tavern": {"drink": ("在吧台喝一杯", "having a drink at the bar"), "music": ("听点唱机", "listening to the jukebox")},
     "stars": {"stars": ("看星星", "stargazing")},
-    "_": {"talk": ("和朋友聊天", "chatting with a friend")},
+    "_": {"talk": ("和朋友聊天", "chatting with a friend"), "owner": ("和你在一起", "with you")},
 }
 # 她心里想要的（从心情和精力来）
 WANTS = {"tired": ("想回家歇着", "wants to go home and rest"), "lonely": ("想找人说说话", "wants someone to talk to"),
@@ -123,7 +123,7 @@ def _mood(s: CharState, last_social: datetime | None, born: datetime, t: datetim
 def _last_social(db: Session, ids: list[str]) -> dict[str, datetime]:
     """每个人最近一次和别人说话（碰面或私信）的时间。"""
     rows = db.execute(select(LifeEvent.char_id, func.max(LifeEvent.created_at))
-                      .where(LifeEvent.char_id.in_(ids), LifeEvent.kind.in_(("meet", "talk"))).group_by(LifeEvent.char_id))
+                      .where(LifeEvent.char_id.in_(ids), LifeEvent.kind.in_(("meet", "talk", "owner_visit", "owner_invite"))).group_by(LifeEvent.char_id))
     return dict(rows.all())
 
 
@@ -155,6 +155,8 @@ def advance(db: Session, chars: list[Character], t: datetime | None = None) -> d
         if s.until and t < s.until:  # 约好的事还没完
             s.updated_at = t
             continue
+        if s.activity == "owner":  # 你很久没说话了：当你走了
+            db.execute(delete(Visit).where(Visit.character_id == c.id))
         s.until, s.with_id = None, None
         want = plan(c.id, lt, s.energy, s.mood)
         act = pick_activity(c.id, lt, want)
@@ -215,6 +217,9 @@ P = {
            "want": "- 你心里：{want}。",
            "recent": "- 最近：{lines}",
            "meet": "{ago}和{name}在{place}聊天", "talk": "{ago}和{name}私信聊过", "decline": "{ago}没答应去{place}见{name}（{reason}）",
+           "owner_visit": "{ago}主人来{place}找过你", "owner_invite": "{ago}和主人一起去了{place}", "owner_no": "{ago}没答应主人去{place}（{reason}）",
+           "owner_here": "- {who}现在就在{place}，在你身边{how}。你们是面对面说话，不是隔着屏幕。",
+           "owner_how_visit": "（是 ta 走过来找你的）", "owner_how_invite": "（是 ta 约你一起来的）",
            "sep": "；",
            "real": "你是一个真实的存在：累了、困了、没心情的时候可以不配合，用你自己的方式说出来。"},
     "en": {"head": "## Where you are right now in town (this is your own real life; let it color what you say, no need to mention it every time)",
@@ -223,6 +228,10 @@ P = {
            "want": "- Inside, you {want}.",
            "recent": "- Lately: {lines}",
            "meet": "chatted with {name} at {place} {ago}", "talk": "messaged {name} {ago}", "decline": "turned down meeting {name} at {place} {ago} ({reason})",
+           "owner_visit": "your person came to find you at {place} {ago}", "owner_invite": "went to {place} with your person {ago}",
+           "owner_no": "told your person no about going to {place} {ago} ({reason})",
+           "owner_here": "- {who} is right here at {place}, next to you{how}. You're talking face to face, not through a screen.",
+           "owner_how_visit": " (they walked over to find you)", "owner_how_invite": " (they asked you to come along)",
            "sep": "; ",
            "real": "You're a real being: when you're tired, sleepy or not in the mood you don't have to go along with things; say so your own way."},
 }
@@ -249,12 +258,21 @@ def inner_prompt(db: Session, char: Character, t: datetime | None = None) -> str
     lines = [p["head"], p["now"].format(time=lt.strftime("%H:%M"), place=_place_label(s.place), doing=o["doing"], mood=o["mood_label"], energy=o["energy"])]
     if s.with_id and (w := db.get(Character, s.with_id)):
         lines.append(p["with"].format(name=w.name))
+    v = db.scalar(select(Visit).where(Visit.character_id == char.id, Visit.user_id == char.owner_id))
+    if v is not None and s.activity == "owner":
+        owner = db.get(User, char.owner_id)
+        who = (owner.display_name if owner and owner.display_name else None) or ("Your person" if locale() == "en" else "你的主人")
+        lines.append(p["owner_here"].format(who=who, place=_place_label(v.place), how=p["owner_how_" + v.how]))
     lines.append(p["want"].format(want=o["want"]))
-    evs = list(db.scalars(select(LifeEvent).where(LifeEvent.char_id == char.id, LifeEvent.kind.in_(("meet", "talk", "decline")),
+    evs = list(db.scalars(select(LifeEvent).where(LifeEvent.char_id == char.id, LifeEvent.kind.in_(("meet", "talk", "decline", "owner_visit", "owner_invite", "owner_no")),
                                                   LifeEvent.created_at >= t - timedelta(days=3))
                           .order_by(LifeEvent.created_at.desc()).limit(4)))
     told = []
     for e in evs:
+        if e.kind.startswith("owner_"):
+            if not (v is not None and e.created_at >= v.since):  # 正在一起的这次不算“最近”
+                told.append(p[e.kind].format(ago=_ago(e.created_at, t), place=_place_label(e.place), reason=e.activity))
+            continue
         other = db.get(Character, e.other_id) if e.other_id else None
         if other is None:
             continue
@@ -276,6 +294,7 @@ def inner_for(char: Character) -> str:
         if c is None:
             return ""
         advance(db, [c])
+        keep_company(db, c)
         db.commit()
         return inner_prompt(db, c)
     except Exception:  # noqa: BLE001  拿不到就不带，聊天照常
@@ -299,7 +318,7 @@ def consider(db: Session, char: Character, other: Character, place: str, t: date
     s = db.get(CharState, char.id)
     if s is None:
         return None
-    if s.until and t < s.until and s.with_id and s.with_id != other.id:
+    if s.until and t < s.until and (s.activity == "owner" or s.with_id and s.with_id != other.id):
         return "busy"
     if s.place == "home" and s.activity == "sleep":
         return "asleep"
@@ -315,6 +334,70 @@ def consider(db: Session, char: Character, other: Character, place: str, t: date
 
 def declined(db: Session, char: Character, other: Character, place: str, reason: str) -> None:
     db.add(LifeEvent(char_id=char.id, kind="decline", place=place, activity=_label(REASONS[reason]), other_id=other.id, created_at=now()))
+
+
+# ---------- 你走进她的世界 ----------
+
+COMPANY = timedelta(minutes=20)  # 你在她身边：这么久没说话，就当你走了，她回到自己的日程
+
+
+def consider_owner(db: Session, char: Character, place: str, how: str, closeness: float, t: datetime | None = None) -> str | None:
+    """你来找她（visit）或者约她去{place}（invite）：她愿不愿意。调用方先 advance。
+    你走过去找她，只要她醒着、没和别人在一起就行；约她挪地方要看她累不累、有没有心情，关系越近越愿意陪你。"""
+    t = t or now()
+    s = db.get(CharState, char.id)
+    if s is None:
+        return None
+    if s.until and t < s.until and s.with_id:
+        return "busy"
+    if s.place == "home" and s.activity == "sleep":
+        return "asleep"
+    if how == "visit" or s.mood in ("lonely", "happy"):
+        return None
+    if s.energy < 20 and closeness < 60:
+        return "tired"
+    lt = local(t)
+    if s.energy < 45 and _h(char.id, "owner", lt.date().isoformat(), str(lt.hour)) % 100 < max(0, 50 - int(closeness) // 2):
+        return "mood"
+    return None
+
+
+def join(db: Session, user: User, char: Character, place: str, how: str, session_id: str | None) -> Visit:
+    """你和她在一起了：她在{place}陪你（约好的事优先于日程），你在那里出现。上一次陪着的那位回到自己的日程。调用方负责 commit。"""
+    t = now()
+    leave(db, user)
+    s = db.get(CharState, char.id)
+    s.place, s.activity, s.with_id, s.since, s.until = place, "owner", None, t, t + COMPANY
+    v = Visit(user_id=user.id, character_id=char.id, place=place, how=how, session_id=session_id, since=t)
+    db.add(v)
+    db.add(LifeEvent(char_id=char.id, kind="owner_" + how, place=place, activity="owner", created_at=t))
+    db.flush()
+    return v
+
+
+def keep_company(db: Session, char: Character) -> None:
+    """你还在她身边说话：陪伴的时间往后延。"""
+    v = db.scalar(select(Visit).where(Visit.character_id == char.id, Visit.user_id == char.owner_id))
+    s = db.get(CharState, char.id)
+    if v is not None and s is not None and s.activity == "owner":
+        s.until = now() + COMPANY
+
+
+def leave(db: Session, user: User, linger_min: int = 3) -> Visit | None:
+    """你走了：她再待一会儿就回到自己的日程。"""
+    v = db.get(Visit, user.id)
+    if v is None:
+        return None
+    s = db.get(CharState, v.character_id)
+    if s is not None and s.activity == "owner":
+        s.until = min(s.until or now(), now() + timedelta(minutes=linger_min))
+    db.delete(v)
+    db.flush()
+    return v
+
+
+def owner_declined(db: Session, char: Character, place: str, reason: str) -> None:
+    db.add(LifeEvent(char_id=char.id, kind="owner_no", place=place, activity=_label(REASONS[reason]), created_at=now()))
 
 
 def state_out(s: CharState | None) -> dict | None:

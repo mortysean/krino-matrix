@@ -333,12 +333,14 @@ def _social(task: str, ctx: dict, en: bool) -> str:
           "social_dm": [f"嗨{other}，最近怎么样？", f"还不错呀，{other}你呢？", "我家那位最近在忙，我就自己找乐子。", "那下次一起去看海吧，拜拜～"],
           "social_impression": f"{other}说话很温柔，聊起来很舒服。",
           "social_self": "我发现自己很在意身边的人过得好不好。",
+          "social_owner": f"现在不行，{ {'asleep': '我在睡觉', 'tired': '我太累了', 'busy': '我正和别人在一起', 'mood': '我没心情'}[ctx['why']]}。" if ctx.get("why") else "你来啦～我正想着你呢。",
           "social_decline": f"今天不去啦，{'ta' if ctx.get('by') else '我'}{ {'asleep': '在睡觉', 'tired': '太累了', 'busy': '正和别人在一起', 'mood': '没心情'}.get(ctx.get('why'), '')}。"}
     e = {"social_post": f"The sea breeze is salty today. {name} is daydreaming on the lighthouse. Mine stayed up late again.",
          "social_comment": "Haha, same!",
          "social_dm": [f"Hey {other}, how's it going?", f"Pretty good, {other}, you?", "Mine's been busy, so I keep myself entertained.", "Let's go see the sea sometime. Bye~"],
          "social_impression": f"{other} is gentle and easy to talk to.",
          "social_self": "I've noticed I really care whether the people around me are okay.",
+         "social_owner": f"Not now, I'm {ctx['why']}." if ctx.get("why") else "Oh, you came! I was just thinking about you.",
          "social_decline": f"Not today, {'they are' if ctx.get('by') else 'I am'} {ctx.get('why', '')}."}
     v = (e if en else zh)[task]
     return v[min(int(ctx.get("turn", 0)), 3)] if isinstance(v, list) else v

@@ -836,6 +836,12 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 .tw-row > .muted { width: 3em; }
 .tw-row input { flex: 1; min-width: 160px; background: #fffaf0; color: #3a2614; border-color: #c9a26b; }
 .tw-dlg button.ghost { color: #5a3a20; border-color: #8a5a2b; }
+.tw-talk { margin: 8px 0; max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.tw-said { margin: 0; font-size: 14px; line-height: 1.55; word-break: break-word; }
+.tw-said b { margin-right: 6px; color: #8a5a2b; }
+.tw-said span { white-space: pre-wrap; }
+.tw-said.me { text-align: right; }
+.tw-said.me b { color: #5a6a8a; }
 .tw-dlg button.ghost::before { background: #ffe5a8; }
 .chip-btn { background: #fffaf0; color: #3a2614; border: 2px solid #c9a26b; padding: 2px 10px; font-size: 13px; }
 .chip-btn::before { display: none; }

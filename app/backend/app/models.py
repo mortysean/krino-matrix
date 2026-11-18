@@ -529,3 +529,16 @@ class LifeEvent(Base):
     activity: Mapped[str] = mapped_column(String(16), default="")
     other_id: Mapped[str | None] = mapped_column(ForeignKey("characters.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class Visit(Base):
+    """主人此刻在小镇里：去找她了，或者约她一起去了某个地方。一个主人同一时刻只在一个地方、陪一个她。"""
+
+    __tablename__ = "visits"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    character_id: Mapped[str] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"), index=True)
+    place: Mapped[str] = mapped_column(String(16))
+    how: Mapped[str] = mapped_column(String(8))  # visit（你去她在的地方找她）| invite（你约她一起去）
+    session_id: Mapped[str | None] = mapped_column(String(32))
+    since: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

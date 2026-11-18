@@ -166,3 +166,75 @@ def test_her_life_goes_into_what_she_says(user, other, daytime, monkeypatch):
     sid = user.session(user.krino["id"])
     user.say(sid, "你在干嘛呀", wait=False)
     assert seen and seen[0] and "你此刻在小镇里" in seen[0]
+
+
+# ---------- 你走进她的世界 ----------
+
+def test_you_walk_over_and_she_knows_you_are_right_there(user, other, daytime):
+    """你去她在的地方找她：你出现在小镇里（别人的小镇里她在“和你在一起”），她开口打招呼，这是一段会话的第一句；
+    之后聊天时她知道你就在身边、是面对面；说再见后她再待一会儿就回到日程。"""
+    _friends(user, other)
+    me = user.krino["id"]
+    _set(me, place="cafe", activity="coffee", energy=70.0, until=daytime + timedelta(hours=1))
+    out = user.ok("post", "/api/social/town/with", json={"character_id": me})
+    assert out["ok"] and out["how"] == "visit" and out["place"] == "cafe" and out["line"] and out["session_id"]
+    tw = user.ok("get", "/api/social/town")
+    assert tw["you"]["character_id"] == me and tw["you"]["place"] == "cafe"
+    seen_by_friend = {c["id"]: c for c in other.ok("get", "/api/social/town")["cast"]}[me]["state"]
+    assert seen_by_friend["activity"] == "owner" and seen_by_friend["place"] == "cafe"
+    assert other.ok("get", "/api/social/town")["you"] is None
+    msgs = user.ok("get", f"/api/sessions/{out['session_id']}")["messages"]
+    assert msgs[0]["role"] == "assistant" and msgs[0]["content"] == out["line"]
+    db = SessionLocal()
+    inner = world.inner_for(db.get(Character, me))
+    assert "就在咖啡馆" in inner and "面对面" in inner
+    db.close()
+    # 朋友这时约她：她正和你在一起
+    r = other.ok("post", "/api/social/town/meet", json={"character_id": other.krino["id"], "friend_id": me, "place": "plaza"})
+    assert not r["ok"] and r["by"] == me and r["why"] == "busy"
+    assert user.ok("post", "/api/social/town/leave")["session_id"] == out["session_id"]
+    assert user.ok("get", "/api/social/town")["you"] is None
+    db = SessionLocal()
+    world.advance(db, [db.get(Character, me)], daytime + timedelta(minutes=5))
+    db.commit()
+    assert db.get(CharState, me).activity != "owner"
+    db.close()
+
+
+def test_invite_her_somewhere_and_it_becomes_a_shared_memory(user, daytime):
+    """约她一起去观星台：她答应了就过去，这成了你们的共同经历（她的记忆里有，同一天同一个地方只记一次）。"""
+    me = user.krino["id"]
+    _set(me, place="plaza", activity="stroll", energy=70.0, mood="calm", until=daytime + timedelta(hours=1))
+    out = user.ok("post", "/api/social/town/with", json={"character_id": me, "place": "stars"})
+    assert out["ok"] and out["how"] == "invite" and out["state"]["place"] == "stars"
+    user.ok("post", "/api/social/town/with", json={"character_id": me, "place": "stars"})
+    mems = [m for m in user.ok("get", "/api/memories", params={"character_id": me}) if m["key"] and m["key"].startswith("together:stars")]
+    assert len(mems) == 1 and mems[0]["type"] == "event" and "观星台" in mems[0]["content"]
+
+
+def test_she_can_say_no_to_you_too(user, daytime):
+    """她在睡觉：你走过去她也不起来；太累了不想跟你挪地方。她用自己的话说，你在小镇里不出现。"""
+    me = user.krino["id"]
+    _set(me, place="home", activity="sleep", until=daytime + timedelta(hours=1))
+    out = user.ok("post", "/api/social/town/with", json={"character_id": me})
+    assert not out["ok"] and out["why"] == "asleep" and "睡觉" in out["line"]
+    assert user.ok("get", "/api/social/town")["you"] is None
+    _set(me, place="plaza", activity="stroll", energy=10.0, mood="tired", until=daytime + timedelta(hours=1))
+    out = user.ok("post", "/api/social/town/with", json={"character_id": me, "place": "stars"})
+    assert not out["ok"] and out["why"] == "tired"
+    assert user.ok("post", "/api/social/town/with", json={"character_id": me})["ok"]  # 但你走过去找她，她会理你
+
+
+def test_cannot_be_with_someone_elses_soul(user, other, daytime):
+    assert user.post("/api/social/town/with", json={"character_id": other.krino["id"]}).status_code == 404
+
+
+def test_while_together_you_can_go_somewhere_else_in_the_same_conversation(user, daytime):
+    me = user.krino["id"]
+    _set(me, place="cafe", activity="coffee", energy=70.0, mood="happy", until=daytime + timedelta(hours=1))
+    a = user.ok("post", "/api/social/town/with", json={"character_id": me})
+    b = user.ok("post", "/api/social/town/with", json={"character_id": me, "place": "stars"})
+    assert b["ok"] and b["how"] == "invite" and b["session_id"] == a["session_id"]
+    assert user.ok("get", "/api/social/town")["you"]["place"] == "stars"
+    msgs = user.ok("get", f"/api/sessions/{a['session_id']}")["messages"]
+    assert [m["content"] for m in msgs] == [a["line"], b["line"]]

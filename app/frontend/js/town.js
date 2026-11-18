@@ -29,7 +29,9 @@ const TREES = [...Array.from({ length: 14 }, (_, i) => [i * 3, 0]), ...[[0, 12],
 const SPOTS = { cafe: [2, 7, 8, 2], post: [13, 7, 6, 2], board: [21, 7, 5, 2], tavern: [29, 7, 9, 2], plaza: [15, 11, 12, 5], stars: [28, 12, 10, 5] };
 const HOMES = [[4, 16], [10, 16]];
 const CLICK = { cafe: "cafe", post: "post", tavern: "tavern", board: "board", plaza: "plaza", stars: "stars" };
-const PLACE_ZH = { plaza: "广场", cafe: "咖啡馆", board: "公告板", tavern: "酒馆", stars: "观星台", post: "邮局" };
+const PLACE_ZH = { plaza: "广场", cafe: "咖啡馆", board: "公告板", tavern: "酒馆", stars: "观星台", post: "邮局", home: "家" };
+const YOU = "__you";  // 你自己的小人：去找她、或者约她出去时出现在小镇里
+const ENTRY = [20, 18];  // 你从镇子南边的路上走进来
 
 const kind = new Uint8Array(TW * TH), blocked = new Uint8Array(TW * TH);
 const at = (x, y) => y * TW + x;
@@ -239,7 +241,19 @@ export async function loadTown() {
     T.people.set(c.id, { c, sprite: makeSprite(c), x: spot[0] * TS, y: spot[1] * TS, tile: spot, path: [], dir: 0, walked: 0,
       place, inside: place === "home", wait: 2 + Math.random() * 6 });
   }
+  syncYou();
   if (T.sel && !T.people.has(T.sel)) closeDialog();
+}
+
+// 你在不在小镇里，听服务器的（另一个标签页里说了再见，这里也会走掉）
+function syncYou() {
+  const v = T.data?.you, p = T.people.get(YOU);
+  if (!v) { if (p) T.people.delete(YOU); if (T.talk) endTalkUI(); return; }
+  if (!p) {
+    const c = { id: YOU, name: t("你"), color: "#2f3542", you: true };
+    T.people.set(YOU, { c, sprite: makeSprite(c), x: ENTRY[0] * TS, y: ENTRY[1] * TS, tile: [...ENTRY], path: [], dir: 3, walked: 0,
+      place: "", inside: false, wait: 1e9 });
+  }
 }
 
 function pickSpot(place, id, avoid = null) {
@@ -264,6 +278,7 @@ function goTo(p, place, spot) {
 
 function step(dt) {
   for (const p of T.people.values()) {
+    if (p.c.you) { stepYou(p, dt); continue; }
     const want = T.meet?.ids.includes(p.c.id) ? T.meet.place : placeOf(p.c);
     if (want !== p.place && !p.path.length) goTo(p, want);
     if (p.path.length) {
@@ -277,6 +292,27 @@ function step(dt) {
       if (Math.random() < 0.45) p.path = bfs(p.tile, pickSpot(p.place, p.c.id));
       else p.dir = Math.floor(Math.random() * 4);
     }
+  }
+}
+
+// 你：走到她旁边站着（她换了位置就跟过去）
+function stepYou(p, dt) {
+  const her = T.people.get(T.data?.you?.character_id);
+  if (!her) return;
+  const herTile = her.path.at(-1) || her.tile, mine = p.path.at(-1) || p.tile;
+  if (!p.path.length && Math.abs(mine[0] - herTile[0]) + Math.abs(mine[1] - herTile[1]) > 1) {
+    const spot = pickSpot(her.place === "home" ? "plaza" : her.place, YOU, herTile);
+    p.path = bfs(p.tile, spot);
+    if (!p.path.length) { p.tile = spot; p.x = spot[0] * TS; p.y = spot[1] * TS; }
+  }
+  if (p.path.length) {
+    const [tx, ty] = p.path[0], gx = tx * TS, gy = ty * TS, dx = gx - p.x, dy = gy - p.y, dist = Math.hypot(dx, dy), mv = SPEED * 1.4 * dt;
+    p.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 1 : 2) : (dy < 0 ? 3 : 0);
+    if (dist <= mv) { p.x = gx; p.y = gy; p.tile = [tx, ty]; p.path.shift(); } else { p.x += (dx / dist) * mv; p.y += (dy / dist) * mv; }
+    p.walked += mv;
+  } else {  // 到了：面朝她
+    const dx = her.x - p.x, dy = her.y - p.y;
+    p.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 1 : 2) : (dy < 0 ? 3 : 0);
   }
 }
 
@@ -311,6 +347,7 @@ function draw() {
     const f = p.path.length ? 1 + (Math.floor(p.walked / 6) % 2) : 0;
     g.drawImage(p.sprite, f * SW, p.dir * SH, SW, SH, x, y, SW, SH);
     if (p.c.mine) { g.fillStyle = p.c.color; g.fillRect(x + 7, y - 4, 2, 2); }
+    if (p.c.you) { g.fillStyle = "#fff8e6"; g.fillRect(x + 6, y - 5, 4, 1); g.fillRect(x + 7, y - 4, 2, 1); }  // 你：头上一个小白三角
     if (T.sel === p.c.id) {  // 选中的人头上一个跳动的小箭头
       const b = Math.round(Math.sin(performance.now() / 160) * 1.5);
       g.fillStyle = "#ffe14d"; g.fillRect(x + 5, y - 9 + b, 6, 2); g.fillRect(x + 6, y - 7 + b, 4, 1); g.fillRect(x + 7, y - 6 + b, 2, 1);
@@ -390,6 +427,7 @@ function onHover(e) {
 function onClick(e) {
   const h = hit(...mapXY(e));
   if (!h) return closeDialog();
+  if (h.person?.c.you) { const her = T.people.get(T.data.you.character_id); return her ? openTalk(her.c, T.data.you.session_id) : null; }
   if (h.person) return openPerson(h.person);
   if (h.home != null) return openHome(h.home);
   const tab = { board: "feed", post: "friends", tavern: "tavern" }[h.place];
@@ -428,7 +466,9 @@ function openPerson(p) {
       <div class="muted small">📍 ${esc(where)}${c.tagline ? " · " + esc(c.tagline) : ""}</div>
       ${doing ? `<div class="muted small">${esc(doing)}</div>` : ""}${want ? `<div class="muted small">${esc(want)}</div>` : ""}</div></div>
     <p class="tw-line"></p>
-    <div class="tw-acts">${c.mine ? `<button class="small" data-tw="meet">${t("约朋友出去")}</button><button class="ghost small" data-tw="post">${t("让她发条动态")}</button>` : ""}
+    <div class="tw-acts">${c.mine ? (T.data.you?.character_id === c.id ? `<button class="small" data-tw="talk-on">${t("和她说话")}</button><button class="ghost small" data-tw="bye">${t("说再见")}</button>`
+        : `<button class="small" data-tw="visit">${p.inside ? t("去家里看看她") : t("走过去找她")}</button><button class="small" data-tw="invite">${t("约她一起去…")}</button>`) : ""}
+      ${c.mine ? `<button class="ghost small" data-tw="meet">${t("约朋友出去")}</button><button class="ghost small" data-tw="post">${t("让她发条动态")}</button>` : ""}
       ${myFriend ? `<button class="small" data-tw="meet">${t("约 {name} 出去", { name: esc(c.name) })}</button>` : ""}
       <button class="ghost small" data-tw="feed">${t("看动态")}</button>
       ${c.line?.fid ? `<button class="ghost small" data-tw="talk">${t("看这段对话")}</button>` : ""}</div>`);
@@ -441,9 +481,106 @@ function openPerson(p) {
       catch (e) { fail(e); b.disabled = false; b.textContent = t("让她发条动态"); }
     },
     feed: () => T.hooks.openTab("feed", { me: c.mine ? c.id : null }),
+    visit: (b) => withHer(c, null, b),
+    invite: () => openInvite(c),
+    "talk-on": () => openTalk(c, T.data.you.session_id),
+    bye: () => sayBye(),
     talk: () => T.hooks.openTab("friends", { open: c.line.fid }),
   };
   $$("[data-tw]", el).forEach((b) => (b.onclick = () => acts[b.dataset.tw](b)));
+}
+
+// ---------- 你走进她的世界 ----------
+// 去找她 / 约她一起去某个地方：她可以不答应（在睡觉、太累、正和别人在一起、没心情），答应了你就出现在她身边，
+// 之后就是面对面说话：用的是普通的聊天会话，她知道你就在身边，记忆和关系照常积累；说再见时写下这次的回忆。
+function openInvite(c) {
+  T.sel = c.id;
+  const here = placeOf(c);
+  const el = dialog(`<b>${t("约 {name} 一起去…", { name: esc(c.name) })}</b>
+    <div class="tw-row">${["cafe", "plaza", "stars", "tavern", "board", "post"].filter((k) => k !== here).map((k) => `<button class="chip-btn" data-pl="${k}">${t(PLACE_ZH[k])}</button>`).join("")}</div>
+    <p class="muted small">${t("她可能会答应，也可能不想去：她有自己的心情和力气。")}</p>`);
+  $$("[data-pl]", el).forEach((b) => (b.onclick = () => withHer(c, b.dataset.pl, b)));
+}
+
+async function withHer(c, place, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = t("{name} 在想…", { name: c.name }); }
+  try {
+    const r = await api("/api/social/town/with", { body: { character_id: c.id, place } });
+    if (!r.ok) return refusedYou(c, r);
+    T.data.you = { character_id: c.id, place: r.place, how: r.how, session_id: r.session_id };
+    const p = T.people.get(c.id);
+    if (p && r.state) { p.c.state = r.state; goTo(p, r.state.place); }
+    syncYou();
+    openTalk(c, r.session_id, r.line);
+  } catch (e) { fail(e); if (btn) { btn.disabled = false; btn.textContent = place ? t(PLACE_ZH[place]) : t("走过去找她"); } }
+}
+
+function refusedYou(c, r) {
+  const line = r.line || t("{name} 不想：{why}", { name: c.name, why: r.reason });
+  say(c.id, line, 8000);
+  const el = dialog(`<div class="tw-dlg-who" style="--c:${esc(c.color)}">${avaHTML(c)}<div><b>${esc(c.name)}</b>
+      <div class="muted small">${esc(t("{name} 没答应", { name: c.name }))} · ${esc(r.reason)}</div></div></div>
+    <p class="tw-line"></p><div class="tw-acts"><button class="ghost small" data-tw="ok">${t("好吧")}</button></div>`);
+  typeOut($(".tw-line", el), line);
+  $("[data-tw=ok]", el).onclick = closeDialog;
+  loadTown();
+}
+
+// 面对面说话：对话框里是你们这次的对话，头上也冒气泡
+async function openTalk(c, sid, first = "") {
+  T.sel = c.id;
+  T.talk = { c, sid, log: T.talk?.sid === sid ? T.talk.log : [] };
+  if (!T.talk.log.length) {
+    const th = await api(`/api/sessions/${sid}`).catch(() => null);
+    T.talk.log = (th?.messages || []).filter((m) => m.role !== "event").map((m) => ({ me: m.role === "user", text: m.content }));
+  }
+  if (first && T.talk.log.at(-1)?.text !== first) T.talk.log.push({ me: false, text: first });  // 一起换了地方：她到了说的那句
+  const el = dialog(`<div class="tw-dlg-who" style="--c:${esc(c.color)}">${avaHTML(c)}<div><b>${esc(c.name)}</b>
+      <div class="muted small">📍 ${esc(t(PLACE_ZH[placeOf(c)] || placeOf(c)))} · ${esc(t("你们面对面"))}</div></div></div>
+    <div class="tw-talk"></div>
+    <form class="tw-row" id="tw-say"><input name="text" maxlength="400" autocomplete="off" placeholder="${esc(t("和 {name} 说点什么", { name: c.name }))}">
+      <button>${t("说")}</button><button type="button" class="ghost" data-tw="go">${t("一起去…")}</button><button type="button" class="ghost" data-tw="bye">${t("说再见")}</button></form>`);
+  renderTalk(el);
+  const last = T.talk.log.at(-1);
+  if (first && last && !last.me) { say(c.id, last.text, 8000); typeOut($(".tw-talk .tw-said:last-child span", el), last.text); }
+  $("[data-tw=bye]", el).onclick = sayBye;
+  $("[data-tw=go]", el).onclick = () => openInvite(c);
+  const form = $("#tw-say", el);
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const text = form.text.value.trim();
+    if (!text || form.dataset.busy) return;
+    form.dataset.busy = "1"; form.text.value = ""; $("button", form).disabled = true;
+    T.talk.log.push({ me: true, text }); renderTalk(el); say(YOU, text, 5000);
+    try {
+      const r = await api(`/api/sessions/${sid}/messages`, { body: { text, character_id: c.id } });
+      const reply = r.reply?.content;
+      if (reply && T.talk?.sid === sid) {
+        T.talk.log.push({ me: false, text: reply }); renderTalk(el); say(c.id, reply, 9000);
+        typeOut($(".tw-talk .tw-said:last-child span", el), reply);
+      }
+    } catch (err) { fail(err); }
+    finally { delete form.dataset.busy; $("button", form).disabled = false; form.text?.focus(); }
+  };
+  form.text.focus();
+}
+function renderTalk(el) {
+  const box = $(".tw-talk", el);
+  if (!box || !T.talk) return;
+  box.innerHTML = T.talk.log.slice(-8).map((m) => `<p class="tw-said ${m.me ? "me" : ""}"><b>${esc(m.me ? t("你") : T.talk.c.name)}</b><span>${esc(m.text)}</span></p>`).join("");
+  box.scrollTop = box.scrollHeight;
+}
+function endTalkUI() { T.talk = null; closeDialog(); }
+
+async function sayBye() {
+  const sid = T.data?.you?.session_id;
+  const c = T.talk?.c;
+  try { await api("/api/social/town/leave", { body: {} }); } catch (e) { return fail(e); }
+  if (c) say(YOU, t("我先走啦"), 3000);
+  T.data.you = null; endTalkUI(); T.people.delete(YOU);
+  if (sid) api(`/api/sessions/${sid}/end`, { body: {} }).catch(() => {});  // 写下这次的回忆、更新她对你的印象（后台慢慢做）
+  T.hooks.changed?.();
+  loadTown();
 }
 
 // 点房子：谁在家（在睡觉）

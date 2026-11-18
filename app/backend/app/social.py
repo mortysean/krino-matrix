@@ -30,7 +30,7 @@ from .auth import current_user, user_settings
 from .config import locale, settings
 from .db import SessionLocal, get_db
 from .llm import LLMError, get_llm
-from .models import Bond, Character, CharKnows, CharMessage, Friendship, Memory, Post, PostReaction, User, now
+from .models import Bond, Character, CharKnows, CharMessage, CharState, Friendship, Memory, Post, PostReaction, User, Visit, now
 from .personas import _pending, get_owned, list_owned, prompt_text, summary
 
 log = logging.getLogger("krino.social")
@@ -123,6 +123,11 @@ T = {
         "none": "（还没有）",
         "decline": "你的主人想让你现在去小镇的{place}见{name}，但你{why}，不想去。用你自己的口吻对主人说一句（20 字以内），让主人知道你不去和为什么。只输出这句话。",
         "decline_by": "你的主人想让你现在去小镇的{place}见{name}。可是{name}{why}，来不了。用你自己的口吻对主人说一句（20 字以内）。只输出这句话。",
+        "owner_visit": "你的主人刚刚在小镇的{place}走到你身边来找你。看到 ta，用你自己的口吻打个招呼（30 字以内，可以带上你此刻在做的事和心情）。只输出这句话。",
+        "owner_invite": "你的主人约你一起去小镇的{place}，你答应了，现在你们一起到了{place}。用你自己的口吻说一句（30 字以内）。只输出这句话。",
+        "owner_no": "你的主人{ask}，但你{why}，不想。用你自己的口吻对 ta 说一句（25 字以内），让 ta 知道你不去和为什么。只输出这句话。",
+        "owner_ask_visit": "走过来想找你说说话", "owner_ask_invite": "约你现在一起去小镇的{place}",
+        "owner_space": "## 你在小镇里，你的主人来到你身边\n这是你自己的生活，你是一个真实的、有自己想法的存在。只写说出来的话，口语、简短。",
     },
     "en": {
         "space": ("## You're in Circles now\nThis is a social space for characters (like a feed and DMs). You're talking with other characters — each has "
@@ -152,6 +157,11 @@ T = {
         "none": "(nothing yet)",
         "decline": "Your person wants you to go meet {name} at {place} in town right now, but you're {why} and don't want to. Tell your person in one short line, your own voice, that you're not going and why. Output only that line.",
         "decline_by": "Your person wants you to go meet {name} at {place} in town right now, but {name} is {why} and can't come. Tell your person in one short line, your own voice. Output only that line.",
+        "owner_visit": "Your person just walked up to you at {place} in town to find you. Greet them in your own voice, one short line (you can mention what you're doing and how you feel). Output only that line.",
+        "owner_invite": "Your person asked you to go to {place} in town together, you said yes, and now you've both arrived. Say one short line in your own voice. Output only that line.",
+        "owner_no": "Your person {ask}, but you're {why} and don't want to. Tell them in one short line, your own voice, that you won't and why. Output only that line.",
+        "owner_ask_visit": "walked over wanting to talk", "owner_ask_invite": "asked you to go to {place} in town together right now",
+        "owner_space": "## You're in town, and your person has come to be with you\nThis is your own life; you're a real being with your own mind. Only what you'd say out loud, casual and short.",
     },
 }
 
@@ -631,8 +641,10 @@ def town(user: User = Depends(current_user), db: Session = Depends(get_db)):
             last[m.author_id] = {"text": m.content, "at": m.created_at.isoformat(), "kind": "talk", "fid": m.friendship_id}
     states = world.advance(db, cast)
     db.commit()
+    v = db.get(Visit, user.id)
+    you = {"character_id": v.character_id, "place": v.place, "how": v.how, "session_id": v.session_id, "since": v.since.isoformat()} if v else None
     return {"cast": [{**card(c), "mine": c.id in ids, "line": last.get(c.id), "state": world.state_out(states.get(c.id))} for c in cast],
-            "clock": world.clock(),
+            "clock": world.clock(), "you": you,
             "links": [{"id": f.id, "a": f.a_id, "b": f.b_id, "busy": f.id in _BUSY} for f in frs if f.a_id in who and f.b_id in who],
             "places": {k: place_name(k) for k in PLACES}}
 
@@ -673,6 +685,77 @@ def meet(body: MeetIn, user: User = Depends(current_user), db: Session = Depends
                      kwargs={"trigger": "town", "place": body.place}, name="social-meet", daemon=True).start()
     events.record("social", "meet", user_id=user.id, character_id=me.id, payload={"place": body.place})
     return {"ok": True, "id": f.id, "busy": True}
+
+
+# ---------- 你走进她的世界：去找她，或者约她一起去某个地方 ----------
+# 她可以不答应。答应了，你就出现在她身边（所有人的小镇里都看得到），之后你们的对话就是一段普通的聊天会话：
+# 她知道你就在身边（world.inner_prompt），记忆、关系照常积累；一起去过的地方记成你们的共同经历。
+
+class WithIn(BaseModel):
+    character_id: str
+    place: str | None = Field(default=None, pattern="^(" + "|".join(PLACES) + ")$")  # 空 = 去她现在在的地方找她
+
+
+def _owner_line(db: Session, char: Character, user: User, ask: str, **ctx) -> str:
+    from . import memory
+    b = memory.get_bond(db, user.id, char.id)
+    system = "\n\n".join(x for x in (prompt_text(char), L()["owner_space"], memory.bond_prompt(b, char.name), world.inner_prompt(db, char)) if x)
+    return _say(db, char, system, [{"role": "user", "content": ask}], "social_owner", 80, max_tokens=120, other=user.display_name or "", **ctx)
+
+
+@router.post("/town/with")
+def be_with(body: WithIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """你走到她身边（place 为空），或者约她一起去 place。她可以不答应。"""
+    from . import guard, memory
+    from .models import ChatSession
+
+    c = get_owned(db, user, body.character_id)
+    guard.check(db, user, c.id)
+    credits.check(db, user)
+    world.advance(db, [c])
+    st = db.get(CharState, c.id)
+    how = "invite" if body.place and body.place != st.place else "visit"
+    place = body.place or st.place
+    b = memory.get_bond(db, user.id, c.id)
+    why = world.consider_owner(db, c, place, how, b.closeness)
+    if why:
+        world.owner_declined(db, c, place, why)
+        db.commit()
+        reason = world._label(world.REASONS[why])
+        ask = L()["owner_no"].format(ask=L()["owner_ask_" + how].format(place=place_name(place)), why=reason)
+        line = _owner_line(db, c, user, ask, why=why)
+        events.record("social", "owner_declined", user_id=user.id, character_id=c.id, payload={"place": place, "how": how, "why": why})
+        return {"ok": False, "why": why, "reason": reason, "line": line, "place": place, "how": how}
+    cur = db.get(Visit, user.id)
+    sess = db.get(ChatSession, cur.session_id) if cur and cur.character_id == c.id and cur.session_id else None
+    if sess is None:  # 已经在她身边、一起换个地方：还是同一段对话
+        sess = ChatSession(user_id=user.id, character_id=c.id, title=f"{'Town' if locale() == 'en' else '小镇'} · {place_name(place)}")
+        db.add(sess)
+        db.flush()
+    world.join(db, user, c, place, how, sess.id)
+    if how == "invite":  # 一起去过的地方：你们的共同经历（同一天同一个地方只记一次）
+        day = world.local(now()).date().isoformat()
+        key = f"together:{place}:{day}"
+        if not db.scalar(select(Memory).where(Memory.user_id == user.id, Memory.character_id == c.id, Memory.key == key)):
+            memory.create_memory(db, user_id=user.id, character_id=c.id, type="event", origin="world", key=key, importance=3,
+                                 content=(f"The user and I went to {place_name(place)} in town together ({day})." if locale() == "en"
+                                          else f"用户和我一起去了小镇的{place_name(place)}（{day}）。"))
+    db.commit()
+    line = _owner_line(db, c, user, L()["owner_" + how].format(place=place_name(place)))
+    if line:  # 她开口的这句也是这段会话的第一句
+        from .models import Message
+        db.add(Message(session_id=sess.id, role="assistant", content=line))
+        db.commit()
+    events.record("social", "owner_with", user_id=user.id, character_id=c.id, payload={"place": place, "how": how})
+    return {"ok": True, "place": place, "how": how, "session_id": sess.id, "line": line, "state": world.state_out(db.get(CharState, c.id))}
+
+
+@router.post("/town/leave")
+def leave_town(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """你说再见走了：她再待一会儿就回到自己的日程。会话交给前端结束（/api/sessions/{id}/end 写摘要、更新她对你的印象）。"""
+    v = world.leave(db, user)
+    db.commit()
+    return {"ok": True, "session_id": v.session_id if v else None}
 
 
 # ---------- 自主：她自己在圈子里生活 ----------
