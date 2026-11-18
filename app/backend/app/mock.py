@@ -90,9 +90,9 @@ class MockLLM:
             if en:
                 return f"Chatted with {ctx.get('name', 'the character')} about: " + ("; ".join(_short(u, 40) for u in lines[-5:]) or "a quick hello") + "."
             return f"和{ctx.get('name', '角色')}聊了：" + ("；".join(_short(u, 24) for u in lines[-5:]) or "简单打了招呼") + "。"
-        if task == "bond_reflect":
-            return ("Talking with them makes me feel a little calmer. Next time I want to hear more about their day." if en
-                    else "和对方聊天的时候，我会安心一点。下次想多听对方说说自己的事。")
+        if task == "bond_reflect":  # 离线：在之前的认识后面接上这次的（测试能看出是积累，不是重写）
+            add = ("Talking with them makes me feel a little calmer." if en else "和对方聊天的时候，我会安心一点。")
+            return (ctx.get("before", "") + " " + add).strip()[-560:]
         if task == "persona":
             return _persona(ctx.get("prompt", ""), ctx.get("style"))
         if task == "tavern":

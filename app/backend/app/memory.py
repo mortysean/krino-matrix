@@ -324,7 +324,7 @@ def bond_prompt(b: Bond, char_name: str) -> str:
     if b.user_calls_her:
         lines.append(f"- 对方叫你「{b.user_calls_her}」。")
     if b.her_view:
-        lines.append(f"- 你对对方的印象：{compact(b.her_view, 120)}")
+        lines.append(f"- 你对对方的认识（一次次见面积累下来的）：{compact(b.her_view, 400)}")
     return "\n".join(lines)
 
 

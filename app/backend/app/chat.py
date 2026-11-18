@@ -540,13 +540,23 @@ def _open(db: Session, user: User, sid: str) -> ChatSession:
 
 
 SUMMARY_SYSTEM = ("你负责为一段角色对话写会话摘要，供角色下次见面时回忆。第三人称、200 字以内，写清楚：聊了什么、"
-                  "用户透露的近况、约定或没聊完的话题。幻想剧情要注明是故事。不要编造对话里没有的内容。只输出摘要正文。")
-REFLECT_SYSTEM = "你是角色本人。用两三句话、第一人称写下你现在对对方的印象（只根据摘要，不编造）。只输出这几句话。"
+                  "用户透露的近况、约定或没聊完的话题。幻想剧情要注明是故事。不要编造对话里没有的内容。"
+                  "用户说过自己的性别才用他 / 她，否则写「用户」或「ta」。只输出摘要正文。")
+# 她对你的认识是一点点积累起来的：每次见面后，把这次的新了解融进之前的认识里改写，而不是只看这一次重写
+REFLECT_SYSTEM = ("你是角色本人。<before> 是你之前对对方的认识，<this_time> 是你们刚刚这次见面的摘要。"
+                  "把这次新了解到的融进去，改写你对 ta 的整体认识：之前仍然成立的要保留（ta 是什么样的人、在意什么、经历过的重要的事、你们之间的感觉），"
+                  "这次有变化的就更新，只聊了几句寒暄就基本保持原样，不确定的别下结论。"
+                  "摘要里写的「{name}」就是你自己，「用户」是对方：分清楚哪些是 ta 说的做的、哪些是你自己说的做的，你对 ta 的关心不要写成 ta 对你的。"
+                  "对方说过自己的性别才用他 / 她，否则用「ta」。第一人称，200 字以内。"
+                  "只根据给你的内容，不编造。只输出这段话。")
 SUMMARY_SYSTEM_EN = ("Write a summary of this character chat so the character can remember it next time. Third person, under 120 words: "
                      "what you talked about, what the user shared about their life, promises or unfinished topics. Mark fantasy stories as stories. "
-                     "Don't invent anything that isn't in the chat. Output only the summary, in English.")
-REFLECT_SYSTEM_EN = ("You are the character. In two or three first-person sentences, write your current impression of the other person "
-                     "(based only on the summary, nothing invented). Output only those sentences, in English.")
+                     "Don't invent anything that isn't in the chat. Refer to the user as \"the user\" or \"they\" unless they said their gender. Output only the summary, in English.")
+REFLECT_SYSTEM_EN = ("You are the character. <before> is how you understood the other person until now; <this_time> summarizes the time you just spent together. "
+                     "Fold what you learned this time into it and rewrite your overall understanding of them: keep what still holds (who they are, what they care about, "
+                     "important things they've been through, how things feel between you two), update what changed, leave it mostly as is if this was just small talk, "
+                     "and don't jump to conclusions. In the summary, \"{name}\" is you and \"the user\" is them: keep straight what they said and did versus what you said and did. "
+                     "Use \"they\" unless they said their gender. First person, under 120 words. Based only on what you're given, nothing invented. Output only that, in English.")
 
 
 def summarize(db: Session, user: User, s: ChatSession) -> dict | None:
@@ -575,10 +585,16 @@ def summarize(db: Session, user: User, s: ChatSession) -> dict | None:
                                                                      f"：{compact(s.title or '', 20)}",
                              sources=[x.uid for x in users][-20:])
     try:
-        v = llm.complete(system=REFLECT_SYSTEM_EN if en else REFLECT_SYSTEM, messages=[{"role": "user", "content": m.content}], max_tokens=300,
-                         context={"task": "bond_reflect", "payer": user.id})
+        stage = memory.STAGES[memory.stage_of(b.closeness)][1]
+        days = (now() - b.first_met).days + 1 if b.first_met else 1
+        before = b.her_view or ("(we've only just met)" if en else "（刚认识，还不了解）")
+        ctx_line = (f"(Known each other {days} days, {b.sessions} chats; relationship: {stage})" if en
+                    else f"（认识 {days} 天，见过 {b.sessions} 次；关系：{stage}）")
+        v = llm.complete(system=(REFLECT_SYSTEM_EN if en else REFLECT_SYSTEM).replace("{name}", char.name),
+                         messages=[{"role": "user", "content": f"<before>\n{before}\n</before>\n<this_time>\n{m.content}\n</this_time>\n{ctx_line}"}],
+                         max_tokens=500, context={"task": "bond_reflect", "payer": user.id, "before": b.her_view or ""})
         if v.text.strip() and not v.refused:
-            b.her_view = v.text.strip()[:300]
+            b.her_view = v.text.strip()[:600]
     except LLMError:
         pass
     db.commit()

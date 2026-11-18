@@ -256,6 +256,13 @@ def test_relation_bond_and_session_summary(user):
     assert end["summary"]["title"].startswith("会话")
     b = user.ok("get", f"/api/relations/{cid}/bond")
     assert b["turns"] == 4 and b["sessions"] == 1 and b["user_calls_her"] == "小鲸" and b["her_view"]
+    first_view = b["her_view"]
+    sid = user.session(cid)  # 第二次见面：她对你的认识是在之前的基础上改写，不是只看这一次重写
+    for t in ("我在准备考研", "有点累"):
+        user.say(sid, t)
+    user.ok("post", f"/api/sessions/{sid}/end")
+    b = user.ok("get", f"/api/relations/{cid}/bond")
+    assert b["sessions"] == 2 and b["her_view"].startswith(first_view) and len(b["her_view"]) > len(first_view)
     exp = user.get(f"/api/relations/{cid}/export").json()
     assert exp["format"] == "krino-relation/1" and any(m["type"] == "summary" for m in exp["memories"])
 
