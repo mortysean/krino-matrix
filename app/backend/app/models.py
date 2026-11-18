@@ -308,6 +308,10 @@ class Bond(Base):
     milestones: Mapped[list] = mapped_column(JSONB, default=list)  # [{at, text}]
     her_view: Mapped[str | None] = mapped_column(Text)
     current: Mapped[dict] = mapped_column(JSONB, default=dict)  # {topics, mood_cues, open_items}，每项带 expires
+    # 关系不只是越聊越近：她信不信你（0~100），心里有没有结（被冷落、被敷衍、失约……写着为什么，什么时候）
+    trust: Mapped[float] = mapped_column(Float, default=50.0, server_default="50")
+    hurt: Mapped[str | None] = mapped_column(Text)
+    hurt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (PrimaryKeyConstraint("user_id", "character_id"),)
 

@@ -717,7 +717,7 @@ def be_with(body: WithIn, user: User = Depends(current_user), db: Session = Depe
     how = "invite" if body.place and body.place != st.place else "visit"
     place = body.place or st.place
     b = memory.get_bond(db, user.id, c.id)
-    why = world.consider_owner(db, c, place, how, b.closeness)
+    why = world.consider_owner(db, c, place, how, b.closeness, hurt=bool(memory.live_hurt(b)))
     if why:
         world.owner_declined(db, c, place, why)
         db.commit()

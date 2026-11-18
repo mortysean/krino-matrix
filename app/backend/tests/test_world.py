@@ -238,3 +238,72 @@ def test_while_together_you_can_go_somewhere_else_in_the_same_conversation(user,
     assert user.ok("get", "/api/social/town")["you"]["place"] == "stars"
     msgs = user.ok("get", f"/api/sessions/{a['session_id']}")["messages"]
     assert [m["content"] for m in msgs] == [a["line"], b["line"]]
+
+
+# ---------- 关系可以变近，也可以变远 ----------
+
+def _chat(user, cid, *lines):
+    sid = user.session(cid)
+    for t in lines:
+        user.say(sid, t)
+    user.ok("post", f"/api/sessions/{sid}/end")
+    return user.ok("get", f"/api/relations/{cid}/bond")
+
+
+def test_harsh_words_hurt_her_and_an_apology_heals_it(user, daytime):
+    """你冲她说狠话：关系远一点、没那么信你，心里有个结（说话时带着，约她出去也更可能不去）；道歉之后结解开了。"""
+    cid = user.official["id"]
+    b0 = _chat(user, cid, "今天还好", "随便聊聊")
+    b1 = _chat(user, cid, "你好烦", "烦死了别烦我")
+    assert b1["hurt"] and b1["trust"] < b0["trust"] and b1["closeness"] < b0["closeness"] + 2
+    db = SessionLocal()
+    from app import memory
+    from app.models import Bond
+    bond = db.get(Bond, (user.info["id"], cid))
+    assert "心里还有个结" in memory.bond_prompt(bond, "大肥鱼")
+    db.close()
+    b2 = _chat(user, cid, "对不起，刚才是我不好", "我心情差，不该冲你")
+    assert b2["hurt"] is None and any(m["text"] == "解开了心结" for m in b2["milestones"])
+
+
+def test_hurt_makes_her_less_willing_to_go_out_with_you(user, daytime):
+    db = SessionLocal()
+    from app import memory
+    c = db.get(Character, user.krino["id"])
+    world.advance(db, [c], daytime)
+    s = db.get(CharState, c.id)
+    s.place, s.activity, s.energy, s.mood, s.until = "plaza", "stroll", 80.0, "calm", daytime + timedelta(hours=1)
+    db.commit()
+    hits = 0
+    for h in range(24):  # 按小时固定：一天里大部分时候不想跟你出去
+        t = daytime.replace(hour=h)
+        hits += world.consider_owner(db, c, "stars", "invite", 50.0, t, hurt=True) == "upset"
+    assert 8 <= hits <= 20
+    assert world.consider_owner(db, c, "plaza", "visit", 50.0, daytime, hurt=True) is None  # 你走过去找她，她还是会理你
+    db.close()
+
+
+def test_she_remembers_her_own_promise(user):
+    """她说过“下次一起去看海”：记成她答应你的事；之后聊天时一直带着（不靠关键词碰上）。"""
+    from app import chat as chat_mod
+    from app.models import Memory
+    cid = user.official["id"]
+    sid = user.session(cid)
+    db = SessionLocal()
+    from app.models import Message
+    user.say(sid, "周末好无聊")
+    db.add(Message(session_id=sid, role="assistant", content="那下次我陪你一起去看海吧！"))
+    db.commit()
+    user.say(sid, "好呀")
+    user.ok("post", f"/api/sessions/{sid}/end")
+    m = db.scalar(select(Memory).where(Memory.character_id == cid, Memory.origin == "her"))
+    assert m and m.type == "commitment" and "看海" in m.content
+    db.close()
+    seen = []
+    real = chat_mod.build_system
+    import pytest as _p
+    mp = _p.MonkeyPatch()
+    mp.setattr(chat_mod, "build_system", lambda *a, **k: (seen.append(k["memories"]), real(*a, **k))[1])
+    user.say(user.session(cid), "今天吃了面条", wait=False)
+    mp.undo()
+    assert any("看海" in x["content"] for x in seen[0])

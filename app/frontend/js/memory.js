@@ -153,6 +153,8 @@ async function renderBond(box, reload) {
     <div class="bond-steps">${b.stages.map((s, i) => `<span class="${i < b.stage_index ? "past" : i === b.stage_index ? "now" : ""}">${esc(tr(s.name))}</span>`).join("")}</div>
     <div class="track bond-track"><i style="width:${pct * 100}%"></i></div>
     <p class="muted small">${esc(tr(b.stage_hint))}</p>
+    <p class="small">${t("她对你的信任")} · ${esc(b.trust >= 75 ? t("很信任你") : b.trust < 35 ? t("还有些保留") : t("一般"))}</p>
+    ${b.hurt ? `<p class="small bond-hurt">${t("她心里有个结：{why}", { why: esc(b.hurt) })}</p>` : ""}
     ${b.her_view ? `<div class="section-title mono">HER VIEW</div><p class="bond-view">“${esc(b.her_view)}”</p><button class="link small" data-b="view">${t("这不像她会想的，删掉")}</button>` : ""}
     <div class="section-title mono">NAME</div>
     <div class="row"><label class="inline small">${t("你叫她")} <input id="bond-nick" maxlength="24" value="${esc(b.user_calls_her || "")}" placeholder="${esc(c?.name)}"></label><button class="small ghost" data-b="nick">${t("改好了")}</button></div>

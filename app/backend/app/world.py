@@ -308,7 +308,7 @@ def inner_for(char: Character) -> str:
 # ---------- 她可以拒绝 ----------
 
 REASONS = {"asleep": ("在睡觉", "asleep"), "tired": ("太累了", "too tired"), "busy": ("正和别人在一起", "with someone else"),
-           "mood": ("没心情", "not in the mood")}
+           "mood": ("没心情", "not in the mood"), "upset": ("还在生你的气", "still upset with you")}
 
 
 def consider(db: Session, char: Character, other: Character, place: str, t: datetime | None = None) -> str | None:
@@ -341,7 +341,8 @@ def declined(db: Session, char: Character, other: Character, place: str, reason:
 COMPANY = timedelta(minutes=20)  # 你在她身边：这么久没说话，就当你走了，她回到自己的日程
 
 
-def consider_owner(db: Session, char: Character, place: str, how: str, closeness: float, t: datetime | None = None) -> str | None:
+def consider_owner(db: Session, char: Character, place: str, how: str, closeness: float, t: datetime | None = None,
+                   hurt: bool = False) -> str | None:
     """你来找她（visit）或者约她去{place}（invite）：她愿不愿意。调用方先 advance。
     你走过去找她，只要她醒着、没和别人在一起就行；约她挪地方要看她累不累、有没有心情，关系越近越愿意陪你。"""
     t = t or now()
@@ -352,11 +353,13 @@ def consider_owner(db: Session, char: Character, place: str, how: str, closeness
         return "busy"
     if s.place == "home" and s.activity == "sleep":
         return "asleep"
+    lt = local(t)
+    if how == "invite" and hurt and _h(char.id, "upset", lt.date().isoformat(), str(lt.hour)) % 100 < 60:
+        return "upset"  # 心里还有结：不太想跟你出去（你走过去找她，她还是会理你，只是可能有点别扭）
     if how == "visit" or s.mood in ("lonely", "happy"):
         return None
     if s.energy < 20 and closeness < 60:
         return "tired"
-    lt = local(t)
     if s.energy < 45 and _h(char.id, "owner", lt.date().isoformat(), str(lt.hour)) % 100 < max(0, 50 - int(closeness) // 2):
         return "mood"
     return None

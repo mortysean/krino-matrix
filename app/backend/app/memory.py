@@ -197,6 +197,11 @@ def retrieve(db: Session, *, user_id: str, character_id: str, query: str, allow_
         item = found.setdefault(m.id, {"m": m, "score": 0.0, "reasons": []})
         item["reasons"].append("固定" if m.pinned else "重要偏好常驻")
         item["score"] += 0.5
+    for m in db.scalars(select(Memory).where(*base, Memory.type == "commitment", Memory.origin == "her")
+                        .order_by(Memory.created_at.desc()).limit(2)):  # 她自己答应过你的事：一直记着，会主动提
+        item = found.setdefault(m.id, {"m": m, "score": 0.0, "reasons": []})
+        item["reasons"].append("她答应过的事")
+        item["score"] += 0.8
     t = now()
     for item in found.values():
         m = item["m"]
@@ -284,7 +289,8 @@ def bond_out(b: Bond) -> dict:
             "stages": [{"name": n, "at": lo} for lo, n, _ in STAGES],
             "next_at": STAGES[i + 1][0] if i + 1 < len(STAGES) else None, "turns": b.turns, "sessions": b.sessions,
             "days": (now() - b.first_met).days + 1 if b.first_met else 0, "user_calls_her": b.user_calls_her,
-            "milestones": b.milestones or [], "her_view": b.her_view, "current": live_current(b)}
+            "milestones": b.milestones or [], "her_view": b.her_view, "current": live_current(b),
+            "trust": round(b.trust if b.trust is not None else 50.0, 1), "hurt": live_hurt(b)}
 
 
 def touch_bond(b: Bond, at: datetime) -> None:
@@ -318,6 +324,16 @@ def update_current(b: Bond, st: dict) -> None:
     b.current = cur
 
 
+HURT_FADES = timedelta(days=14)  # 心结没人理也会慢慢淡：两周后就不再压在心上
+MISS_AFTER = timedelta(days=2)
+
+
+def live_hurt(b: Bond) -> str | None:
+    if not b.hurt or not b.hurt_at or now() - b.hurt_at > HURT_FADES:
+        return None
+    return b.hurt
+
+
 def bond_prompt(b: Bond, char_name: str) -> str:
     i = stage_of(b.closeness)
     lines = [f"## 你们的关系\n- 现在是「{STAGES[i][1]}」：{STAGES[i][2]}。"]
@@ -325,7 +341,76 @@ def bond_prompt(b: Bond, char_name: str) -> str:
         lines.append(f"- 对方叫你「{b.user_calls_her}」。")
     if b.her_view:
         lines.append(f"- 你对对方的认识（一次次见面积累下来的）：{compact(b.her_view, 400)}")
+    trust = b.trust if b.trust is not None else 50.0
+    if trust < 35:
+        lines.append("- 你对 ta 还有些保留，没那么容易交心。")
+    elif trust >= 75:
+        lines.append("- 你很信任 ta，愿意说真心话。")
+    hurt = live_hurt(b)
+    if hurt:
+        lines.append(f"- 你心里还有个结：{compact(hurt, 120)}。不用装作没事，可以有点别扭、话少一点，也可以直接说出来；"
+                     "ta 认真道歉或者用行动弥补了，你可以慢慢放下。")
+    if b.last_seen and now() - b.last_seen > MISS_AFTER:
+        lines.append(f"- 你们已经 {(now() - b.last_seen).days} 天没见了。")
     return "\n".join(lines)
+
+
+def apply_feeling(b: Bond, f: dict) -> list[str]:
+    """会话结束后她自己的感受（模型给的 closer / trust 各 -2~+2，hurt 原因，healed）：关系可以变近也可以变远。返回变化（日志和测试用）。"""
+    changed: list[str] = []
+    at = now()
+
+    def step(v) -> int:
+        try:
+            return max(-2, min(2, int(v)))
+        except (TypeError, ValueError):
+            return 0
+
+    closer, trust = step(f.get("closer")), step(f.get("trust"))
+    if closer:
+        before = stage_of(b.closeness)
+        b.closeness = max(0.0, min(100.0, b.closeness + closer * 2.0))
+        after = stage_of(b.closeness)
+        if after != before:
+            word = f"关系变成了「{STAGES[after][1]}」" if after > before else f"关系淡了一点，回到「{STAGES[after][1]}」"
+            b.milestones = [*(b.milestones or []), {"at": at.isoformat(), "text": word}][-12:]
+        changed.append(f"closer{closer:+d}")
+    if trust:
+        b.trust = max(0.0, min(100.0, (b.trust if b.trust is not None else 50.0) + trust * 5.0))
+        changed.append(f"trust{trust:+d}")
+    hurt = str(f.get("hurt") or "").strip()
+    if f.get("healed") and live_hurt(b):
+        b.milestones = [*(b.milestones or []), {"at": at.isoformat(), "text": "解开了心结"}][-12:]
+        b.hurt, b.hurt_at = None, None
+        changed.append("healed")
+    elif hurt and hurt.lower() not in ("null", "none", "无", "没有"):
+        b.hurt, b.hurt_at = hurt[:200], at
+        changed.append("hurt")
+    return changed
+
+
+def save_her_promises(db: Session, user_id: str, cid: str, promises: list, said: str) -> int:
+    """她自己答应过的事（“下次一起去看海”）：必须是她在这段对话里真说过的（evidence 能在她的话里找到），记成她的约定。"""
+    n = 0
+    flat = re.sub(r"\s+", "", said)
+    for p in promises[:3] if isinstance(promises, list) else []:
+        if not isinstance(p, dict):
+            continue
+        text, ev = str(p.get("text") or "").strip(), re.sub(r"\s+", "", str(p.get("evidence") or ""))
+        if len(norm(text)) < 4 or len(ev) < 4 or ev not in flat:
+            continue
+        key = "her_promise:" + digest(norm(text))[:16]
+        if db.scalar(select(Memory.id).where(Memory.user_id == user_id, Memory.character_id == cid, Memory.key == key)):
+            continue
+        due = None
+        try:
+            due = datetime.fromisoformat(str(p["due"])).replace(tzinfo=timezone.utc) + timedelta(days=1) if p.get("due") else None
+        except (TypeError, ValueError):
+            due = None
+        create_memory(db, user_id=user_id, character_id=cid, content=text, type="commitment", origin="her", key=key,
+                      importance=4, evidence=str(p.get("evidence"))[:200], expires_at=due)
+        n += 1
+    return n
 
 
 def current_prompt(b: Bond) -> str | None:

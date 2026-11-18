@@ -90,9 +90,19 @@ class MockLLM:
             if en:
                 return f"Chatted with {ctx.get('name', 'the character')} about: " + ("; ".join(_short(u, 40) for u in lines[-5:]) or "a quick hello") + "."
             return f"和{ctx.get('name', '角色')}聊了：" + ("；".join(_short(u, 24) for u in lines[-5:]) or "简单打了招呼") + "。"
-        if task == "bond_reflect":  # 离线：在之前的认识后面接上这次的（测试能看出是积累，不是重写）
+        if task == "bond_reflect":  # 离线：在之前的认识后面接上这次的（测试能看出是积累，不是重写）；狠话会伤到她，道歉能和好
             add = ("Talking with them makes me feel a little calmer." if en else "和对方聊天的时候，我会安心一点。")
-            return (ctx.get("before", "") + " " + add).strip()[-560:]
+            heard = " ".join(ctx.get("user_said") or [])
+            out = {"view": (ctx.get("before", "") + " " + add).strip()[-560:], "closer": 0, "trust": 0, "hurt": None, "healed": False, "promises": []}
+            if re.search(r"烦死了|别烦我|滚|shut up|leave me alone", heard, re.I):
+                out.update(closer=-1, trust=-1, hurt="ta 冲我说了很重的话" if not en else "they snapped at me")
+            elif ctx.get("knot") and re.search(r"对不起|抱歉|sorry", heard, re.I):
+                out.update(closer=1, healed=True)
+            for line in re.split(r"[。！？\n]", ctx.get("said", "")):
+                if "下次" in line or "next time" in line.lower():
+                    out["promises"].append({"text": ("我答应 ta：" if not en else "I promised: ") + line.strip(), "evidence": line.strip()})
+                    break
+            return json.dumps(out, ensure_ascii=False)
         if task == "persona":
             return _persona(ctx.get("prompt", ""), ctx.get("style"))
         if task == "tavern":
@@ -333,7 +343,7 @@ def _social(task: str, ctx: dict, en: bool) -> str:
           "social_dm": [f"嗨{other}，最近怎么样？", f"还不错呀，{other}你呢？", "我家那位最近在忙，我就自己找乐子。", "那下次一起去看海吧，拜拜～"],
           "social_impression": f"{other}说话很温柔，聊起来很舒服。",
           "social_self": "我发现自己很在意身边的人过得好不好。",
-          "social_owner": f"现在不行，{ {'asleep': '我在睡觉', 'tired': '我太累了', 'busy': '我正和别人在一起', 'mood': '我没心情'}[ctx['why']]}。" if ctx.get("why") else "你来啦～我正想着你呢。",
+          "social_owner": f"现在不行，{ {'asleep': '我在睡觉', 'tired': '我太累了', 'busy': '我正和别人在一起', 'mood': '我没心情', 'upset': '我还在生你的气'}[ctx['why']]}。" if ctx.get("why") else "你来啦～我正想着你呢。",
           "social_decline": f"今天不去啦，{'ta' if ctx.get('by') else '我'}{ {'asleep': '在睡觉', 'tired': '太累了', 'busy': '正和别人在一起', 'mood': '没心情'}.get(ctx.get('why'), '')}。"}
     e = {"social_post": f"The sea breeze is salty today. {name} is daydreaming on the lighthouse. Mine stayed up late again.",
          "social_comment": "Haha, same!",
