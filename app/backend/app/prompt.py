@@ -309,12 +309,14 @@ def parse_reply(raw: str, char: Character) -> ParsedReply:
     body = raw or ""
     for (start, end), _ in reversed(blocks):
         body = body[:start] + body[end:]
+    body = _STRAY_RE.sub("", body)  # 模型偶尔自创 <decision>…</decision><expression>sleepy</expression> 这样的标签：整段去掉
     text = re.sub(r"</?(state|memory|heard|system|status)>", "", _HEARD_RE.sub("", body), flags=re.I).strip()
     text, found = cues.convert(strip_links(text).strip())
     return ParsedReply(text=text, expression=expression, animation=animation, mood=mood, cues=found, heard=heard)
 
 
 _HEARD_RE = re.compile(r"<heard>(.*?)(?:</heard>|$)", re.S)
+_STRAY_RE = re.compile(r"<(decision|expression|action|animation|emotion|mood|thought|inner)>[^<]{0,200}</\1>", re.I)
 
 
 def _open_link_at(seg: str) -> int:

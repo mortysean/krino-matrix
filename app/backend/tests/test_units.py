@@ -42,6 +42,9 @@ def test_parse_reply_whitelists_state():
     assert p.text == "你好" and p.expression == "happy" and p.animation is None
     p = parse_reply("没有标签<state>{坏的}</state>", c)
     assert p.text == "没有标签" and p.expression is None
+    # 模型自创的标签（真实模型出现过）：整段去掉，不显示给用户
+    p = parse_reply("刚才我在睡觉。\n\n<decision>睡觉被打扰，有点无奈</decision>\n\n<expression>sleepy</expression>\n<action>sleepy</action>", c)
+    assert p.text == "刚才我在睡觉。"
 
 
 def test_stream_filter_hides_state_tag_split_across_chunks():
