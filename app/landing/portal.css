@@ -542,7 +542,10 @@ html[data-lang="en"] .title { max-width: 18ch; }
 .apo p { margin: 0; color: #c9c9da; max-width: 46em; }
 .apo .apo-go { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
 .apo .apo-go > a:not(.btn) { color: var(--cyan); font: 12px/1 var(--mono); letter-spacing: .1em; }
-.latin { margin: 0 0 6px; font: italic 14px/1.4 var(--sans); color: var(--muted); letter-spacing: .04em; }
+.latin { margin: 0 0 10px; font: italic clamp(32px, 4.2vw, 48px)/1.2 var(--sans); color: var(--text); letter-spacing: .06em; }
+.doc article p { white-space: pre-wrap; }
+.doc article p.docx-blank { margin: 0; min-height: 1.15em; }
+.cite-pending { display: block; margin-top: 8px; color: var(--yellow, #e6c35c); font-size: 13px; }
 
 /* ---------- 开发者中心（/developers/ 三页，devdocs.py 生成）：左边目录，右边正文，一个接口一节 ---------- */
 .devdoc { position: relative; z-index: 1; }

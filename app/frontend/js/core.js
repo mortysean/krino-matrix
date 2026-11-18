@@ -115,6 +115,13 @@ setInterval(async () => {
 window.addEventListener("offline", () => setOnline(false, t("网络已断开")));
 window.addEventListener("online", () => fetch(url("/api/health")).then(() => setOnline(true)).catch(() => {}));
 
+// 页面藏到后台时停掉纯视觉动画。只改一个 class，不读不写角色、记忆或会话。
+if (typeof document !== "undefined") {
+  const markPage = () => document.documentElement.classList.toggle("page-hidden", document.hidden);
+  document.addEventListener("visibilitychange", markPage);
+  markPage();
+}
+
 // 提示：消息先过一遍 tr()，中文原文和后端拼好的句子都能在海外版翻成英文
 export function toast(msg, ms = 2400) {
   const el = $("#toast");
@@ -141,6 +148,83 @@ export function modal(title, html, onOk, { okText = "确定", wide = false, canc
   });
 }
 export const confirmBox = (title, html, okText = "确定") => modal(title, html, null, { okText });
+
+// 工作台角落的小窗。不用全站的 #modal：灵魂星图看见那个弹窗会停下来画。
+const DOCK_FOCUS = "button, [href], input, select, textarea";
+export function bindDock(root) {
+  root._dockAbort?.abort();
+  const ac = new AbortController();
+  root._dockAbort = ac;
+  const signal = ac.signal;
+  let last = null;
+  const docks = () => [...root.querySelectorAll(".studio-dock")];
+  const focusable = (d) => [...d.querySelectorAll(DOCK_FOCUS)].filter((el) => !el.disabled && el.offsetParent !== null);
+  function disarm(d) {
+    if (!d) return;
+    clearTimeout(d._closeTimer);
+    d._closeTimer = 0;
+    if (d._onCloseEnd) { d.removeEventListener("animationend", d._onCloseEnd); d._onCloseEnd = null; }
+  }
+  function finishClose(d) {
+    if (!d || d.hidden) return;
+    disarm(d);
+    d.classList.remove("is-closing");
+    d.hidden = true;
+    if (last && root.contains(last)) last.focus();
+    last = null;
+  }
+  function close(d) {
+    if (!d || d.hidden || d.classList.contains("is-closing")) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { finishClose(d); return; }
+    d.classList.add("is-closing");
+    d._onCloseEnd = (e) => {
+      if (e.target !== d.querySelector(".dock-card") && e.target !== d) return;
+      finishClose(d);
+    };
+    d.addEventListener("animationend", d._onCloseEnd);
+    d._closeTimer = setTimeout(() => finishClose(d), 280);
+  }
+  function open(d) {
+    if (!d) return;
+    disarm(d);
+    d.classList.remove("is-closing");
+    docks().forEach((x) => {
+      if (x === d) return;
+      disarm(x);
+      x.classList.remove("is-closing");
+      x.hidden = true;
+    });
+    last = document.activeElement;
+    d.hidden = false;
+    (d.querySelector("textarea, input, select") || d.querySelector("button"))?.focus();
+  }
+  root.addEventListener("krino-open-dock", (e) => { if (e.target?.classList?.contains("studio-dock")) open(e.target); }, { signal });
+  root.addEventListener("click", (e) => {
+    const openBtn = e.target.closest("[data-dock]");
+    if (openBtn && root.contains(openBtn) && !openBtn.closest(".studio-dock")) {
+      const d = root.querySelector("#dock-" + openBtn.dataset.dock);
+      if (!d) return;
+      e.preventDefault();
+      (d.hidden || d.classList.contains("is-closing")) ? open(d) : close(d);
+      return;
+    }
+    const shut = e.target.closest("[data-dock-close]");
+    if (shut && root.contains(shut)) close(shut.closest(".studio-dock"));
+  }, { signal });
+  root.addEventListener("keydown", (e) => {
+    const d = docks().find((x) => !x.hidden);
+    if (!d || !d.contains(e.target)) return;
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(d); return; }
+    if (e.key !== "Tab") return;
+    const items = focusable(d);
+    if (!items.length) return;
+    const first = items[0], end = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); end.focus(); }
+    else if (!e.shiftKey && document.activeElement === end) { e.preventDefault(); first.focus(); }
+  }, { signal });
+  return { open, close };
+}
 
 export async function download(url, name) {
   const res = await api(url, { raw: true }).catch(fail);

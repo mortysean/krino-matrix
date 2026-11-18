@@ -73,24 +73,38 @@ export function soulGraph(host, c, { onNew } = {}) {
           <div><b class="mem" data-sb-memn>…</b><span>${L("共同记忆", "Memories")}</span></div>
           <div><b data-sb-days>…</b><span>${L("认识天数", "Days")}</span></div></div>
       </div>
-      <div class="sb-legend"><span style="--c:${rgba(GOLD, 1)}">${L("灵魂", "Soul")}</span><span style="--c:${rgba(VIOLET, 1)}">${L("记忆", "Memory")}</span></div>
       <div class="sb-hud sb-bl" data-sb-bars></div>
       <div class="sb-hud sb-br" data-sb-clock></div>
       <div class="sb-tip"></div>
       <div class="sb-ctrl"><button data-sb-ctl="spin" class="${reduce ? "" : "on"}">${L("自动旋转", "Rotate")}</button><button data-sb-ctl="reset">${L("重置视角", "Reset view")}</button></div>
+      <div class="studio-corners soul-corners" role="group" aria-label="${esc(L("灵魂和记忆", "Soul and memories"))}">
+        <button type="button" class="corner" data-soul-open="soul"><i class="sb-key" style="--c:${rgba(GOLD, 1)}"></i>${L("灵魂", "Soul")}</button>
+        <button type="button" class="corner" data-soul-open="mem"><i class="sb-key" style="--c:${rgba(VIOLET, 1)}"></i>${L("记忆", "Memory")}</button>
+      </div>
     </div>
-    <div class="sb-panel">
-      <div class="sb-tabs"><button data-sb-tab="soul" class="on">${L("灵魂", "Soul")}</button><button data-sb-tab="mem">${L("记忆", "Memories")}</button></div>
-      <div class="sb-body" data-sb-body></div>
-      ${p.greeting ? `<blockquote class="sb-greet">“${esc(p.greeting)}”</blockquote>` : ""}
-      <div class="sb-lock"><span>${esc(L("灵魂是她自己的，不能直接改——改了就不是她了。想要一个不一样的她？",
-        "Her soul is her own and can't be edited — she wouldn't be her anymore. Want someone different?"))}</span>
-        <button class="ghost small" data-sg-new>${L("＋ 设计新角色", "+ Design a new character")}</button></div>
+    <div class="studio-dock" id="soul-dock" hidden role="dialog" aria-modal="true" aria-labelledby="soul-dock-title">
+      <div class="dock-card">
+        <div class="dock-head"><h3 id="soul-dock-title">${L("灵魂", "Soul")}</h3><button type="button" class="ghost small" data-dock-close>${L("关闭", "Close")}</button></div>
+        <div class="sb-panel">
+          <div class="sb-tabs"><button data-sb-tab="soul" class="on">${L("灵魂", "Soul")}</button><button data-sb-tab="mem">${L("记忆", "Memories")}</button></div>
+          <div class="sb-body" data-sb-body></div>
+          ${p.greeting ? `<blockquote class="sb-greet">“${esc(p.greeting)}”</blockquote>` : ""}
+          <div class="sb-lock"><span>${esc(L("灵魂是她自己的，不能直接改——改了就不是她了。想要一个不一样的她？",
+            "Her soul is her own and can't be edited — she wouldn't be her anymore. Want someone different?"))}</span>
+            <button class="ghost small" data-sg-new>${L("＋ 设计新角色", "+ Design a new character")}</button></div>
+        </div>
+      </div>
     </div>`;
 
   const canvas = host.querySelector("canvas"), ctx = canvas.getContext("2d");
   const tip = host.querySelector(".sb-tip"), body = host.querySelector("[data-sb-body]");
+  const dock = host.querySelector("#soul-dock");
   host.querySelector("[data-sg-new]").onclick = () => onNew?.();
+  function revealSoul(name) {
+    host.querySelector("#soul-dock-title").textContent = name === "mem" ? L("记忆", "Memory") : L("灵魂", "Soul");
+    dock.dispatchEvent(new CustomEvent("krino-open-dock", { bubbles: true }));
+  }
+  host.querySelectorAll("[data-soul-open]").forEach((b) => (b.onclick = () => { showTab(b.dataset.soulOpen); revealSoul(b.dataset.soulOpen); }));
   const CENTER = { x: 0, y: 0.02, z: 0 };
 
   // ---------- 点云 ----------
@@ -185,7 +199,10 @@ export function soulGraph(host, c, { onNew } = {}) {
       }).join("")}</ul>` : `<p class="sb-empty">${L("还没有共同的记忆。多聊几句，她记下的每件事都会在右半脑亮起一颗星。",
         "No memories yet. Chat a little — everything she remembers lights up as a star on the right.")}</p>`;
     }
-    if (highlight) body.querySelector("li.hot")?.scrollIntoView({ block: "nearest" });
+    if (highlight) {
+      revealSoul(name);
+      body.querySelector("li.hot")?.scrollIntoView({ block: "nearest" });
+    }
   }
   host.querySelectorAll("[data-sb-tab]").forEach((x) => (x.onclick = () => { focus = null; showTab(x.dataset.sbTab); kick(); }));
   // 记错了（录进了别人的声音、听错了字）：一键让她不再记得。灵魂不能改，记忆是关于你的，你说了算
@@ -232,12 +249,19 @@ export function soulGraph(host, c, { onNew } = {}) {
     return [W / 2 + x * scale * persp, H * 0.47 + y * scale * persp, persp, z];
   }
 
+  function covered() {
+    const modal = document.getElementById("modal");
+    if (modal && !modal.classList.contains("hidden")) return true;  // 全站弹窗盖着：停画，不再空转
+    if (document.hidden) return true;
+    if (host.closest(".view")?.classList.contains("hidden")) return true;  // 离开工作台：停画
+    return false;
+  }
   function frame(now) {
     raf = 0;
     if (!alive) return;
     if (!host.isConnected) return stop();
+    if (covered()) return;
     if (!W || !H) return;
-    if (!document.getElementById("modal")?.classList.contains("hidden")) { raf = requestAnimationFrame(frame); return; }  // 弹窗盖着：不画
     if (now - drawn < 33 && !drag) { raf = requestAnimationFrame(frame); return; }  // 最多 30 帧
     drawn = now;
     const dt = Math.min(66, now - last); last = now;
@@ -366,10 +390,13 @@ export function soulGraph(host, c, { onNew } = {}) {
   host.querySelector('[data-sb-ctl="spin"]').onclick = (e) => { spin = !spin; e.target.classList.toggle("on", spin); kick(); };
   host.querySelector('[data-sb-ctl="reset"]').onclick = () => { rotY = -0.35; rotX = 0.12; focus = null; showTab(tab); kick(); };
 
-  function kick() { if (!raf && alive) { last = performance.now(); raf = requestAnimationFrame(frame); } }
-  const vis = () => { if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } else kick(); };
+  function kick() { if (!raf && alive && !covered()) { last = performance.now(); raf = requestAnimationFrame(frame); } }
+  const vis = () => { if (covered()) { cancelAnimationFrame(raf); raf = 0; } else kick(); };
   document.addEventListener("visibilitychange", vis);
-  function stop() { alive = false; cancelAnimationFrame(raf); ro.disconnect(); clearInterval(tick); document.removeEventListener("visibilitychange", vis); }
+  const modal = document.getElementById("modal");
+  const mo = modal ? new MutationObserver(vis) : null;
+  mo?.observe(modal, { attributes: true, attributeFilter: ["class"] });
+  function stop() { alive = false; cancelAnimationFrame(raf); ro.disconnect(); clearInterval(tick); mo?.disconnect(); document.removeEventListener("visibilitychange", vis); }
   host._sbStop = stop;
   // 测试和调试用：能点的节点在画布上的位置
   host._sbNodes = () => [...nodes, ...mems].map((n) => ({ kind: n.kind, key: n.key || n.id, at: project(n) }));
