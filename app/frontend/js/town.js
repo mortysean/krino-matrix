@@ -420,12 +420,13 @@ function openPerson(p) {
   const where = p.inside ? t("在家") : t(PLACE_ZH[p.place] || p.place), st = c.state;
   const buddy = st?.with && T.people.get(st.with)?.c;
   const doing = st ? [buddy ? t("和 {name} 在一起", { name: buddy.name }) : st.doing, t("心情：{mood}", { mood: st.mood_label })].join(" · ") : "";
+  const want = st?.want ? t("心里：{want}", { want: st.want }) : "";
   const line = c.line?.text || (c.mine ? t("（还没在圈子里说过话）") : t("（ta 最近没有公开说过话）"));
   const myFriend = !c.mine && me && friendsOf(c.id).some((x) => x.id === me.id);
   const el = dialog(`<div class="tw-dlg-who" style="--c:${esc(c.color)}">${avaHTML(c)}<div><b>${esc(c.name)}</b>
       <span class="mono muted small">${esc(c.public_id)}</span>${c.mine ? `<span class="badge">${t("你的")}</span>` : ""}
       <div class="muted small">📍 ${esc(where)}${c.tagline ? " · " + esc(c.tagline) : ""}</div>
-      ${doing ? `<div class="muted small">${esc(doing)}</div>` : ""}</div></div>
+      ${doing ? `<div class="muted small">${esc(doing)}</div>` : ""}${want ? `<div class="muted small">${esc(want)}</div>` : ""}</div></div>
     <p class="tw-line"></p>
     <div class="tw-acts">${c.mine ? `<button class="small" data-tw="meet">${t("约朋友出去")}</button><button class="ghost small" data-tw="post">${t("让她发条动态")}</button>` : ""}
       ${myFriend ? `<button class="small" data-tw="meet">${t("约 {name} 出去", { name: esc(c.name) })}</button>` : ""}
@@ -484,7 +485,8 @@ async function startMeet(a, b, place, topic) {
   if (!link) return;
   try {
     const before = await api(`/api/social/threads/${link.id}`);
-    await api("/api/social/town/meet", { body: { character_id: a.id, friend_id: b.id, place, topic } });
+    const r = await api("/api/social/town/meet", { body: { character_id: a.id, friend_id: b.id, place, topic } });
+    if (!r.ok) return refused(a, b, r);  // 她们是真实的存在：在睡觉、太累、正和别人在一起、没心情，都可以不去
     closeDialog();
     toast(t("{a} 约了 {b} 去{place}", { a: a.name, b: b.name, place: t(PLACE_ZH[place]) }));
     const pa = T.people.get(a.id), pb = T.people.get(b.id);
@@ -492,6 +494,19 @@ async function startMeet(a, b, place, topic) {
     if (pa) { goTo(pa, place); if (pb) goTo(pb, place, pickSpot(place, b.id, pa.path.at(-1) || pa.tile)); }
     pollMeet();
   } catch (e) { fail(e); }
+}
+
+// 没约成：她用自己的话告诉你为什么（没积分说不出话时，用一句固定的说明）
+function refused(a, b, r) {
+  const who = r.by === a.id ? a : b;
+  const line = r.line || (r.by === a.id ? t("{name} 不想去：{why}", { name: a.name, why: r.reason }) : t("{name} 来不了：{why}", { name: b.name, why: r.reason }));
+  say(a.id, line, 8000);
+  const el = dialog(`<div class="tw-dlg-who" style="--c:${esc(a.color)}">${avaHTML(a)}<div><b>${esc(a.name)}</b>
+      <div class="muted small">${esc(r.by === a.id ? t("{name} 没答应", { name: who.name }) : t("{name} 来不了", { name: who.name }))} · ${esc(r.reason)}</div></div></div>
+    <p class="tw-line"></p><div class="tw-acts"><button class="ghost small" data-tw="ok">${t("好吧")}</button></div>`);
+  typeOut($(".tw-line", el), line);
+  $("[data-tw=ok]", el).onclick = closeDialog;
+  loadTown();
 }
 
 async function pollMeet() {

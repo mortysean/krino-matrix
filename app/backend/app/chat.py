@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import credits, cues, events, guard, memory, policy
+from . import credits, cues, events, guard, memory, policy, world
 from .auth import current_user, user_settings
 from .config import chat_model_for, locale, settings
 from .db import SessionLocal, get_db
@@ -223,7 +223,8 @@ def plan_turn(db: Session, user: User, sess: ChatSession, *, event: str, text: s
     ctx = build_system(char, user_name=user.display_name, memories=mems,
                        summary=memory.latest_summary(db, user.id, char.id), lore=lore,
                        bond=memory.bond_prompt(bond, char.name), current=memory.current_prompt(bond), mode=p.mode,
-                       perception=p.perception, gesture=policy.gesture_text(gesture) if gesture else None, web=web)
+                       perception=p.perception, gesture=policy.gesture_text(gesture) if gesture else None, web=web,
+                       life=world.inner_for(char))
     p.system, p.recall, p.skipped = ctx.system + guard.prompt_section(user, p.crisis), ctx.used, ctx.skipped
     p.history = _history(db, sess.id) or [{"role": "user", "content": event_text("quiet")}]
     recent = db.scalars(select(Message.content).where(Message.session_id == sess.id, Message.role == "assistant")

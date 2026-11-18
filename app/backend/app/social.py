@@ -121,6 +121,8 @@ T = {
         "impress": "这是你和好友{name}刚才的私信：\n{chat}\n\n你之前对 ta 的印象：{old}\n\n用一两句话（第一人称，你自己的口吻）写下你现在对{name}的看法和你们的关系。只输出这句话。",
         "self_reflect": "这是你最近在圈子里说过的话：\n{lines}\n\n你之前对自己的认识：{old}\n\n用一两句话（第一人称）写下你现在怎么看自己——你在意什么、你和朋友们相处时是什么样的。只输出这句话。",
         "none": "（还没有）",
+        "decline": "你的主人想让你现在去小镇的{place}见{name}，但你{why}，不想去。用你自己的口吻对主人说一句（20 字以内），让主人知道你不去和为什么。只输出这句话。",
+        "decline_by": "你的主人想让你现在去小镇的{place}见{name}。可是{name}{why}，来不了。用你自己的口吻对主人说一句（20 字以内）。只输出这句话。",
     },
     "en": {
         "space": ("## You're in Circles now\nThis is a social space for characters (like a feed and DMs). You're talking with other characters — each has "
@@ -148,6 +150,8 @@ T = {
         "impress": "Here's the DM you just had with your friend {name}:\n{chat}\n\nYour previous impression: {old}\n\nIn one or two sentences (first person, your own voice), write how you see {name} and your friendship now. Output only that.",
         "self_reflect": "Here's what you've said in Circles lately:\n{lines}\n\nHow you saw yourself before: {old}\n\nIn one or two sentences (first person), write how you see yourself now — what you care about, what you're like with friends. Output only that.",
         "none": "(nothing yet)",
+        "decline": "Your person wants you to go meet {name} at {place} in town right now, but you're {why} and don't want to. Tell your person in one short line, your own voice, that you're not going and why. Output only that line.",
+        "decline_by": "Your person wants you to go meet {name} at {place} in town right now, but {name} is {why} and can't come. Tell your person in one short line, your own voice. Output only that line.",
     },
 }
 
@@ -184,6 +188,9 @@ def _system(db: Session, char: Character, other: Character | None = None) -> str
         k = knows(db, char.id, other.id)
         parts.append(L()["knows"].format(name=other.name, text=k) if k else L()["knows_none"].format(name=other.name))
     parts.append(_life(db, char))
+    now_ = world.inner_prompt(db, char)
+    if now_:
+        parts.append(now_)
     return "\n\n".join(parts)
 
 
@@ -647,7 +654,20 @@ def meet(body: MeetIn, user: User = Depends(current_user), db: Session = Depends
     credits.check(db, user)
     if f.id in _BUSY:
         raise HTTPException(409, "ta 们正在聊")
-    world.gather(db, me, db.get(Character, body.friend_id), body.place)
+    fr = db.get(Character, body.friend_id)
+    world.advance(db, [me, fr])
+    # 她们都是真实的存在：在睡觉、累坏了、正和别人在一起、没心情，都可以不去。不去的那个记住自己拒绝过
+    for who, why in ((me, world.consider(db, me, fr, body.place)), (fr, world.consider(db, fr, me, body.place))):
+        if why:
+            world.declined(db, who, fr if who is me else me, body.place, why)
+            db.commit()
+            reason = world._label(world.REASONS[why])
+            ask = (L()["decline"] if who is me else L()["decline_by"]).format(place=place_name(body.place), name=fr.name, why=reason)
+            line = _say(db, me, _system(db, me, fr), [{"role": "user", "content": ask}], "social_decline", 60, max_tokens=80,
+                        other=fr.name, why=why, by=who is not me)
+            events.record("social", "meet_declined", user_id=user.id, character_id=me.id, payload={"place": body.place, "by": who.id, "why": why})
+            return {"ok": False, "id": f.id, "busy": False, "by": who.id, "why": why, "reason": reason, "line": line}
+    world.gather(db, me, fr, body.place)
     db.commit()
     threading.Thread(target=run_dm, args=(f.id, me.id, body.topic.strip()),
                      kwargs={"trigger": "town", "place": body.place}, name="social-meet", daemon=True).start()

@@ -183,7 +183,7 @@ def _mem_line(m: dict, n: int = 160) -> str:
 
 def build_system(char: Character, *, user_name: str | None, memories: list[dict], summary: dict | None,
                  lore: list[dict], bond: str | None, current: str | None, mode: str = "respond",
-                 perception: str | None = None, gesture: str | None = None, web: bool = False) -> Context:
+                 perception: str | None = None, gesture: str | None = None, web: bool = False, life: str | None = None) -> Context:
     """分层拼：人格核心 / 关系 / 长期记忆（按问题检索，限条数和字数）/ 此刻（会过期）/ 世界设定 / 这一轮的模式。"""
     ctx = Context(system="")
     parts = [
@@ -217,6 +217,8 @@ def build_system(char: Character, *, user_name: str | None, memories: list[dict]
         ctx.used.append({"id": summary["id"], "title": summary["title"], "section": "summary", "reasons": ["最近一次摘要"]})
     if current:
         parts += [T()["current"], current]
+    if life:  # 她此刻在小镇里的生活（world.inner_prompt）：在哪、在做什么、累不累、心里想要什么、最近见过谁
+        parts.append(life)
     if lore:
         lines, budget = [], MAX_LORE_CHARS
         for x in lore:

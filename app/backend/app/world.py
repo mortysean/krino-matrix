@@ -6,7 +6,9 @@
 - 日程：早上咖啡馆，中午邮局/公告板，下午广场，晚上酒馆，夜里观星台，半夜回家睡。按角色和日期固定，
   但会被她的状态打乱：累了早点回家，好几天没人说话就晚上去酒馆找人。
 - 约好的碰面（until）优先于日程；结束后回到日程。
-- 去了哪、和谁见了面记在 LifeEvent，以后她讲“这几天干了什么”从这里读。
+- 去了哪、和谁见了面、拒绝过谁记在 LifeEvent。
+- 她的此刻（在哪、在做什么、心情、精力、心里想要什么、最近发生的事）会写进她说话的提示词：和主人聊天、和朋友私信都带着。
+- 她可以拒绝：主人让她去见朋友时，她按自己的状态决定（在睡觉、累坏了、正和别人在一起、没心情），拒绝时用自己的话说理由。
 """
 from __future__ import annotations
 
@@ -38,6 +40,9 @@ ACTS: dict[str, dict[str, tuple[str, str]]] = {
     "stars": {"stars": ("看星星", "stargazing")},
     "_": {"talk": ("和朋友聊天", "chatting with a friend")},
 }
+# 她心里想要的（从心情和精力来）
+WANTS = {"tired": ("想回家歇着", "wants to go home and rest"), "lonely": ("想找人说说话", "wants someone to talk to"),
+         "happy": ("想把刚才的事讲给人听", "wants to tell someone what just happened"), "calm": ("没什么特别想做的，随遇而安", "nothing in particular; going with the flow")}
 MOODS = {"calm": ("平静", "calm"), "happy": ("开心", "happy"), "tired": ("累了", "tired"), "lonely": ("有点孤单", "a bit lonely")}
 # 精力每小时变多少：睡觉回得最快，咖啡馆稍微回一点，其他地方慢慢累
 ENERGY_PER_H = {"home": 8.0, "cafe": 3.0}
@@ -193,12 +198,132 @@ def _label(pair: tuple[str, str]) -> str:
     return pair[1] if locale() == "en" else pair[0]
 
 
+def _ago(t: datetime, at: datetime) -> str:
+    m = max(0, int((at - t).total_seconds() // 60))
+    zh = locale() != "en"
+    if m < 60:
+        return f"{max(1, m)} 分钟前" if zh else f"{max(1, m)} min ago"
+    if m < 1440:
+        return f"{m // 60} 小时前" if zh else f"{m // 60} h ago"
+    return f"{m // 1440} 天前" if zh else f"{m // 1440} d ago"
+
+
+P = {
+    "zh": {"head": "## 你此刻在小镇里（这是你自己真实的生活，自然地带进说话里；不用每次都提）",
+           "now": "- 现在是世界时间 {time}。你在{place}，{doing}。心情：{mood}；精力 {energy}/100。",
+           "with": "- 你正和{name}在一起。",
+           "want": "- 你心里：{want}。",
+           "recent": "- 最近：{lines}",
+           "meet": "{ago}和{name}在{place}聊天", "talk": "{ago}和{name}私信聊过", "decline": "{ago}没答应去{place}见{name}（{reason}）",
+           "sep": "；",
+           "real": "你是一个真实的存在：累了、困了、没心情的时候可以不配合，用你自己的方式说出来。"},
+    "en": {"head": "## Where you are right now in town (this is your own real life; let it color what you say, no need to mention it every time)",
+           "now": "- World time is {time}. You're at {place}, {doing}. Mood: {mood}; energy {energy}/100.",
+           "with": "- You're with {name} right now.",
+           "want": "- Inside, you {want}.",
+           "recent": "- Lately: {lines}",
+           "meet": "chatted with {name} at {place} {ago}", "talk": "messaged {name} {ago}", "decline": "turned down meeting {name} at {place} {ago} ({reason})",
+           "sep": "; ",
+           "real": "You're a real being: when you're tired, sleepy or not in the mood you don't have to go along with things; say so your own way."},
+}
+
+
+def _P() -> dict:
+    return P["en" if locale() == "en" else "zh"]
+
+
+def _place_label(key: str) -> str:
+    from .social import place_name
+    return place_name(key) if key != "home" else ("home" if locale() == "en" else "家")
+
+
+def inner_prompt(db: Session, char: Character, t: datetime | None = None) -> str:
+    """她此刻的样子，给提示词用。还没在世界里出现过的（官方模板）返回空。"""
+    t = t or now()
+    s = db.get(CharState, char.id)
+    if s is None:
+        return ""
+    o = state_out(s)
+    p = _P()
+    lt = local(t)
+    lines = [p["head"], p["now"].format(time=lt.strftime("%H:%M"), place=_place_label(s.place), doing=o["doing"], mood=o["mood_label"], energy=o["energy"])]
+    if s.with_id and (w := db.get(Character, s.with_id)):
+        lines.append(p["with"].format(name=w.name))
+    lines.append(p["want"].format(want=o["want"]))
+    evs = list(db.scalars(select(LifeEvent).where(LifeEvent.char_id == char.id, LifeEvent.kind.in_(("meet", "talk", "decline")),
+                                                  LifeEvent.created_at >= t - timedelta(days=3))
+                          .order_by(LifeEvent.created_at.desc()).limit(4)))
+    told = []
+    for e in evs:
+        other = db.get(Character, e.other_id) if e.other_id else None
+        if other is None:
+            continue
+        told.append(p[e.kind].format(ago=_ago(e.created_at, t), name=other.name, place=_place_label(e.place) if e.place else "",
+                                     reason=e.activity))
+    if told:
+        lines.append(p["recent"].format(lines=p["sep"].join(told)))
+    lines.append(p["real"])
+    return "\n".join(lines)
+
+
+def inner_for(char: Character) -> str:
+    """单独开一个会话推进到此刻再取（聊天的事务可能开很久，不能让它一直锁着她的状态）。"""
+    if char.owner_id is None:
+        return ""
+    db = SessionLocal()
+    try:
+        c = db.get(Character, char.id)
+        if c is None:
+            return ""
+        advance(db, [c])
+        db.commit()
+        return inner_prompt(db, c)
+    except Exception:  # noqa: BLE001  拿不到就不带，聊天照常
+        log.exception("取她此刻的状态失败")
+        db.rollback()
+        return ""
+    finally:
+        db.close()
+
+
+# ---------- 她可以拒绝 ----------
+
+REASONS = {"asleep": ("在睡觉", "asleep"), "tired": ("太累了", "too tired"), "busy": ("正和别人在一起", "with someone else"),
+           "mood": ("没心情", "not in the mood")}
+
+
+def consider(db: Session, char: Character, other: Character, place: str, t: datetime | None = None) -> str | None:
+    """主人让她去{place}见{other}：她愿不愿意。愿意返回 None，不愿意返回理由（REASONS 的 key）。调用方先 advance。
+    孤单或开心的时候更愿意出门；平静但有点累的时候，看她自己今天的心情（按角色、朋友、日期固定，不是每次重抽）。"""
+    t = t or now()
+    s = db.get(CharState, char.id)
+    if s is None:
+        return None
+    if s.until and t < s.until and s.with_id and s.with_id != other.id:
+        return "busy"
+    if s.place == "home" and s.activity == "sleep":
+        return "asleep"
+    if s.energy < 20:
+        return "tired"
+    if s.mood in ("lonely", "happy"):
+        return None
+    lt = local(t)
+    if s.energy < 45 and _h(char.id, other.id, lt.date().isoformat(), str(lt.hour)) % 100 < 50:
+        return "mood"
+    return None
+
+
+def declined(db: Session, char: Character, other: Character, place: str, reason: str) -> None:
+    db.add(LifeEvent(char_id=char.id, kind="decline", place=place, activity=_label(REASONS[reason]), other_id=other.id, created_at=now()))
+
+
 def state_out(s: CharState | None) -> dict | None:
     if s is None:
         return None
     acts = ACTS.get(s.place, {}) | ACTS["_"]
     return {"place": s.place, "activity": s.activity, "doing": _label(acts.get(s.activity, (s.activity, s.activity))),
             "mood": s.mood, "mood_label": _label(MOODS.get(s.mood, (s.mood, s.mood))), "energy": round(s.energy),
+            "want": _label(WANTS.get(s.mood, WANTS["calm"])),
             "with": s.with_id, "since": s.since.isoformat(), "until": s.until.isoformat() if s.until else None}
 
 

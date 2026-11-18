@@ -200,6 +200,9 @@ def test_town_shows_my_cast_and_friends_with_their_last_line(user, other):
 
 def test_town_meet_is_a_public_conversation_at_a_place(user, other, monkeypatch):
     """约朋友去观星台：两人轮流说话（记在两人的对话里，trigger = town），提示词里带着地点和“公开场合”；不是好友不能约。"""
+    from app import world
+    t = world.local(world.now()).replace(hour=15, minute=30)  # 白天：晚上她们在家睡觉，约不出来
+    monkeypatch.setattr(world, "now", lambda: t)
     seen = []
     real = social._say
     monkeypatch.setattr(social, "_say", lambda db, char, system, messages, *a, **k: (seen.append(messages[-1]["content"]), real(db, char, system, messages, *a, **k))[1])
