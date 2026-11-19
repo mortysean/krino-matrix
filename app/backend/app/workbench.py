@@ -527,6 +527,12 @@ def _finish_character(cid: str, user_id: str, look_prompt: str, voice: dict, gre
         def draw():
             return _run(user, "design", style_content(lang, look_prompt), 1, f"{MAX_W}*{MAX_H}")[0]
 
+        def dot():  # 像素小人：按设定和这次的外貌描述定，和画图、声音一起做（几秒）
+            from . import pixel
+            with SessionLocal() as pdb:
+                c0 = pdb.get(Character, cid)
+                return pixel.make(c0, look_prompt, payer=user_id) if c0 is not None else None
+
         def speak():
             with SessionLocal() as vdb:
                 return _own_voice(vdb, db.get(User, user_id), dict(voice), greeting)
@@ -537,10 +543,16 @@ def _finish_character(cid: str, user_id: str, look_prompt: str, voice: dict, gre
             done.append(step)
             _set_origin(cid, done=sorted(done))
 
-        new_voice = voice
-        with ThreadPoolExecutor(2) as pool:
-            fi, fv = pool.submit(draw), pool.submit(speak)
-            for f in as_completed((fi, fv)):
+        new_voice, look = voice, None
+        with ThreadPoolExecutor(3) as pool:
+            fi, fv, fp = pool.submit(draw), pool.submit(speak), pool.submit(dot)
+            for f in as_completed((fi, fv, fp)):
+                if f is fp:
+                    try:
+                        look = fp.result()
+                    except Exception:  # noqa: BLE001  没定下来：打开小镇时会再补
+                        log.exception("新角色 %s 的像素小人没定下来", cid)
+                    continue
                 if f is fi:
                     try:
                         image = fi.result()
@@ -574,6 +586,8 @@ def _finish_character(cid: str, user_id: str, look_prompt: str, voice: dict, gre
         if chibi:
             b = _with_motion(b, chibi)
         b["voice"] = {**(b.get("voice") or {}), **new_voice}
+        if look:
+            b["pixel"] = look
         c.behavior = b
         o = {k: v for k, v in (c.origin or {}).items() if k not in ("pending", "done", "motion")}
         if error:

@@ -47,7 +47,8 @@ _BUSY_LOCK = threading.Lock()
 def card(c: Character) -> dict:
     """别人能看到的角色名片：只有名字、ID、简介、头像。"""
     s = summary(c)
-    return {k: s[k] for k in ("id", "public_id", "name", "tagline", "color", "portrait")}
+    from .pixel import pixel_of
+    return {**{k: s[k] for k in ("id", "public_id", "name", "tagline", "color", "portrait")}, "pixel": pixel_of(c)}
 
 
 def _fr_of(db: Session, char_ids: list[str], status: str = "accepted") -> list[Friendship]:
@@ -641,6 +642,8 @@ def town(user: User = Depends(current_user), db: Session = Depends(get_db)):
             last[m.author_id] = {"text": m.content, "at": m.created_at.isoformat(), "kind": "talk", "fid": m.friendship_id}
     states = world.advance(db, cast)
     db.commit()
+    from . import pixel
+    pixel.ensure(db, cast)  # 没有像素小人、或者设定改过了的：后台补一份
     v = db.get(Visit, user.id)
     you = {"character_id": v.character_id, "place": v.place, "how": v.how, "session_id": v.session_id, "since": v.since.isoformat()} if v else None
     return {"cast": [{**card(c), "mine": c.id in ids, "line": last.get(c.id), "state": world.state_out(states.get(c.id))} for c in cast],

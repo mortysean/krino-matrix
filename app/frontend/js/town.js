@@ -5,6 +5,7 @@
 // 小人每个角色一张 48×80 的小图。一秒 12 帧，页面不在圈子、或者切到后台就停；离开圈子整个拆掉。
 // 她在哪、在做什么、心情都由服务器按世界时间推进（app/world.py），所有人看到同一个小镇；这里只画画、做走路的动画。
 import { $, $$, S, api, avaHTML, bus, esc, fail, t, toast } from "./core.js";
+import { SH, SW, makeSprite } from "./pixel.js";
 
 const TS = 16, TW = 40, TH = 24, MW = TW * TS, MH = TH * TS;
 const FPS = 12, SPEED = 34;  // 走路：像素/秒（大约两格）
@@ -118,46 +119,8 @@ function drawMap() {
   return { cv, windows };
 }
 
-// ---------- 小人：按角色的颜色画一套四个方向 × 三帧的走路图 ----------
-const SW = 16, SH = 20;
-function makeSprite(c) {
-  const cv = document.createElement("canvas");
-  cv.width = SW * 3; cv.height = SH * 4;
-  const g = cv.getContext("2d"), r = rnd(c.id);
-  const hair = hex(c.color), shirt = mix(hex(["#f2f2f2", "#e8c547", "#d86a8a", "#5fb3a1", "#7f8fd9"][Math.floor(r() * 5)]), hair, 0.25);
-  const skin = [242, 201, 160], pants = mix([40, 40, 60], hair, 0.2), shoe = [60, 40, 30];
-  for (let dir = 0; dir < 4; dir++) for (let f = 0; f < 3; f++) {
-    const ox = f * SW, oy = dir * SH;
-    const p = (x, y, w, h, col) => { g.fillStyle = css(col); g.fillRect(ox + x, oy + y, w, h); };
-    const step = f === 0 ? 0 : f === 1 ? 1 : -1;
-    // 腿和鞋
-    p(5, 14, 2, 4 - (step > 0 ? 1 : 0), pants); p(9, 14, 2, 4 - (step < 0 ? 1 : 0), pants);
-    p(5, 18 - (step > 0 ? 1 : 0), 2, 1, shoe); p(9, 18 - (step < 0 ? 1 : 0), 2, 1, shoe);
-    // 身体和手
-    p(4, 9, 8, 5, shirt);
-    if (dir === 1 || dir === 2) p(dir === 1 ? 7 + step : 7 - step, 10, 2, 3, skin);
-    else { p(3, 9 + (step > 0 ? 1 : 0), 1, 4, skin); p(12, 9 + (step < 0 ? 1 : 0), 1, 4, skin); }
-    // 头：脸 + 头发（朝上只看到头发）
-    p(4, 2, 8, 7, skin);
-    p(3, 1, 10, 3, hair); p(4, 0, 8, 1, hair);
-    if (dir === 3) p(3, 1, 10, 9, hair);
-    else if (dir === 0) { p(3, 3, 1, 6, hair); p(12, 3, 1, 6, hair); p(6, 5, 1, 2, [30, 30, 40]); p(9, 5, 1, 2, [30, 30, 40]); p(5, 7, 1, 1, [240, 150, 150]); p(10, 7, 1, 1, [240, 150, 150]); }
-    else { p(dir === 1 ? 10 : 3, 3, 3, 6, hair); p(dir === 1 ? 5 : 10, 5, 1, 2, [30, 30, 40]); }
-  }
-  // 描一圈深色轮廓
-  const img = g.getImageData(0, 0, cv.width, cv.height), d = img.data, W = cv.width, H = cv.height, out = [];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    if (d[(y * W + x) * 4 + 3]) continue;
-    const n = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
-      const X = x + dx, Y = y + dy;
-      return X >= 0 && Y >= 0 && X < W && Y < H && Math.floor(X / SW) === Math.floor(x / SW) && Math.floor(Y / SH) === Math.floor(y / SH) && d[(Y * W + X) * 4 + 3];
-    });
-    if (n) out.push((y * W + x) * 4);
-  }
-  for (const i of out) { d[i] = 27; d[i + 1] = 27; d[i + 2] = 40; d[i + 3] = 255; }
-  g.putImageData(img, 0, 0);
-  return cv;
-}
+// ---------- 小人：每个角色自己的像素形象（js/pixel.js），一帧 20×28，脚踩在格子底边 ----------
+const DX = -2, DY = -12;  // 小人比格子宽、比格子高：往左挪 2、往上挪 12，脚落在这一格里
 
 // ---------- 世界时间和她该在哪：都听服务器的 ----------
 // 世界时间 = 服务器的时刻 + 世界时区。worldNow() 给一个 Date，用 getUTC* 读出来就是世界里的几点几分
@@ -236,7 +199,10 @@ export async function loadTown() {
   for (const id of T.people.keys()) if (!keep.has(id)) T.people.delete(id);
   for (const c of d.cast) {
     const p = T.people.get(c.id);
-    if (p) { p.c = c; continue; }
+    if (p) {  // 像素形象刚定下来（后台补的）：换上她自己的样子
+      if (JSON.stringify(p.c.pixel || null) !== JSON.stringify(c.pixel || null)) p.sprite = makeSprite(c);
+      p.c = c; continue;
+    }
     const place = placeOf(c), spot = pickSpot(place, c.id);
     T.people.set(c.id, { c, sprite: makeSprite(c), x: spot[0] * TS, y: spot[1] * TS, tile: spot, path: [], dir: 0, walked: 0,
       place, inside: place === "home", wait: 2 + Math.random() * 6 });
@@ -250,7 +216,8 @@ function syncYou() {
   const v = T.data?.you, p = T.people.get(YOU);
   if (!v) { if (p) T.people.delete(YOU); if (T.talk) endTalkUI(); return; }
   if (!p) {
-    const c = { id: YOU, name: t("你"), color: "#2f3542", you: true };
+    const c = { id: YOU, name: t("你"), color: "#2f3542", you: true,  // 你：短发、浅色上衣、长裤（和她们一眼区分开）
+      pixel: { hair: "#3a2e28", style: "short", top: "#e8e2d0", bottom: "pants", bottom_color: "#3a4660", shoes: "#2a2a30", extras: [] } };
     T.people.set(YOU, { c, sprite: makeSprite(c), x: ENTRY[0] * TS, y: ENTRY[1] * TS, tile: [...ENTRY], path: [], dir: 3, walked: 0,
       place: "", inside: false, wait: 1e9 });
   }
@@ -342,15 +309,14 @@ function draw() {
   const ppl = [...T.people.values()].sort((a, b) => a.y - b.y);  // 下面的人挡住上面的人
   for (const p of ppl) {
     if (p.inside) { sleeping.add(homeOf(p.c).join()); continue; }
-    const x = Math.round(p.x), y = Math.round(p.y) - 6;
-    g.fillStyle = "rgba(0,0,0,.25)"; g.fillRect(x + 3, y + SH - 2, 10, 3);
+    const x = Math.round(p.x) + DX, y = Math.round(p.y) + DY;
+    g.fillStyle = "rgba(0,0,0,.25)"; g.fillRect(x + 5, y + SH - 2, 10, 2);
     const f = p.path.length ? 1 + (Math.floor(p.walked / 6) % 2) : 0;
     g.drawImage(p.sprite, f * SW, p.dir * SH, SW, SH, x, y, SW, SH);
-    if (p.c.mine) { g.fillStyle = p.c.color; g.fillRect(x + 7, y - 4, 2, 2); }
-    if (p.c.you) { g.fillStyle = "#fff8e6"; g.fillRect(x + 6, y - 5, 4, 1); g.fillRect(x + 7, y - 4, 2, 1); }  // 你：头上一个小白三角
+    if (p.c.you) { g.fillStyle = "#fff8e6"; g.fillRect(x + 8, y - 4, 4, 1); g.fillRect(x + 9, y - 3, 2, 1); }  // 你：头上一个小白三角
     if (T.sel === p.c.id) {  // 选中的人头上一个跳动的小箭头
       const b = Math.round(Math.sin(performance.now() / 160) * 1.5);
-      g.fillStyle = "#ffe14d"; g.fillRect(x + 5, y - 9 + b, 6, 2); g.fillRect(x + 6, y - 7 + b, 4, 1); g.fillRect(x + 7, y - 6 + b, 2, 1);
+      g.fillStyle = "#ffe14d"; g.fillRect(x + 7, y - 8 + b, 6, 2); g.fillRect(x + 8, y - 6 + b, 4, 1); g.fillRect(x + 9, y - 5 + b, 2, 1);
     }
   }
   for (const k of sleeping) {  // 有人在家睡觉：屋顶上冒 z
@@ -392,7 +358,7 @@ function placeBubbles() {
   for (const [id, b] of T.bubbles) {
     const p = T.people.get(id);
     if (!p || p.inside || now > b.until) { b.el.remove(); T.bubbles.delete(id); continue; }
-    b.el.style.left = `${(p.x + SW / 2) * k}px`; b.el.style.top = `${(p.y - 8) * k}px`;
+    b.el.style.left = `${(p.x + DX + SW / 2) * k}px`; b.el.style.top = `${(p.y + DY - 4) * k}px`;
   }
 }
 function chatter() {  // 闲着时：随机一个人把她最近说过的一句话冒出来（不调用模型，只是重放）
@@ -406,7 +372,7 @@ function chatter() {  // 闲着时：随机一个人把她最近说过的一句�
 function mapXY(e) { const k = scale(); return [e.offsetX / k, e.offsetY / k]; }
 function hit(x, y) {
   const ppl = [...T.people.values()].filter((p) => !p.inside).sort((a, b) => b.y - a.y);
-  const p = ppl.find((q) => x >= q.x && x < q.x + SW && y >= q.y - 6 && y < q.y - 6 + SH);
+  const p = ppl.find((q) => x >= q.x + DX + 2 && x < q.x + DX + SW - 2 && y >= q.y + DY && y < q.y + DY + SH);
   if (p) return { person: p };
   const tx = Math.floor(x / TS), ty = Math.floor(y / TS);
   const inR = (o) => tx >= o.x && tx < o.x + o.w && ty >= o.y && ty < o.y + o.h;
