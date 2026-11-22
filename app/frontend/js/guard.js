@@ -27,12 +27,58 @@ export function readDob(root) {  // "YYYY-MM"；没选全就是 null
   return m && y ? `${y}-${String(m).padStart(2, "0")}` : null;
 }
 
-// 国际站：被拒绝后，这个浏览器一天内不能换个年龄再试（FTC 建议用 Cookie 防止“后退重填”；ICO 也要求防止立刻重新填）
-const AGE_COOKIE = "km_age_denied";
-export const ageDenied = () => document.cookie.split("; ").some((c) => c === AGE_COOKIE + "=1");
-export function denyAge() {
-  const secure = location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${AGE_COOKIE}=1; Path=/; Max-Age=86400; SameSite=Lax${secure}`;
+// ---------- 登录和注册时的弹窗：先是要点，再是两个附件（服务条款、隐私政策全文），最后勾选 ----------
+// 两个版本都只为成年人提供服务。登录：勾“已满 18 岁”和“同意”；注册：改填出生年月（国内版还有紧急联系人），再勾“同意”
+// 要点是两份文件里最要紧的几条，改了条款或隐私政策（app/landing_src/content/）记得同步这里
+const policyUrl = (doc) => `/${S.site?.edition === "cn" ? "cn" : "global"}/${doc}/`;
+const policyLink = (doc, name) => `<a href="${policyUrl(doc)}" target="_blank" rel="noopener">${esc(t(name))}</a>`;
+const policyAgree = () => t("我已阅读并同意{terms}和{privacy}", { terms: policyLink("terms", "《服务条款》"), privacy: policyLink("privacy", "《隐私政策》") });
+function consentHTML(prefix, { ageBox = true } = {}) {
+  const cn = S.site?.edition === "cn";
+  const points = [
+    "KRINO WORLD 只面向年满 18 周岁的用户。",
+    "这里所有角色都是人工智能，不是真人。她们说的话可能不准确，不能当作医疗、法律、心理或财务建议；遇到危机请联系急救或心理援助热线。",
+    "你和角色的聊天、你创建的角色、角色记下的关于你的事会被保存，用来让角色记得你；你可以随时查看、纠正、删除，注销账号时一并删除。",
+    "麦克风和摄像头只在你点开后才使用，原始录音和画面不保存。我们不出售你的个人信息，也不用你的聊天训练模型。",
+    cn ? "生成回复时，对话内容会经 OpenRouter 发往境外的模型服务处理。" : "语音、图片理解和形象生成在中国境内处理；生成回复时，对话内容会发往 OpenRouter 转接的模型服务。",
+    "不得以真实人物为原型创建角色，不得发布色情、违法、仇恨或骚扰内容。",
+  ];
+  return `<div class="consent">
+    <ul class="consent-points">${points.map((x) => `<li>${esc(t(x))}</li>`).join("")}</ul>
+    <div class="consent-docs"><span class="mono">${esc(t("附件"))}</span>
+      <a href="${policyUrl("terms")}" target="_blank" rel="noopener">${esc(t("《服务条款》"))} ↗</a>
+      <a href="${policyUrl("privacy")}" target="_blank" rel="noopener">${esc(t("《隐私政策》"))} ↗</a></div>
+    ${ageBox ? `<label class="check"><input type="checkbox" id="${prefix}-age"> ${esc(t("我已年满 18 周岁"))}</label>` : ""}
+    <label class="check"><input type="checkbox" id="${prefix}-agree"> <span>${policyAgree()}</span></label>
+  </div>`;
+}
+// 登录：返回要带给 /api/auth/login 的 { agree, of_age }，取消时为 null
+export function consentBox() {
+  return modal("欢迎来到 KRINO WORLD", `${consentHTML("c")}<p class="error" id="c-err"></p>`, (el) => {
+    if (!$("#c-age", el).checked || !$("#c-agree", el).checked) { $("#c-err", el).textContent = t("请勾选以上各项"); return false; }
+    return { agree: true, of_age: true };
+  }, { okText: "同意并进入" });
+}
+
+// 注册：出生年月、紧急联系人（国内版）在这里登记，进了产品就不再问。返回要带给 /api/auth/register 的字段，取消时为 null
+export function registerBox() {
+  const cn = S.site?.edition === "cn";
+  return modal("注册 KRINO WORLD", `
+    <label>${t("出生年月")}${dobFields("r-birth")}</label>
+    ${cn ? `<div class="section-title mono">${t("紧急联系人")}</div><p class="muted small">${t("你遇到危险时我们会联系的人。")}</p>
+      <div class="row"><input id="r-cname" maxlength="20" placeholder="${esc(t("姓名"))}"><input id="r-cphone" maxlength="20" inputmode="tel" placeholder="${esc(t("电话"))}"></div>` : ""}
+    ${consentHTML("r", { ageBox: false })}<p class="error" id="r-err"></p>`, (el) => {
+    const err = (m) => { $("#r-err", el).textContent = t(m); return false; };
+    const birth = readDob($("#r-birth", el));
+    if (!birth) return err("请选择出生年月");
+    const body = { birth, agree: true, of_age: true };
+    if (cn) {
+      body.contact = { name: $("#r-cname", el).value.trim(), phone: $("#r-cphone", el).value.trim() };
+      if (!body.contact.name || !body.contact.phone) return err("请填写紧急联系人的姓名和电话");
+    }
+    if (!$("#r-agree", el).checked) return err("请勾选以上各项");
+    return body;
+  }, { okText: "同意并注册" });
 }
 
 export const G = { st: null, timer: null };
@@ -67,12 +113,12 @@ function ageOf(ym) {
 function gate() {
   if ($("#guard-gate")) return;
   const st = G.st, cn = isCn();
+  if (st.needs.includes("of_age")) return ageGate();
   const el = document.createElement("div");
   el.id = "guard-gate"; el.className = "guard-cover";
   el.innerHTML = `<form class="guard-card" novalidate>
     <h2>${t("开始之前")}</h2>
-    <p class="muted small">${t(cn ? "按照国家对人工智能拟人化互动服务和未成年人网络保护的要求，需要先登记年龄和紧急联系人。信息只用于保护你，不会公开。"
-      : "你的出生年月是？")}</p>
+    <p class="muted small">${t("按照国家对人工智能拟人化互动服务和未成年人网络保护的要求，需要先登记年龄和紧急联系人。信息只用于保护你，不会公开。")}</p>
     <label>${t("出生年月")}${dobFields("g-birth", st.birth || "")}</label>
     <div id="g-contact" class="hidden"><div class="section-title mono">${t("紧急联系人")}</div>
       <p class="muted small">${t("你遇到危险时我们会联系的人。")}</p>
@@ -108,9 +154,31 @@ function gate() {
     }
     try {
       G.st = await api("/api/guard/profile", { body });
-      if (G.st.service_block === "minor") denyAge();
       if (G.st.needs.length) { $("#g-err", el).textContent = t("还有信息没填完"); return; }
       el.remove(); apply(); toast("好了，开始吧");
+    } catch (err) { $("#g-err", el).textContent = tr(err.message); }
+  };
+}
+
+// 这个账号还没确认过已满 18 岁、同意条款（比如这个浏览器替别的账号确认过、没弹窗）：挡住应用，内容和登录弹窗一样，确认一次就不再出现
+function ageGate() {
+  const el = document.createElement("div");
+  el.id = "guard-gate"; el.className = "guard-cover";
+  el.innerHTML = `<form class="guard-card" novalidate>
+    <h2>${t("欢迎来到 KRINO WORLD")}</h2>
+    ${consentHTML("g")}
+    <p class="error" id="g-err"></p>
+    <div class="row"><button type="submit">${t("同意并进入")}</button><span class="grow"></span><button type="button" class="link small" id="g-logout">${t("退出登录")}</button></div>
+  </form>`;
+  document.body.appendChild(el);
+  $("#g-logout", el).onclick = () => bus.emit("logout");
+  el.querySelector("form").onsubmit = async (e) => {
+    e.preventDefault();
+    if (!$("#g-age", el).checked || !$("#g-agree", el).checked) return ($("#g-err", el).textContent = t("请勾选以上各项"));
+    try {
+      G.st = await api("/api/guard/profile", { body: { of_age: true, agree: true } });
+      if (G.st.needs.length) { $("#g-err", el).textContent = t("还有信息没填完"); return; }
+      el.remove(); apply();
     } catch (err) { $("#g-err", el).textContent = tr(err.message); }
   };
 }

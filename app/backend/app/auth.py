@@ -125,7 +125,10 @@ class Credentials(BaseModel):
     username: str
     password: str = Field(min_length=6, max_length=128)
     display_name: str | None = Field(default=None, max_length=32)
-    birth: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$")  # 出生年月；国际站注册必填且要满 18 岁
+    birth: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$")  # 出生年月：注册时必填，要满 18 岁
+    contact: dict | None = None  # 紧急联系人 {name, phone}：国内版注册时必填
+    of_age: bool = False   # 注册弹窗里勾了“我已年满 18 周岁”
+    agree: bool = False   # 注册弹窗里勾了“同意服务条款和隐私政策”
 
 
 class SettingsIn(BaseModel):
@@ -179,20 +182,24 @@ def register(body: Credentials, db: Session = Depends(get_db)):
         raise HTTPException(400, "用户名需 2-32 位字母、数字、下划线或中文")
     if db.scalar(select(User).where(User.username == body.username)):
         raise HTTPException(409, "用户名已存在")
-    guard_info = {}
-    if settings.edition != "cn":  # 国际站只为成年人提供服务：注册时就确认
-        from .guard import ADULT
-        if not body.birth:
-            raise HTTPException(400, "请选择出生年月")
-        y, m = (int(x) for x in body.birth.split("-"))
-        today = datetime.now(timezone.utc).date()
-        if not (1900 <= y and 1 <= m <= 12 and (y, m) <= (today.year, today.month)):
-            raise HTTPException(400, "出生年月不对")
-        if today.year - y - (1 if today.month < m else 0) < ADULT:  # 中性的拒绝：不说年龄门槛（FTC COPPA FAQ D.7）
-            raise HTTPException(403, "抱歉，无法为你创建账号。")
-        guard_info = {"guard": {"birth": body.birth}}
-    elif body.birth:
-        guard_info = {"guard": {"birth": body.birth}}
+    # 两个版本都只为成年人提供服务。注册时登记出生年月、紧急联系人（国内版），同意服务条款和隐私政策；进了产品就不再问
+    if not body.agree:
+        raise HTTPException(400, "请先阅读并同意服务条款和隐私政策")
+    if not body.birth:
+        raise HTTPException(400, "请选择出生年月")
+    y, m = (int(x) for x in body.birth.split("-"))
+    today = datetime.now(timezone.utc).date()
+    if not (1900 <= y and 1 <= m <= 12 and (y, m) <= (today.year, today.month)):
+        raise HTTPException(400, "出生年月不对")
+    from .guard import ADULT, Person, _person
+    if today.year - y - (1 if today.month < m else 0) < ADULT:  # 中性的拒绝：不说年龄门槛（FTC COPPA FAQ D.7）
+        raise HTTPException(403, "抱歉，无法为你创建账号。")
+    stamp = datetime.now(timezone.utc).isoformat()
+    guard = {"agreed_at": stamp, "adult_confirmed_at": stamp, "birth": body.birth}
+    if settings.edition == "cn":
+        c = body.contact or {}
+        guard["contact"] = _person(Person(name=str(c.get("name") or ""), phone=str(c.get("phone") or "")), "紧急联系人")
+    guard_info = {"guard": guard}
     user = User(username=body.username, password_hash=hash_password(body.password),
                 display_name=body.display_name or body.username, settings=guard_info)
     db.add(user)
@@ -212,6 +219,14 @@ def login(body: Credentials, db: Session = Depends(get_db)):
     from .guard import adult_block
     if adult_block(user) == "minor":  # 国际站：登记的年龄不满 18 岁的账号不能登录（疑似的可以登录去申诉）
         raise HTTPException(403, "抱歉，这个账号不能使用 KRINO WORLD。")
+    # 登录时也可以带上确认（API 用）：记下第一次同意的时间（网页上没确认过的老账号登录后挡一次，见 guard.needs）
+    g = dict((user.settings or {}).get("guard") or {})
+    stamp = datetime.now(timezone.utc).isoformat()
+    new = {**({"agreed_at": stamp} if body.agree else {}),
+           **({"adult_confirmed_at": stamp} if body.of_age else {})}
+    if any(k not in g for k in new):
+        user.settings = {**(user.settings or {}), "guard": {**new, **g}}
+        db.commit()
     return {"token": issue_token(db, user), "user": user_out(user)}
 
 

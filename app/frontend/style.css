@@ -81,7 +81,6 @@ button:disabled::before { display: none; }
 .badge.cobalt { background: var(--cobalt); border-color: var(--cobalt); color: var(--silver-hi); }
 .tag { color: var(--silver); }
 .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); animation: pulse 2.4s infinite; }
-.ripple { position: fixed; z-index: 95; width: 10px; height: 10px; translate: -50% -50%; border: 1px solid var(--silver); border-radius: 50%; pointer-events: none; animation: ripple .8s var(--ease) forwards; }
 
 /* ---------- 钴蓝铜版画 ---------- */
 .plate {
@@ -318,7 +317,6 @@ legend { font-size: 10px; letter-spacing: .2em; color: var(--muted); padding: 0 
 @keyframes toast { from { opacity: 0; translate: -50% 14px; } to { opacity: 1; translate: -50% 0; } }
 @keyframes dot { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
 @keyframes pulse { 50% { opacity: .35; } }
-@keyframes ripple { from { width: 10px; height: 10px; opacity: .9; } to { width: 90px; height: 90px; opacity: 0; } }
 
 
 /* ---------- 记忆侧栏 ---------- */
@@ -892,6 +890,13 @@ html[data-edition="global"] .lockup span { font-size: 17px; letter-spacing: .12e
 .voice-tune .tune:hover { border-color: var(--char); color: var(--silver-hi); }
 label.check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text); margin: 6px 0 2px; cursor: pointer; }
 label.check input { margin-top: 3px; }
+/* 登录前的确认弹窗：要点、两个附件、勾选（guard.js 的 consentHTML） */
+.consent { margin-top: 16px; }
+.modal-card .consent:first-child { margin-top: 0; }
+.consent-points { margin: 4px 0 14px; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.consent-docs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 0; margin-bottom: 8px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 13px; }
+.consent-docs .mono { font-size: 11px; letter-spacing: .14em; color: var(--muted); }
+.consent-docs a, .consent .check a { color: var(--silver-hi); }
 .wb-motion { align-items: center; margin-top: 4px; }
 .voice-design textarea { flex: 1; min-height: 2.8em; }
 .voice-design button { flex: none; }
@@ -971,26 +976,20 @@ label.check input { margin-top: 3px; }
 .report-reply { color: var(--ok); margin-top: 4px; }
 
 /* 国际站登录页：出生年月、已满 18 岁 */
-.age-check { display: none; }
-html[data-edition="global"] .age-check { display: flex; }
-html[data-edition="global"] .field.age-check { flex-direction: column; gap: 6px; }
 
 /* 出生年月：月、年两个下拉框 */
 .dob { display: flex; gap: 8px; }
 .dob select { flex: 1; min-width: 0; }
 
-/* 技术底光带只铺在圈子以外。圈子页打开时 .main 不换背景，像素小镇和圈子样式保持原样。 */
+/* 技术底纹（静态网格 + 底光，不做会动的光带）只铺在圈子以外。圈子页打开时 .main 不换背景，像素小镇和圈子样式保持原样。 */
 .main:not(:has(#view-social:not(.hidden))) {
   position: relative;
   background:
-    linear-gradient(115deg, transparent 46%, rgba(95, 212, 255, .11) 50%, transparent 54%),
     linear-gradient(rgba(95, 212, 255, .045) 1px, transparent 1px),
     linear-gradient(90deg, rgba(95, 212, 255, .045) 1px, transparent 1px),
     radial-gradient(880px 420px at 100% -10%, rgba(20, 20, 168, .28), transparent 55%),
     #0b0c11;
-  background-size: 240% 100%, 56px 56px, 56px 56px, auto, auto;
-  background-position: 120% 0, 0 0, 0 0, 0 0, 0 0;
-  animation: tech-beam 9s linear infinite;
+  background-size: 56px 56px, 56px 56px, auto, auto;
 }
 
 /* 工作台：左边整幅形象，右边整幅灵魂；形象、声音、语言和灵魂详情收进角落 */
@@ -1029,19 +1028,12 @@ html[data-edition="global"] .field.age-check { flex-direction: column; gap: 6px;
   #view-persona .studio { grid-template-columns: 1fr; }
   #view-persona .studio-body, #view-persona .studio-soul, #view-persona .wb-stage, #view-persona .soul-brain, #view-persona .soul-brain canvas { min-height: 78vh; height: 78vh; }
 }
-@keyframes tech-beam {
-  from { background-position: 120% 0, 0 0, 0 0, 0 0, 0 0; }
-  to { background-position: -50% 0, 0 0, 0 0, 0 0, 0 0; }
-}
 @keyframes dock-veil { from { background-color: rgba(4, 6, 12, 0); } to { background-color: rgba(4, 6, 12, .62); } }
 @keyframes dock-card { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-html.page-hidden .main:not(:has(#view-social:not(.hidden))),
 html.page-hidden #grain,
 html.page-hidden .plate::after { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
-  .main:not(:has(#view-social:not(.hidden))),
   .view.view-enter:not(#view-social)::after,
   .char-item.active::before, .modal, .modal-card,
   .studio-dock, .dock-card, .studio-dock.is-closing, .studio-dock.is-closing .dock-card { animation: none !important; }
-  .main:not(:has(#view-social:not(.hidden))) { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
 }

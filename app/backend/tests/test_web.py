@@ -164,7 +164,8 @@ def test_registration_can_be_closed(client, monkeypatch):
     """REGISTRATION=closed：注册接口拒绝，站点信息告诉前端隐藏注册按钮；已有账号照常登录。"""
     from app.config import settings
 
-    client.post("/api/auth/register", json={"username": "reg_before_close", "password": "secret123"})
+    client.post("/api/auth/register", json={"username": "reg_before_close", "password": "secret123", "agree": True, "birth": "1990-01",
+                                                "contact": {"name": "张三", "phone": "13800000000"}})
     monkeypatch.setattr(settings, "registration", "closed")
     assert client.get("/api/site").json()["registration"] is False
     r = client.post("/api/auth/register", json={"username": "reg_after_close", "password": "secret123"})

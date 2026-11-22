@@ -4,7 +4,7 @@
 //   麦克风 = 听写：点一下开始说，再点一下，文字填进输入框，看一眼再发；
 //   输入框空着时，“发送”换成“语音对话”：点一下进入边听边回，说完她自动回答，可以随时打断。
 // 角色做什么（说话 / 表情 / 动作 / 讲故事 / 提议记住）由后端互动策略决定，这里只执行后端给的 actions。
-import { $, $$, S, api, avaHTML, bus, curChar, esc, fail, ripple, storeGet, storeSet, t, toast, tr } from "./core.js";
+import { $, $$, S, api, avaHTML, bus, curChar, esc, fail, storeGet, storeSet, t, toast, tr } from "./core.js";
 import { createStage } from "./stage.js";
 import { ICON } from "./icons.js";
 import { listen, speak, stopSpeaking, sttAvailable, sttMode } from "./voice.js";
@@ -454,13 +454,13 @@ function closeDrawer() { $("#drawer").classList.add("hidden"); }
 
 export function initChat() {
   $("#gestures").innerHTML = GESTURES.map(([id, label]) => `<button data-g="${id}">${t(label)}</button>`).join("");
-  $$("#gestures button").forEach((b) => (b.onclick = () => { activity(); ripple(b); sendEvent({ type: "gesture", gesture: b.dataset.g }); }));
+  $$("#gestures button").forEach((b) => (b.onclick = () => { activity(); sendEvent({ type: "gesture", gesture: b.dataset.g }); }));
   $("#chat-input").addEventListener("keydown", (e) => {
     activity();
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#chat-form").requestSubmit(); }
   });
   $("#chat-input").addEventListener("input", (e) => { e.target.style.height = "auto"; e.target.style.height = Math.min(140, e.target.scrollHeight) + "px"; });
-  $("#chat-form").addEventListener("submit", (e) => { e.preventDefault(); ripple($("#send-btn")); send($("#chat-input").value); });
+  $("#chat-form").addEventListener("submit", (e) => { e.preventDefault(); send($("#chat-input").value); });
   $("#new-session").onclick = () => newTopic().catch(fail);
   $("#mic-btn").onclick = toggleMic;
   $("#img-btn").innerHTML = ICON.image; micIdle();
@@ -471,7 +471,7 @@ export function initChat() {
   });
   $("#vm-btn").innerHTML = `${WAVE}<span>${t("语音对话")}</span>`;
   $("#vm-btn").title = t("开始语音对话：说完她会自动回答，可以随时打断");
-  $("#vm-btn").onclick = () => { ripple($("#vm-btn")); startVoice(); };
+  $("#vm-btn").onclick = () => startVoice();
   $("#chat-input").addEventListener("input", composer);
   composer();
   $("#voice-toggle").onclick = () => setAutoRead(!C.autoRead);

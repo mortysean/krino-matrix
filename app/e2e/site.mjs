@@ -192,14 +192,14 @@ for (const region of ["cn", "global"]) {
     expect(box.y + box.height <= 900, "Enter Krino 不在第一屏");
     expect((await enter.getAttribute("href")) === APPS[region], "Enter Krino 没指向本地区应用");
     const nav = await page.$$eval(".bar nav a.hide-sm", (as) => as.map((a) => a.getAttribute("href")));
-    // 国内站暂时下线了启示与应验：导航少这一项
-    const want = region === "cn" ? ["products/", "vision/#tree", "developers/", "about/"] : ["products/", "apocalypse/", "vision/#tree", "developers/", "about/"];
+    // 国内站暂时下线了启示与应验：导航少这一项；“关于”换成了“联系我们”
+    const want = region === "cn" ? ["./", "products/", "vision/#tree", "developers/", "contact/"] : ["./", "products/", "apocalypse/", "vision/#tree", "developers/", "about/"];
     expect(nav.length === want.length && want.every((w, i) => nav[i].endsWith(w)), "导航不对：" + nav);
     const cta = page.locator(".bar nav a.cta");
     expect((await cta.textContent()).trim() === (region === "cn" ? "登录" : "Log in") && (await cta.getAttribute("href")) === APPS[region], "右上角应是登录，指向本地区应用");
     expect(await page.locator(".hero-home nav, .hero-nav").count() === 0, "首屏底部不该再有导航");
     const names = await page.$$eval(".bar nav a.hide-sm", (as) => as.map((a) => a.textContent.trim()));
-    expect(names[0] === (region === "cn" ? "产品" : "Products") && names.includes(region === "cn" ? "战略" : "Krino Tree"), "导航名称不对：" + names);
+    expect(names[0] === (region === "cn" ? "首页" : "Home") && names[1] === (region === "cn" ? "产品" : "Products") && names.includes(region === "cn" ? "战略" : "Krino Tree"), "导航名称不对：" + names);
     expect(await page.locator('a[href$="#manifesto"]').count() === 0, "不该再有指向旧宣言板块的链接");
   });
   await step(`[${region}] 开发者中心：三页共用目录，接口一节一节有参数表和示例，复制按钮、Python / cURL 切换能用`, async () => {

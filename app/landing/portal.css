@@ -44,6 +44,8 @@ a { color: inherit; }
 .brand img { width: 26px; height: 30px; image-rendering: pixelated; }
 .brand b { font: 600 13px/1 var(--mono); letter-spacing: .28em; }
 .brand span { display: block; font: 10px/1 var(--mono); letter-spacing: .3em; color: var(--muted); margin-top: 5px; }
+html[data-lang="zh"] .brand b { font: 600 17px/1 var(--sans); letter-spacing: .32em; }  /* 国内站：决策矩阵在上，KRINO MATRIX 在下 */
+html[data-lang="zh"] .brand span { font-size: 9px; letter-spacing: .26em; margin-top: 6px; }
 .bar nav { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .bar nav a, .lang { font: 12px/1 var(--mono); letter-spacing: .14em; text-decoration: none; color: var(--muted); padding: 8px 10px; border: 1px solid transparent;
   background: none; cursor: pointer; transition: color .2s, border-color .2s; }
@@ -283,6 +285,16 @@ html[data-lang="en"] .title { max-width: 18ch; }
 .trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; max-width: 1240px; margin: 0 auto; padding-left: var(--gutter); padding-right: var(--gutter); border: 0; }
 .trio .door { min-height: 240px; }
 .trio .door h3 { font-size: clamp(22px, 2.4vw, 32px); }
+/* 首页翻页：为什么 / 怎么走 / 今天已有，一屏一页 */
+.hs-in, .hs > .site-foot { width: 100%; max-width: 1240px; margin-left: auto; margin-right: auto; }
+.hs .title { max-width: none; font-size: clamp(30px, 4.4vw, 64px); }
+.hs .steps { margin-top: 40px; }
+.steps.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.steps.four li:nth-child(4) { border-color: var(--violet); }
+.hs .go { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+.hs-more { margin: 30px 0 0; font: 13px/1 var(--mono); letter-spacing: .14em; }
+.hs-more a { color: var(--cyan); text-decoration: none; border-bottom: 1px solid transparent; padding-bottom: 4px; }
+.hs-more a:hover, .hs-more a:focus-visible { border-color: var(--cyan); }
 
 /* ---------- 宣言与 Krino Tree 页 ---------- */
 .vtabs { position: sticky; top: 58px; z-index: 12; display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; padding: 8px 0; }
@@ -673,7 +685,7 @@ body:has(.devdoc) .bar { background: var(--bg); border-bottom: 1px solid var(--l
   .cookie { flex-direction: column; align-items: stretch; }
   .term li { grid-template-columns: 1fr; gap: 2px; }
   .page { padding-top: 76px; }
-  .phero, .steps { grid-template-columns: 1fr; }
+  .phero, .steps, .steps.four { grid-template-columns: 1fr; }
   .phero .frame { max-width: 300px; max-height: 46vh; }
   .pcard { grid-template-columns: 1fr; }
   .pimg { min-height: 220px; }
@@ -689,7 +701,7 @@ body:has(.devdoc) .bar { background: var(--bg); border-bottom: 1px solid var(--l
   .hero-home { padding-bottom: 60px; }
 }
 @media (min-width: 761px) and (max-width: 1100px) {
-  .phases, .pgrid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .phases, .pgrid4, .steps.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .deck { scroll-behavior: auto; }

@@ -72,14 +72,24 @@ class Helper:
         return self.ok("get", "/api/memories", params={"character_id": cid, **params})
 
 
-def make_user(client, name=None, birth="1995-06"):
-    """新用户。默认是成年人，填好了出生年月和紧急联系人（guard.py：没填不能聊天）；birth=None 就不填。"""
+ADULT_BIRTH = "1995-06"
+
+
+def make_user(client, name=None, birth=ADULT_BIRTH):
+    """新用户。默认按注册流程登记好出生年月（成年）、紧急联系人，同意了条款。
+    birth 给别的值（比如未成年）或 None：模拟注册还不问这些时的老账号——保护信息清空，再按 birth 补登记（None 就什么都没有）。"""
     name = name or "t" + uuid.uuid4().hex[:10]
-    r = client.post("/api/auth/register", json={"username": name, "password": "secret123", **({"birth": birth} if birth else {})})
+    r = client.post("/api/auth/register", json={"username": name, "password": "secret123", "agree": True, "birth": ADULT_BIRTH,
+                                                "contact": {"name": "张三", "phone": "13800000000"}})
     assert r.status_code == 200, r.text
     h = Helper(client, r.json()["token"], r.json()["user"])
-    if birth:
-        h.ok("post", "/api/guard/profile", json={"birth": birth, "contact": {"name": "张三", "phone": "13800000000"}})
+    if birth != ADULT_BIRTH:
+        from app.db import SessionLocal
+        from app.models import User
+        with SessionLocal() as db:
+            u = db.get(User, h.info["id"]); u.settings = {**u.settings, "guard": {}}; db.commit()
+        if birth:
+            h.ok("post", "/api/guard/profile", json={"birth": birth})
     return h
 
 

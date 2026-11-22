@@ -25,14 +25,25 @@ def _stream(user, sid, text, cid):
     return json.loads(r.text.split("event: done\ndata: ")[1].split("\n")[0])
 
 
-def test_must_give_age_and_contact_before_chatting(client):
-    u = make_user(client, birth=None)
-    g = u.ok("get", "/api/guard")
-    assert set(g["needs"]) == {"birth", "contact"}
+def test_register_takes_age_and_contact_then_no_more_questions(client):
+    """注册时登记出生年月、紧急联系人，同意条款；进了产品不再问。老账号没确认过就不能聊，登录时勾了确认就能用。"""
+    import uuid
+    reg = lambda **kw: client.post("/api/auth/register", json={"username": "c" + uuid.uuid4().hex[:8], "password": "secret123", **kw})
+    contact = {"name": "李四", "phone": "13900000000"}
+    assert reg(birth="1990-01", contact=contact).status_code == 400  # 没勾同意
+    assert reg(agree=True, contact=contact).status_code == 400  # 没填出生年月
+    assert reg(agree=True, birth="1990-01").status_code == 400  # 国内版没填紧急联系人
+    assert reg(agree=True, birth=_birth(16), contact=contact).status_code == 403  # 不满 18 岁
+    r = reg(agree=True, birth="1990-01", contact=contact)
+    assert r.status_code == 200
+    assert client.get("/api/guard", headers={"Authorization": "Bearer " + r.json()["token"]}).json()["needs"] == []
+    u = make_user(client, birth=None)  # 老账号：从没确认过
+    assert u.ok("get", "/api/guard")["needs"] == ["of_age"]
     k = u.krino["id"]
     assert u.post("/api/sessions", json={"character_id": k}).status_code == 403
-    u.ok("post", "/api/guard/profile", json={"birth": "1990-01", "contact": {"name": "李四", "phone": "13900000000"}})
-    assert u.ok("get", "/api/guard")["needs"] == [] and u.session(k)
+    r = client.post("/api/auth/login", json={"username": u.info["username"], "password": "secret123", "agree": True, "of_age": True})
+    assert r.status_code == 200 and u.ok("get", "/api/guard")["needs"] == [] and u.session(k)
+    u.ok("post", "/api/guard/profile", json={"birth": "1990-01"})
     # 填了就不能自己改
     assert u.post("/api/guard/profile", json={"birth": "2015-01"}).status_code == 400
     # 监护人密码不会出现在 /me 里
@@ -145,20 +156,31 @@ def global_site():
 
 
 def test_global_is_adults_only(client, global_site):
-    """国际站：没有未成年人模式；注册要满 18 岁，不满的登不进来；聊天里说出自己未成年就暂停服务，可以申诉。"""
+    """国际站：没有未成年人模式；注册要确认已满 18 岁并同意条款；登记过不满 18 岁的登不进来；聊天里说出自己未成年就暂停服务，可以申诉。"""
     import uuid
     name = "k" + uuid.uuid4().hex[:8]
-    assert client.post("/api/auth/register", json={"username": name, "password": "secret123"}).status_code == 400  # 没填出生年月
-    r = client.post("/api/auth/register", json={"username": name, "password": "secret123", "birth": _birth(16)})
-    assert r.status_code == 403
+    assert client.post("/api/auth/register", json={"username": name, "password": "secret123"}).status_code == 400  # 没勾同意
+    assert client.post("/api/auth/register", json={"username": name, "password": "secret123", "agree": True}).status_code == 400  # 没填出生年月
+    assert client.post("/api/auth/register", json={"username": name, "password": "secret123", "agree": True, "birth": _birth(16)}).status_code == 403
+    # 没确认过成年的账号（老账号）：登录后 needs 里有 of_age，在登录弹窗或挡板里确认后就能用，不问出生年月
+    from app.db import SessionLocal
+    from app.models import User
+    old = make_user(client)
+    with SessionLocal() as db:
+        x = db.get(User, old.info["id"]); x.settings = {**x.settings, "guard": {}}; db.commit()
+    assert old.ok("get", "/api/guard")["needs"] == ["of_age"]
+    r = client.post("/api/auth/login", json={"username": old.info["username"], "password": "secret123", "agree": True, "of_age": True})
+    assert r.status_code == 200 and old.ok("get", "/api/guard")["needs"] == []
+    with SessionLocal() as db:
+        x = db.get(User, old.info["id"]); x.settings = {**x.settings, "guard": {}}; db.commit()
+    old.ok("post", "/api/guard/profile", json={"of_age": True, "agree": True})
+    assert old.ok("get", "/api/guard")["needs"] == []
     u = make_user(client)  # 成年人
     g = u.ok("get", "/api/guard")
     assert g["needs"] == [] and g["minor"] is False and g["service_block"] is None and g["reminders"]["reality"] is None
     assert u.post("/api/guard/minor-mode", json={"on": True}).status_code == 404
     assert u.post("/api/guard/guardian/overview", json={"pin": "1234"}).status_code == 404
-    from app.db import SessionLocal
     from app.guard import prompt_section
-    from app.models import User
     with SessionLocal() as db:
         assert prompt_section(db.get(User, u.info["id"])) == ""  # 国际站没有加给未成年人的规矩
     k = u.krino["id"]

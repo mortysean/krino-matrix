@@ -26,7 +26,8 @@ REGIONS = {
         "company": "杭州决策矩阵科技有限公司",
         # 暂时下线的栏目：不生成页面、不进导航和站点地图；旧地址跳回本地区首页。上线时从这里删掉即可
         "hidden": ("apocalypse/", "manifesto/"),
-        "brand_sub": "决策矩阵",
+        "brand": ("决策矩阵", "KRINO MATRIX"),  # 左上角标志：上面大字，下面小字
+        "nav": ("home", "products", "apocalypse", "tree", "developers", "contact"),  # 顶栏：国内站用“联系我们”代替“关于”
         "icp": "浙ICP备2026093639号",
         "contact": CONTACT,
         "site_name": "决策矩阵 KRINO MATRIX",
@@ -38,7 +39,7 @@ REGIONS = {
              "app": "/cn/products/world/", "cta": "立即体验"},
         ],
         "t": {  # 外壳上的文字
-            "products": "产品", "developers": "开发者", "about": "关于", "contact": "联系",
+            "products": "产品", "developers": "开发者", "about": "关于", "contact": "联系我们",
             "manifesto": "宣言", "apocalypse": "启示与应验", "tree": "战略", "enter": "进入 Krino World", "login": "登录",
             "privacy": "隐私政策", "terms": "服务条款", "cookies": "Cookie 政策",
             "legal": "法律", "company_h": "公司", "region": "地区", "change_region": "切换地区",
@@ -52,8 +53,8 @@ REGIONS = {
         "og_locale": "en_US",
         "label": "International",
         "switch": "International · English",
-        "company": "Krino Matrix",
-        "brand_sub": "",
+        "company": "Hangzhou Krino Matrix Tech Co., Ltd.",  # 杭州决策矩阵科技有限公司的英文名
+        "brand": ("KRINO MATRIX", ""),
         "icp": "",
         "contact": CONTACT,
         "site_name": "KRINO MATRIX",

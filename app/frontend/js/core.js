@@ -248,4 +248,3 @@ export function avaHTML(c, cls = "") {
 }
 
 export const fmtTime = (ts) => (ts ? new Date(ts).toLocaleString(getLocale() === "en" ? "en-US" : "zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—");
-export const ripple = (el) => window.Mascot?.ripple(el);

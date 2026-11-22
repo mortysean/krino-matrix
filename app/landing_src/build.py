@@ -39,9 +39,11 @@ ASSETS = {"krino-mark.svg": HERE.parent / "frontend/assets/krino-mark.svg",
           "krino.png": HERE.parent / "frontend/assets/krino.png"}
 GENERATED = ["cn", "global", "privacy", "terms", "cookies", "assets", "index.html", "404.html", "sitemap.xml", "robots.txt", "favicon.ico"]
 LEGAL = ("privacy", "terms", "cookies")
-# 顶栏：产品（介绍页）、启示与应验、战略（Krino Tree）、开发者、关于；最右边是登录（进应用，没登录时应用先显示登录页）；联系在页脚
-NAV = (("products", "products/", "products/"), ("apocalypse", "apocalypse/", "apocalypse/"), ("tree", "vision/#tree", "vision/"),
-       ("developers", "developers/", "developers/"), ("about", "about/", "about/"))
+# 顶栏：首页、产品（介绍页）、启示与应验、战略（Krino Tree）、开发者、关于（地区可在 regions.py 的 nav 里换，国内站换成联系我们）；
+# 最右边是登录（进应用，没登录时应用先显示登录页）
+NAV = (("home", "", ""), ("products", "products/", "products/"), ("apocalypse", "apocalypse/", "apocalypse/"), ("tree", "vision/#tree", "vision/"),
+       ("developers", "developers/", "developers/"), ("about", "about/", "about/"), ("contact", "contact/", "contact/"))
+NAV_DEFAULT = ("home", "products", "apocalypse", "tree", "developers", "about")
 esc = html.escape
 PORTRAIT = "krino.png"  # 页面上显示的立绘文件，main() 里按能否压缩决定
 
@@ -63,7 +65,7 @@ def region_pages(region: str):
     """这个地区有哪些页面：{相对路径: (片段文件, 类型)}。片段存在页面才存在；产品页还要在地区的产品列表里。"""
     d = CONTENT / region
     pages = {}
-    for key, rel, kind in [("home", "", "home"), ("products", "products/", "page"),
+    for key, rel, kind in [("home", "", "deck"), ("products", "products/", "page"),
                            ("about", "about/", "page"), ("contact", "contact/", "page"),
                            ("privacy", "privacy/", "doc"), ("terms", "terms/", "doc"), ("cookies", "cookies/", "doc")]:
         if (d / f"{key}.html").exists():
@@ -109,9 +111,9 @@ def head(*, lang, title, desc, url, alternates, image, locale, site_name, root, 
 FX = '<div class="fx fx-glow"></div><div class="fx fx-grid"></div><div class="fx fx-scan"></div>'
 
 
-def brand(href, sub):
+def brand(href, main, sub):
     s = f"<span>{esc(sub)}</span>" if sub else ""
-    return f'<a class="brand" href="{href}"><img src="{{root}}assets/krino-mark.svg" alt=""><div><b>KRINO MATRIX</b>{s}</div></a>'
+    return f'<a class="brand" href="{href}"><img src="{{root}}assets/krino-mark.svg" alt=""><div><b>{esc(main)}</b>{s}</div></a>'
 
 
 def other_region(region):
@@ -131,12 +133,12 @@ def header(region, rel, pages):
     R, t = REGIONS[region], REGIONS[region]["t"]
     links = []
     for key, href, page in NAV:
-        if page in pages[region]:
+        if key in R.get("nav", NAV_DEFAULT) and page in pages[region]:
             here = rel == page or rel == "manifesto/" and key == "apocalypse" or key == "developers" and rel.startswith(page)
             cur = ' aria-current="page"' if here and key != "tree" else ""
             links.append(f'<a class="hide-sm" href="{{base}}{href}"{cur}>{t[key]}</a>')
     cta = f'<a class="cta" href="{{enter}}">{t["login"]}</a>' if R["products"] else ""
-    return (f'<header class="bar">\n    {brand("{base}", R["brand_sub"])}\n    <nav>\n      ' + "\n      ".join(links)
+    return (f'<header class="bar">\n    {brand("{base}", *R["brand"])}\n    <nav>\n      ' + "\n      ".join(links)
             + f"\n      {region_switch(region, rel, pages)}\n      {cta}\n    </nav>\n  </header>")
 
 
@@ -200,7 +202,8 @@ def fill(text, region, rel, pages):
     text = text.replace("{enter}", R["products"][0]["app"] if R["products"] else "")
     for k, v in {"{contact}": R["contact"], "{updated}": R.get("updated", UPDATED), "{company}": R["company"], "{site}": SITE}.items():
         text = text.replace(k, v)
-    return text.replace("{base}", up(rel)).replace("{root}", up(rel_full))
+    text = text.replace("{base}", up(rel)).replace("{root}", up(rel_full))
+    return text.replace('href=""', 'href="./"')  # 首页上指向首页的链接（顶栏“首页”、标志）
 
 
 def alternates_for(rel, pages):

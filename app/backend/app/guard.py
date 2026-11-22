@@ -149,17 +149,15 @@ def avg7_minutes(db: Session, user: User) -> int:
 
 
 def needs(user: User) -> list[str]:
-    """还缺什么才能用：birth（出生年月）、contact（紧急联系人，国内版）、guardian（不满 14 岁的监护人同意）。"""
+    """还缺什么才能用：of_age（确认已满 18 岁、同意服务条款和隐私政策，登录弹窗里勾）、guardian（老账号登记过不满 14 岁，国内版要监护人同意）。
+    两个版本都只为成年人提供服务，不再问出生年月和紧急联系人；以前登记过出生年月的老账号按登记的年龄算。"""
     g = _g(user)
-    out = []
-    if not g.get("birth"):
-        out.append("birth")
-    a = age(user)
-    if cn() and a is not None and a < CONSENT_AGE and not (g.get("guardian") or {}).get("consent_at"):
-        out.append("guardian")
-    if cn() and not g.get("contact") and not (g.get("guardian") or {}).get("phone"):
-        out.append("contact")
-    return out
+    if g.get("birth"):
+        a = age(user)
+        if cn() and a is not None and a < CONSENT_AGE and not (g.get("guardian") or {}).get("consent_at"):
+            return ["guardian"]
+        return []
+    return [] if g.get("adult_confirmed_at") else ["of_age"]
 
 
 def status(db: Session, user: User) -> dict:
@@ -352,6 +350,8 @@ def _person(p: Person | None, what: str) -> dict:
 
 class ProfileIn(BaseModel):
     birth: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$")  # 出生年月 YYYY-MM
+    of_age: bool = False                   # 确认已满 18 岁（登录时没确认过的账号在这里补）
+    agree: bool = False                    # 同意服务条款和隐私政策
     contact: Person | None = None          # 紧急联系人（国内版）
     guardian: Person | None = None         # 监护人（不满 14 岁必填；14–17 岁可填）
     guardian_consent: bool = False         # 监护人已阅读并同意
@@ -374,6 +374,10 @@ def set_profile(body: ProfileIn, user: User = Depends(session_user), db: Session
         if not (1 <= m <= 12 and 1900 <= y and date(y, m, 1) <= date.today()):
             raise HTTPException(400, "出生年月不对")
         g["birth"] = body.birth  # 国际站不满 18 岁也记下来：同一个账号不能换个日期再试
+    if body.of_age:
+        g.setdefault("adult_confirmed_at", now().isoformat())
+    if body.agree:
+        g.setdefault("agreed_at", now().isoformat())
     if body.contact and (body.contact.name or body.contact.phone):
         g["contact"] = _person(body.contact, "紧急联系人")
     user.settings = {**(user.settings or {}), "guard": g}

@@ -8,7 +8,7 @@ import { initWorkshop, workshopPage, workshopPrefetch } from "./workshop.js";
 import { initGlasses, leaveGlasses } from "./glasses.js";
 import { settingsPage } from "./settings.js";
 import { socialPage, socialPrefetch } from "./social.js";
-import { ageDenied, denyAge, dobFields, readDob, startGuard } from "./guard.js";
+import { consentBox, registerBox, startGuard } from "./guard.js";
 
 const PAGES = { chat: null, persona: personaPage, social: socialPage, workshop: workshopPage, settings: settingsPage };
 
@@ -26,18 +26,20 @@ $("#auth-form").addEventListener("submit", async (e) => {
   const action = e.submitter?.dataset.action || "login";
   const f = new FormData(e.target);
   const body = { username: f.get("username"), password: f.get("password") };
-  const global = S.site?.edition === "global";
-  if (global && action === "register") {  // 国际站只为成年人提供服务：注册时问出生年月（中性筛查，不提年龄门槛）
-    if (ageDenied()) return ($("#auth-error").textContent = t("抱歉，无法为你创建账号。"));
-    body.birth = readDob($("#auth-dob"));
-    if (!body.birth) return ($("#auth-error").textContent = t("请选择出生年月"));
+  // 进入之前弹窗：要点 + 服务条款、隐私政策，确认已满 18 岁并同意（这个浏览器确认过就不再弹）。
+  // 注册的弹窗还要登记出生年月和紧急联系人（国内版），进了产品就不再问
+  const consented = action === "login" && storeGet("krino_consent") === S.site?.edition + ":2";  // 弹窗内容改了就把版本号加一
+  if (!consented) {
+    const ok = await (action === "register" ? registerBox() : consentBox());
+    if (!ok) return;
+    Object.assign(body, ok);
   }
   try {
     const r = await api("/api/auth/" + action, { body });
     S.token = r.token; storeSet("krino_token", r.token);
+    storeSet("krino_consent", S.site?.edition + ":2");
     await boot();
   } catch (err) {
-    if (global && action === "register" && err.status === 403 && body.birth) denyAge();  // 年龄不符被拒：一天内不能换个年龄再试
     $("#auth-error").textContent = tr(err.message);
   }
 });
@@ -146,7 +148,6 @@ async function loadSite() {
   S.site = await fetch(url("/api/site")).then((r) => r.json()).catch(() => S.site);
   document.documentElement.dataset.edition = S.site.edition;
   await setLocale(S.site.locale);
-  if (S.site.edition === "global" && $("#auth-dob")) $("#auth-dob").outerHTML = dobFields("auth-dob");
   applyDom();
   const foot = [S.site.company, S.site.icp && `<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">${esc(S.site.icp)}</a>`,
     S.site.police && esc(S.site.police),

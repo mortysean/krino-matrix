@@ -27,16 +27,6 @@
     clearTimeout(el._t); el._t = setTimeout(() => say.classList.add("hidden"), 2800);
   }
 
-  // 按钮按下时的一圈墨水波纹
-  function ripple(el) {
-    const r = el.getBoundingClientRect();
-    const i = document.createElement("i");
-    i.className = "ripple";
-    i.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top + r.height / 2}px`;
-    document.body.appendChild(i);
-    setTimeout(() => i.remove(), 800);
-  }
-
   mount();
-  window.Mascot = { plate, head, mount, talk, ripple };
+  window.Mascot = { plate, head, mount, talk };
 })();
