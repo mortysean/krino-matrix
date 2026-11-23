@@ -32,10 +32,10 @@ export const isDesktop = () => !matchMedia("(pointer: coarse)").matches;
 
 // 打开 AR。必须在点击里调用（浏览器要求进 AR、开摄像头都由用户操作触发）。
 // 返回 { stage, overlay, say(text), close() }；退出（点 ✕ 或系统返回）时调 onExit
-export async function openAR({ character, level, onTap, onPlaced, onExit, mode, seeing = false }) {
+export async function openAR({ character, level, onTap, onPlaced, onExit, mode, seeing = false, onSee }) {
   mode ||= await arSupport();
   if (!mode) throw new Error(t("这台设备不支持 AR：请用手机打开（安卓 Chrome 能识别桌面，iPhone 用摄像头模式）"));
-  const overlay = buildOverlay(character, mode, seeing && mode === "camera");
+  const overlay = buildOverlay(character, mode);
   document.body.appendChild(overlay);
   const stage = createStage(overlay.querySelector(".ar-puppet"), { level, stillChibi: NO_ALPHA_VIDEO });
   const ui = {
@@ -52,6 +52,16 @@ export async function openAR({ character, level, onTap, onPlaced, onExit, mode, 
     onExit?.();
   };
   overlay.querySelector(".ar-close").onclick = close;
+  // 摄像头模式右上角“让她看”：点一下就是同意你说话时把眼前的一帧给她看（存成“设置 → 隐私”的同一个开关），再点一下关掉
+  const see = overlay.querySelector(".ar-see");
+  const setSeeing = (on) => {
+    if (!see) return;
+    see.classList.toggle("on", on);
+    see.textContent = on ? t("她看得见") : t("让她看");
+    see.title = on ? t("你说话时，她会看一眼你眼前的画面（不保存）。点一下关掉") : t("点一下：你说话时让她看一眼眼前的画面（不保存）");
+  };
+  setSeeing(seeing);
+  if (see) see.onclick = async () => { see.disabled = true; try { setSeeing(await onSee?.(!see.classList.contains("on"))); } finally { see.disabled = false; } };
   // 界面上的按钮不当作“在空间里点了一下”（不然点 ✕ 也会把她挪过去）
   overlay.querySelectorAll(".ar-ui").forEach((el) => el.addEventListener("beforexrselect", (e) => e.preventDefault()));
   try {
@@ -79,7 +89,7 @@ export async function openAR({ character, level, onTap, onPlaced, onExit, mode, 
   };
 }
 
-function buildOverlay(c, mode, seeing) {
+function buildOverlay(c, mode) {
   const el = document.createElement("div");
   el.className = "ar ar-" + mode;
   el.innerHTML = `
@@ -88,7 +98,7 @@ function buildOverlay(c, mode, seeing) {
     <div class="ar-top ar-ui">
       <span class="ar-name">${esc(c.name || "")}</span><span class="ai-badge" title="${esc(t("这是人工智能角色"))}">AI</span>
       <span class="ar-mode">${mode === "xr" ? "AR" : esc(t("摄像头模式"))}</span>
-      ${seeing ? `<span class="ar-seeing" title="${esc(t("你说话时，她会看一眼你眼前的画面（不保存）"))}">${esc(t("她看得见"))}</span>` : ""}
+      ${mode === "camera" ? '<button class="ar-see" type="button"></button>' : ""}
       <button class="ar-close" type="button" title="${esc(t("退出 AR"))}">✕</button>
     </div>
     <div class="ar-hint"></div>

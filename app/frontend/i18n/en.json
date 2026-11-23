@@ -1098,7 +1098,6 @@
   "AR（摄像头模式）：这个浏览器不能识别桌面，她会跟着手机转向留在原地": "AR (camera mode): this browser can't detect surfaces, so she stays put only as you turn the phone",
   "AR：把她放进你眼前的真实空间": "AR: bring her into the room in front of you",
   "KRINO GLASSES 桌面测试版（Windows）": "KRINO GLASSES desktop test build (Windows)",
-  "你说话时，她会看一眼你眼前的画面（不保存）": "When you talk, she glances at what's in front of you (not saved)",
   "先登录 KRINO WORLD 账号，眼镜才能连上她。": "Log in to your KRINO WORLD account so the glasses can reach her.",
   "回正": "Face forward",
   "大一点": "Bigger",
@@ -1109,7 +1108,6 @@
   "她看得见": "SHE CAN SEE",
   "对她说…": "Say something…",
   "小一点": "Smaller",
-  "想让她看到你眼前的东西：在“设置 → 隐私”里打开“允许她看摄像头画面”": "To let her see what's in front of you, turn on \"Let her see your camera\" in Settings → Privacy",
   "慢慢移动手机，对准桌面或地面": "Move your phone slowly and point it at a desk or the floor",
   "打不开摄像头：{msg}": "Couldn't open the camera: {msg}",
   "把她放在我正看着的地方": "Put her where I'm looking",
@@ -1134,5 +1132,9 @@
   "退出 AR": "Exit AR",
   "（作废的上一轮）": "(dropped: an earlier turn)",
   "点一下画面，让她站在那里": "Click the picture to place her there",
-  "AR（电脑摄像头）：她站在摄像头画面里，你说话时能看见你眼前的东西": "AR (webcam): she stands in your camera view and can see what's in front of you when you talk"
+  "AR（电脑摄像头）：她站在摄像头画面里，你说话时能看见你眼前的东西": "AR (webcam): she stands in your camera view and can see what's in front of you when you talk",
+  "让她看": "Let her see",
+  "你说话时，她会看一眼你眼前的画面（不保存）。点一下关掉": "When you talk, she glances at what's in front of you (not saved). Click to turn off",
+  "点一下：你说话时让她看一眼眼前的画面（不保存）": "Click to let her glance at what's in front of you when you talk (not saved)",
+  "想让她看到你眼前的东西：点右上角的“让她看”": "To let her see what's in front of you, tap \"Let her see\" at the top right"
 }

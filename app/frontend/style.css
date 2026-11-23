@@ -1069,7 +1069,8 @@ html.page-hidden .plate::after { animation-play-state: paused; }
 .ar-top { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; display: flex; align-items: center; gap: 8px; }
 .ar-name { font-weight: 600; text-shadow: 0 1px 4px rgba(0, 0, 0, .7); }
 .ar-mode { font: 10px var(--mono); letter-spacing: .15em; color: #3df5ff; text-shadow: 0 1px 4px rgba(0, 0, 0, .7); }
-.ar-seeing { font: 10px var(--mono); letter-spacing: .1em; color: #fff; background: rgba(61, 245, 255, .25); border: 1px solid #3df5ff; padding: 1px 6px; }
+.ar-see { font: 11px var(--sans); padding: 3px 9px; color: #fff; background: rgba(19, 19, 25, .6); border: 1px solid var(--line-2); }
+.ar-see.on { background: rgba(61, 245, 255, .25); border-color: #3df5ff; }
 .ar-close { margin-left: auto; padding: 6px 12px; background: rgba(19, 19, 25, .7); color: var(--silver-hi); border-color: var(--line-2); }
 .ar-hint { position: absolute; top: 40%; left: 50%; translate: -50% 0; max-width: 84%; padding: 8px 14px; text-align: center; font-size: 14px;
   background: rgba(19, 19, 25, .72); border: 1px solid var(--line-2); pointer-events: none; }

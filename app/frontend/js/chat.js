@@ -476,15 +476,20 @@ async function enterAR() {
   VM?.stop();
   stopSpeaking();
   const home = C.stage, toastEl = $("#toast");
-  const seeing = !!S.me?.settings?.privacy?.camera;  // 允许了摄像头：你说话时她看一眼眼前的画面
+  let seeing = !!S.me?.settings?.privacy?.camera;  // 允许了摄像头：你说话时她看一眼眼前的画面
   try {
     AR = await openAR({
       character: c, level: speechLevel, mode: arMode, seeing,  // 事先查好：iPhone 要求问陀螺仪权限前不能有别的等待
+      onSee: async (on) => {  // AR 里点“让她看”：就是“设置 → 隐私”里那个开关
+        try { S.me = await api("/api/me", { method: "PATCH", body: { privacy: { camera: on } } }); seeing = !!S.me?.settings?.privacy?.camera; }
+        catch (e) { fail(e); }
+        return seeing;
+      },
       onTap: () => { activity(); sendEvent({ type: "gesture", gesture: "pat_head" }); },
       onPlaced: () => {  // 放好她就开始语音对话：AR 里不打字
         if (ARVM.active) return;
         warmHum(c.voice || {}); ARVM.start();
-        if (!seeing && arMode === "camera") toast(t("想让她看到你眼前的东西：在“设置 → 隐私”里打开“允许她看摄像头画面”"), 6000);
+        if (!seeing && arMode === "camera") toast(t("想让她看到你眼前的东西：点右上角的“让她看”"), 6000);
       },
       onExit: () => {
         ARVM?.stop(); stopSpeaking();
