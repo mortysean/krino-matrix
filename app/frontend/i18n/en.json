@@ -1132,5 +1132,7 @@
   "这个浏览器读不到陀螺仪：她会固定在屏幕上": "This browser can't read the gyroscope, so she'll stay fixed on screen",
   "这台设备不支持 AR：请用手机打开（安卓 Chrome 能识别桌面，iPhone 用摄像头模式）": "This device can't do AR. Open it on a phone (Android Chrome detects surfaces; iPhone uses camera mode)",
   "退出 AR": "Exit AR",
-  "（作废的上一轮）": "(dropped: an earlier turn)"
+  "（作废的上一轮）": "(dropped: an earlier turn)",
+  "点一下画面，让她站在那里": "Click the picture to place her there",
+  "AR（电脑摄像头）：她站在摄像头画面里，你说话时能看见你眼前的东西": "AR (webcam): she stands in your camera view and can see what's in front of you when you talk"
 }

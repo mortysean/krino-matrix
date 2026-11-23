@@ -24,9 +24,11 @@ export async function arSupport() {
     xrOk = window.isSecureContext && navigator.xr ? await navigator.xr.isSessionSupported("immersive-ar").catch(() => false) : false;
   }
   if (xrOk) return "xr";
-  const touch = matchMedia("(pointer: coarse)").matches;
-  return touch && navigator.mediaDevices?.getUserMedia ? "camera" : "";
+  // 电脑也能进：用电脑的摄像头，她固定在点的位置（没有陀螺仪），主要用来试她能不能看见眼前的东西
+  return window.isSecureContext && navigator.mediaDevices?.getUserMedia ? "camera" : "";
 }
+
+export const isDesktop = () => !matchMedia("(pointer: coarse)").matches;
 
 // 打开 AR。必须在点击里调用（浏览器要求进 AR、开摄像头都由用户操作触发）。
 // 返回 { stage, overlay, say(text), close() }；退出（点 ✕ 或系统返回）时调 onExit
@@ -237,13 +239,14 @@ async function startCamera({ overlay, stage, ui, onTap }) {
     throw new Error(e.name === "NotAllowedError" ? t("没有摄像头权限：请在浏览器设置里允许摄像头") : t("打不开摄像头：{msg}", { msg: e.message || e }));
   }
   const video = overlay.querySelector(".ar-cam");
+  video.classList.toggle("mirror", isDesktop());  // 电脑摄像头对着你：像照镜子一样左右翻过来（给她看的那一帧不翻）
   video.srcObject = cam;
   video.play().catch(() => {});
   const puppet = overlay.querySelector(".ar-puppet");
   const P = { now: null, at: null, x: 0.5, y: 0.7, scale: 1 };
   const onOrient = (e) => { if (e.alpha != null) P.now = { a: e.webkitCompassHeading != null ? -e.webkitCompassHeading : e.alpha, b: e.beta || 0 }; };
   addEventListener("deviceorientation", onOrient);
-  ui.hint(t("把镜头对准想让她站的地方，点一下屏幕"));
+  ui.hint(isDesktop() ? t("点一下画面，让她站在那里") : t("把镜头对准想让她站的地方，点一下屏幕"));
 
   const wrap = (d) => ((d + 540) % 360) - 180;
   let raf = 0;
@@ -270,7 +273,7 @@ async function startCamera({ overlay, stage, ui, onTap }) {
     // 点在屏幕左右哪里，就把这个偏移折算成方向，让她站在点的位置
     if (P.at.a != null) P.at.a -= ((e.clientX - r.left) / r.width - 0.5) * HFOV;
     overlay.classList.add("placed-cam");
-    ui.hint(P.now ? "" : t("这个浏览器读不到陀螺仪：她会固定在屏幕上"));
+    ui.hint(P.now || isDesktop() ? "" : t("这个浏览器读不到陀螺仪：她会固定在屏幕上"));
     ui.placed();
   };
   overlay.addEventListener("pointerdown", onPointer);

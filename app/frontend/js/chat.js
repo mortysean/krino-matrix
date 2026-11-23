@@ -9,7 +9,7 @@ import { createStage } from "./stage.js";
 import { ICON } from "./icons.js";
 import { createSpeech, hum, listen, speak, speechLevel, stopSpeaking, sttAvailable, sttMode, warmHum } from "./voice.js";
 import { createVoiceMode } from "./voicemode.js";
-import { arSupport, openAR } from "./ar.js";
+import { arSupport, isDesktop, openAR } from "./ar.js";
 import { pixelBackdrop } from "./pixelbg.js";
 import { renderDrawer, refreshAsks } from "./memory.js";
 import { G, helpCard, minorNotice, reportForm } from "./guard.js";
@@ -559,7 +559,8 @@ export function initChat() {
   arSupport().then((m) => {
     arMode = m;
     $("#ar-btn").classList.toggle("hidden", !m);
-    if (m === "camera") $("#ar-btn").title = t("AR（摄像头模式）：这个浏览器不能识别桌面，她会跟着手机转向留在原地");
+    if (m === "camera") $("#ar-btn").title = isDesktop() ? t("AR（电脑摄像头）：她站在摄像头画面里，你说话时能看见你眼前的东西")
+      : t("AR（摄像头模式）：这个浏览器不能识别桌面，她会跟着手机转向留在原地");
   });
   setAutoRead(C.autoRead);
   $("#img-btn").onclick = () => $("#img-file").click();
