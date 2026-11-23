@@ -34,7 +34,7 @@ from .i18n import tr
 from .llm import LLMError, get_chat_llm, get_hear_llm, get_llm, transcribe_for_record
 from .models import Character, ChatSession, MemoryJob, Message, User, now
 from .personas import ANIMATIONS, EXPRESSIONS, get_owned, lore_hits
-from .prompt import StreamFilter, build_system, parse_reply, prompt_heard, web_section
+from .prompt import StreamFilter, build_system, parse_reply, prompt_glance, prompt_heard, web_section
 from .text import compact
 
 log = logging.getLogger("krino.chat")
@@ -42,7 +42,10 @@ router = APIRouter(prefix="/api/sessions", tags=["chat"])
 
 HISTORY = 20
 # 写进聊天记录、或者替用户“说”给模型的几句固定文字
-EVENT_TEXT = {'zh': {'gesture': '（你{g}）', 'shared': '（你分享了眼前的画面）', 'quiet': '（对方安静地待在你身边）', 'refused': '（她安静了一会儿）……我们换个话题好吗？'}, 'en': {'gesture': '(You {g})', 'shared': "(You shared what's in front of you)", 'quiet': "(They're quietly hanging out with you)", 'refused': '(she goes quiet for a moment) ...Can we talk about something else?'}}
+EVENT_TEXT = {'zh': {'gesture': '（你{g}）', 'shared': '（你分享了眼前的画面）', 'quiet': '（对方安静地待在你身边）', 'refused': '（她安静了一会儿）……我们换个话题好吗？',
+                      'looking_up': '我查一下哦。', 'cut': '……', 'interrupted': '（对方打断了你）'},
+              'en': {'gesture': '(You {g})', 'shared': "(You shared what's in front of you)", 'quiet': "(They're quietly hanging out with you)", 'refused': '(she goes quiet for a moment) ...Can we talk about something else?',
+                     'looking_up': 'Let me look that up.', 'cut': '…', 'interrupted': '(They cut you off)'}}
 
 
 def event_text(key: str, **kw) -> str:
@@ -113,6 +116,11 @@ def decode_audio(data_url: str) -> str:
     return b64
 
 
+def glance_allowed(user: User) -> bool:
+    """说话时顺带看一眼摄像头画面：用户在“设置 → 隐私”里允许了摄像头才行（和眼镜、模拟器同一个开关）。"""
+    return bool((user_settings(user).get("privacy") or {}).get("camera"))
+
+
 def decode_image(data_url: str | None) -> tuple[bytes, str] | None:
     if not data_url:
         return None
@@ -129,12 +137,18 @@ def _history(db: Session, session_id: str) -> list[dict]:
     rows = db.scalars(select(Message).where(Message.session_id == session_id)
                       .order_by(Message.id.desc()).limit(HISTORY)).all()
     out: list[dict] = []
+    cut = False  # 她上一句被打断了：只记她真的说出口的部分，对方下一句前面注明打断了她
     for m in reversed(rows):
         role = "assistant" if m.role == "assistant" else "user"
+        content = m.content
+        if role == "assistant":
+            cut = bool((m.meta or {}).get("interrupted"))
+        elif cut:
+            content, cut = event_text("interrupted") + content, False
         if out and out[-1]["role"] == role:  # API 要求 user / assistant 交替
-            out[-1]["content"] += "\n" + m.content
+            out[-1]["content"] += "\n" + content
         else:
-            out.append({"role": role, "content": m.content})
+            out.append({"role": role, "content": content})
     while out and out[0]["role"] != "user":
         out.pop(0)
     return out
@@ -292,7 +306,7 @@ def finalize(db: Session, p: Plan, raw: str) -> dict:
         heard = heard or (parsed.heard if parsed else "")
         if um is not None:
             um.content = heard or tr("（语音，没听清）")
-            um.meta = {**(um.meta or {}), "audio": True, "heard": bool(heard)}
+            um.meta = {**(um.meta or {}), "audio": True, "heard": bool(heard), "glance": "image" in p.llm_context}
             if sess.title in (None, "", tr("（语音）")):
                 sess.title = um.content[:30]
     acts = _actions(p, char, text, parsed.expression if parsed else None, parsed.cues if parsed else None, user.settings,
@@ -351,8 +365,9 @@ def finalize(db: Session, p: Plan, raw: str) -> dict:
             "actions": acts, "decision": p.decision.as_dict(), "memory_job": job.id if job else None, "ar": ar}
 
 
-def hear_turn(p: Plan, audio_b64: str) -> None:
-    """把这一轮改成“她直接听”：录音交给能听的模型（回复后在 finalize 里用她听到的原话替换你这句话）。"""
+def hear_turn(p: Plan, audio_b64: str, image: tuple[bytes, str] | None = None) -> None:
+    """把这一轮改成“她直接听”：录音交给能听的模型（回复后在 finalize 里用她听到的原话替换你这句话）。
+    image：说话时眼前的一帧（AR、眼镜的摄像头）。和录音一起交给同一个模型，她边听边看，不多一次识图调用、不多等。"""
     if p.mode != "respond":
         return
     p.audio = True
@@ -360,6 +375,9 @@ def hear_turn(p: Plan, audio_b64: str) -> None:
     audio_b64, fmt = _compact_audio(audio_b64)
     p.llm_context.update({"audio": audio_b64, "audio_format": fmt, "lang": locale(), "web": False})
     p.system += "\n\n" + prompt_heard()
+    if image:
+        p.llm_context["image"] = f"data:{image[1]};base64," + base64.b64encode(image[0]).decode()
+        p.system += "\n\n" + prompt_glance()
     p.transcript = _ASR_POOL.submit(record_said, wav_b64, audio_b64, fmt, p.user_id)  # 并行记下原话，不耽误她回答
 
 
@@ -397,6 +415,8 @@ def route_heard(p: Plan) -> None:
         return
     p.audio_text = heard
     p.llm_context.pop("audio", None)
+    if p.llm_context.pop("image", None):  # 联网的对话模型不看这一帧
+        p.system = p.system.replace("\n\n" + prompt_glance(), "")
     p.llm_context["web"] = True
     p.llm_context.setdefault("sources", [])
     if p.history and p.history[-1]["role"] == "user":
@@ -441,6 +461,43 @@ def run_turn(db: Session, p: Plan) -> dict:
     return finalize(db, p, raw)
 
 
+class _HearAhead:
+    """语音这一轮：不等识别结果，先让她直接听着开始回答（在另一个线程里收着）。
+    识别结果回来（约 0.3 秒）发现要联网，就停掉这一路改走联网回答；否则把收着的接着往外发。原来是先等识别再开始听，白等 0.3 秒以上。"""
+
+    def __init__(self, llm, p: Plan) -> None:
+        import queue
+        import threading
+
+        self.q: queue.Queue = queue.Queue()
+        self.stop = threading.Event()
+        args = {"system": p.system, "messages": [dict(m) for m in p.history], "context": dict(p.llm_context)}  # 拷贝：route_heard 会改 p
+        threading.Thread(target=self._run, args=(llm, args), daemon=True, name="hear-ahead").start()
+
+    def _run(self, llm, args: dict) -> None:
+        gen = llm.stream(**args)
+        try:
+            for chunk in gen:
+                if self.stop.is_set():
+                    break
+                self.q.put(chunk)
+        except Exception as e:  # noqa: BLE001  交给读的那一边抛出
+            self.q.put(e)
+            return
+        finally:
+            gen.close()
+        self.q.put(None)
+
+    def chunks(self) -> Iterator[str]:
+        while (x := self.q.get()) is not None:
+            if isinstance(x, Exception):
+                raise x
+            yield x
+
+    def cancel(self) -> None:
+        self.stop.set()
+
+
 def stream_turn(p: Plan) -> Iterator[str]:
     def sse(event: str, data) -> str:
         return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
@@ -448,12 +505,23 @@ def stream_turn(p: Plan) -> Iterator[str]:
     yield sse("decision", {"actions": p.decision.actions(), "policy": p.decision.policy, "label": p.decision.label})
     raw = ""
     t0 = time.perf_counter()
+    ahead = None
     try:
+        if p.mode and "audio" in p.llm_context and p.transcript is not None and settings.web_search != "off":
+            ahead = _HearAhead(get_hear_llm() or get_llm(), p)
         route_heard(p)
         if p.mode:
             f = StreamFilter(p.recent_leads)
-            llm = (get_hear_llm() or get_llm()) if "audio" in p.llm_context else get_chat_llm(p.llm_context)
-            for chunk in llm.stream(system=p.system, messages=p.history, context=p.llm_context):
+            if ahead and "audio" in p.llm_context:
+                chunks = ahead.chunks()
+            else:
+                if ahead:  # 要联网：直接听的那一路不要了
+                    ahead.cancel()
+                if p.llm_context.get("web"):  # 查网要多等一两秒：先说一声，不让人干等（只朗读，不进聊天记录）
+                    yield sse("filler", {"text": event_text("looking_up")})
+                llm = (get_hear_llm() or get_llm()) if "audio" in p.llm_context else get_chat_llm(p.llm_context)
+                chunks = llm.stream(system=p.system, messages=p.history, context=p.llm_context)
+            for chunk in chunks:
                 raw += chunk
                 if out := f.feed(chunk):
                     yield sse("delta", {"text": out})
@@ -474,6 +542,9 @@ def stream_turn(p: Plan) -> Iterator[str]:
         events.error("stream", f"{type(e).__name__}: {e}")
         _rollback_user_message(p)
         yield sse("error", {"message": tr("回复失败了，请稍后再试")})
+    finally:
+        if ahead:  # 中途断开：那个线程也别再收了
+            ahead.cancel()
 
 
 async def _until_disconnect(p: Plan, request: Request):
@@ -523,6 +594,19 @@ def _session_out(s: ChatSession) -> dict:
 def _msg_out(m: Message) -> dict:
     return {"id": m.id, "uid": m.uid, "role": m.role, "content": m.content, "state": m.state, "meta": m.meta,
             "created_at": m.created_at.isoformat()}
+
+
+def cut_at(full: str, heard: str) -> int:
+    """她被打断时念到了哪：把念出来的字（朗读前去掉了动作描写、颜文字）按顺序在原文里找，返回原文里念到的位置。
+    每个字只往后找 12 个字以内，找不到就跳过这个字，不会因为一个对不上的字一下跳到末尾。"""
+    pos = 0
+    for c in heard:
+        if c.isspace():
+            continue
+        j = full.find(c, pos, pos + 12)
+        if j >= 0:
+            pos = j + 1
+    return pos
 
 
 def _own(db: Session, user: User, sid: str) -> ChatSession:
@@ -723,12 +807,42 @@ def send_stream(sid: str, body: MessageIn, request: Request, user: User = Depend
     if not body.text.strip() and not audio and not body.image:
         raise HTTPException(400, "说点什么吧")
     text = body.text.strip() or (tr("（语音）") if audio else "")
-    p = plan_turn(db, user, s, event="message", text=text, image=decode_image(body.image), source="voice" if audio else body.source)
+    image = decode_image(body.image)
+    glance = None
+    if audio and image:  # 语音时附上的是眼前的画面（AR 摄像头）：和录音一起给她，不单独识图
+        glance, image = (image if glance_allowed(user) else None), None
+    p = plan_turn(db, user, s, event="message", text=text, image=image, source="voice" if audio else body.source)
     if audio:  # 让她直接听这段录音
-        hear_turn(p, audio)
+        hear_turn(p, audio, glance)
     db.commit()  # 用户消息先落库，流式生成在另一个数据库会话里收尾
     return StreamingResponse(_until_disconnect(p, request), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+class HeardIn(BaseModel):
+    heard: str = Field(default="", max_length=4000)
+
+
+@router.post("/{sid}/messages/{mid}/heard")
+def heard(sid: str, mid: int, body: HeardIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """语音里她说到一半被你打断：只留下你真的听到的那部分（原文存在 meta.full），下一轮她知道自己被打断了。
+    只能截短她自己的原话，不能改写成别的。"""
+    s = _own(db, user, sid)
+    m = db.get(Message, mid)
+    if m is None or m.session_id != s.id or m.role != "assistant":
+        raise HTTPException(404, "没有这条回复")
+    meta = dict(m.meta or {})
+    full = meta.get("full") or m.content
+    pos = cut_at(full, body.heard)
+    if not re.search(r"\w", full[pos:]):  # 后面只剩标点、颜文字：算听完了
+        return _msg_out(m)
+    meta.update(full=full, interrupted=True, heard_chars=pos)
+    m.content = full[:pos].rstrip(" ，,、") + event_text("cut")
+    m.meta = meta
+    db.commit()
+    events.record("chat", "interrupted", user_id=user.id, character_id=s.character_id,
+                  payload={"heard": pos, "full": len(full)})
+    return _msg_out(m)
 
 
 @router.post("/{sid}/events")

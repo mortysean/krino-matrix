@@ -150,3 +150,7 @@ if settings.frontend_dir.exists():
     @app.get("/", include_in_schema=False)
     def index():
         return FileResponse(settings.frontend_dir / "index.html")
+
+    @app.get("/device", include_in_schema=False)
+    def device():  # 眼镜桌面测试版（app/glasses-desktop）加载的镜片页面；和应用同一路径，登录状态共用
+        return FileResponse(settings.frontend_dir / "device.html")

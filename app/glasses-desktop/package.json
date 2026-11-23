@@ -1,0 +1,16 @@
+{
+  "name": "krino-glasses-desktop",
+  "productName": "KRINO GLASSES",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KRINO GLASSES 桌面测试版：透明置顶窗口当镜片，接入 KRINO WORLD 的眼镜设备协议",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack:win": "electron-packager . \"KRINO GLASSES\" --platform=win32 --arch=x64 --out=dist --overwrite --asar --ignore=^/dist --app-copyright=KRINO"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "electron": "45.4.1"
+  }
+}

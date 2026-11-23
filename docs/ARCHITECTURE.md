@@ -26,7 +26,7 @@ app/
   frontend/         原生 ES 模块，无构建
     index.html  style.css  mascot.js
     js/             main（路由）core（接口、弹窗）chat persona workshop settings memory glasses
-                    stage（2D 形象）voice（语音）icons
+                    stage（2D 形象）voice（语音）ar（手机 AR）icons
     assets/         立绘与头像（来源见 assets/CREDITS.md）
     vendor/         PixiJS、pixi-live2d-display、Cubism Core（版本与许可见 vendor/README.md）
   e2e/              浏览器端到端测试
@@ -122,11 +122,51 @@ archive/            已下线的决策导航
   - 动作和表情必须在角色的白名单里。
 - **Matrix 模型**：沿用 `Problem + Action[]` 接口，只用选择头的相对概率排序。现有权重是在决策任务上训练的，没有针对互动行为训练，所以输出标为实验。模型不可用时自动回退到规则策略。
 
+## 手机 AR
+
+- 聊天舞台右上角的 **AR** 按钮（`js/ar.js`），按手机能力选做法：
+  - **xr**（安卓 Chrome，WebXR）：`hit-test` 找桌面 / 地面，点一下放她，有 `anchors` 时建空间锚点。你走动、绕着她转，她留在原地。
+    她仍是 2D 形象：每帧 `stage.snapshot()` 画到一张立在空间里的卡片上（three.js，`vendor/three`），只绕竖轴转向你，脚下一块软阴影。放在离眼睛低于 1 米的表面算桌面（0.32 米高），更低算地面（0.9 米）。
+  - **camera**（iPhone Safari 等没有 WebXR 的）：后置摄像头画面 + 陀螺仪，转动手机时她反向移动；没有表面识别，不跟随走动。
+- 点她 = `pat_head` 互动；点别处的表面 = 让她挪过去。放好后自动开始语音对话（AR 里不打字）。
+- 进 AR 时聊天页把舞台换成 AR 里的那个：后端给的表情、动作、口型照常驱动她。
+- **她看得见（摄像头模式）**：手机 AR 是眼镜的测试替身。“设置 → 隐私”允许了摄像头时，语音对话里你每说一句，截一帧眼前的画面（512px JPEG，不带她），
+  和录音一起交给能听的模型（Qwen3-Omni 同时看图听音，不单独识图、不多等）；后端也要核对这个开关。画面只用于这一句，不保存，记录里只标 `meta.glance`。
+  这一轮要联网时改走对话模型，画面不带。眼镜走同一条路：设备协议的 `mic.audio` 可以带 `image`。WebXR 下页面拿不到相机画面，她看不到。
+- iPhone（Safari 内核）不支持 WebM 透明通道，Q 版小人在 AR 里换成透明底的定妆照（`still.webp`），不然一圈黑底。
+
+## 实时语音对话（准全双工）
+
+参照全双工模型（Boson AI 的 Higgs Realtime Duplex）的做法，在“一问一答”的接口上做出边听边说的感觉。主模型仍在云端，语音识别、朗读、直接听在自己的算力服务器上。
+实测（杭州链路、真实模型，16 轮）：你说完到她出声，中位数从约 3.0 秒降到约 1.6 秒。
+
+- **先想着、再开口**（`voicemode.js`）：你停 0.45 秒就把这段交给她，她开始想、开始合成，但不出声；停满 0.8 秒才放行（`gate`）。
+  0.8 秒内你又开口：撤回这一轮，两段合成一句重新交给她。代价：说话中间停顿时会多一次模型调用（撤回的那次会撤掉记录）。
+- **边生成边念**（`voice.js` 的 `createSpeech`）：回复按句切开，第一句一出来就送去合成，后面的接在同一个播放队列里，不用等整句生成完。
+- **不等识别**（`chat.py` 的 `_HearAhead`）：语音这一轮直接听的模型和识别同时开始；识别结果只用来判断要不要联网，要联网才停掉直接听的那一路。
+  要联网时先推一句 `filler`（“我查一下哦。”，只念，不进记录）。
+- **插话**：她说话时你一出声，她的音量先压低（`duck`）；说满 0.6 秒才算打断，“嗯”“对”一声不打断。打断时把你开口那一段也带上，第一个字不丢。
+- **打断后**：前端报告她实际念出来的句子，`POST /api/sessions/{sid}/messages/{mid}/heard` 只留下你听到的部分（原文存在 `meta.full`），
+  下一轮历史里你那句前面注明“（对方打断了你）”。只能截短她自己的原话。
+- **附和**：你说了 3 秒以上、停下喘口气时，她点个头、用自己的声音轻轻“嗯”一声（每轮一次，开语音对话时提前合成好）。
+- 眼镜设备协议（`delta` / `filler` / `result.reply_id`）同样支持边生成边念和打断截短。
+
+## 口型与“在听”
+
+- `voice.js` 的播放都经过一个 `AnalyserNode`，`speechLevel()` 给出她此刻的音量（0~1，浏览器朗读时为 null）。
+  `createStage(host, { level })` 用它对口型：Live2D 张嘴幅度、立绘的上下动、Q 版小人停顿 0.45 秒以上就从“说话”切回待机。拿不到音量时退回按时间做的口型。
+- 语音对话里你开口时她专心听（`stage.listening`）：Live2D 侧头、立绘微侧、Q 版小人不插待机小动作（`chibi.json` 有 `listen` 片段就换成它）；你连续说 2.5 秒以上她点一次头。
+
 ## KRINO GLASSES
 
-- `devices.py` 的 `DeviceAdapter` 有六项能力：摄像头、麦克风、扬声器、AR 显示、IMU、连接状态。目前有 `glasses-sim`（浏览器模拟器，在“设置 → 高级”里）和 `krino-glasses`（真机占位）。
-- **输入**：`camera.frame`、`mic.text`、`imu.pose`、`heartbeat`，走和 App 相同的互动流程。
-- **输出**：`ar.avatar` / `ar.subtitle` / `ar.panel` / `ar.clear`，由已经执行的行为生成，经过白名单和数值范围校验，模型碰不到渲染。
+- `devices.py` 的 `DeviceAdapter` 有六项能力：摄像头、麦克风、扬声器、AR 显示、IMU、连接状态。目前有 `glasses-sim`（浏览器模拟器，在“设置 → 高级”里）、
+  `glasses-desktop`（Windows 桌面测试版，`app/glasses-desktop`，加载 `/device` 页面）和 `krino-glasses`（真机占位）。两个测试设备共用 `js/glassesclient.js`。
+- **输入**：`camera.frame`、`mic.text`、`mic.audio`、`imu.pose`、`anchor.set`、`heartbeat`，走和 App 相同的互动流程，同样要过额度和未成年保护检查。
+- **输出**：
+  - `delta`：回复边生成边推，镜片上先出字幕；`result`：完整回复，设备自己朗读（口型跟着声音）。别处（手机、网页）聊天同步过来的只显示字幕，不重复出声。
+  - `ar.avatar` / `ar.subtitle` / `ar.panel` / `ar.clear`，由已经执行的行为生成，经过白名单和数值范围校验，模型碰不到渲染。每一轮开始先发 `ar.clear`。
+- **她在空间里的位置**：每个连接一个 `anchor`（相对开机朝向的水平角、俯仰角、距离），不随头转。头部姿态只决定她出现在镜片的哪里；转出视野（±35° / ±25°）时镜片边上有箭头指着她。
+  这一轮要说话而你没在看她，`to_ar` 让她走到你当前朝向的右前方 20°；`anchor.set` 把她放在你正看着的地方。
 
 ## 安全与隐私
 

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>KRINO GLASSES · 服务器</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<style>
+  body { margin: 0; padding: 22px; font: 14px/1.6 system-ui, "Microsoft YaHei", sans-serif; background: #131319; color: #e6e7ef; }
+  h1 { font: 600 14px ui-monospace, Consolas, monospace; letter-spacing: .2em; margin: 0 0 12px; }
+  label { display: block; padding: 8px 10px; margin: 6px 0; border: 1px solid #33333f; cursor: pointer; }
+  label:has(input:checked) { border-color: #3df5ff; }
+  input[type=text] { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 7px 9px; background: #0d0d12; color: #e6e7ef; border: 1px solid #33333f; }
+  small { color: #8a8a99; }
+  button { margin-top: 14px; padding: 8px 22px; background: #e6e7ef; color: #131319; border: 0; font-weight: 600; cursor: pointer; }
+  .err { color: #ff8fa3; min-height: 1.4em; }
+</style></head>
+<body>
+  <h1>KRINO GLASSES · 连接到</h1>
+  <form id="f">
+    <label><input type="radio" name="s" value="https://krinomatrix.com/cn/products/world/"> 国内版 <small>krinomatrix.com/cn</small></label>
+    <label><input type="radio" name="s" value="https://krinomatrix.com/global/products/world/"> 海外版 <small>krinomatrix.com/global</small></label>
+    <label><input type="radio" name="s" value="http://localhost:8630/"> 本机开发服务器 <small>localhost:8630</small></label>
+    <label><input type="radio" name="s" value="custom"> 其他地址<input type="text" id="custom" placeholder="https://…/products/world/"></label>
+    <div class="err" id="err"></div>
+    <button>连接</button>
+  </form>
+<script>
+  const q = new URLSearchParams(location.search), cur = q.get("server") || "", err = q.get("error") || "";
+  const radios = [...document.querySelectorAll("input[name=s]")];
+  const hit = radios.find((r) => r.value === cur);
+  if (hit) hit.checked = true; else if (cur) { radios.at(-1).checked = true; custom.value = cur; } else radios[0].checked = true;
+  document.getElementById("err").textContent = err;
+  custom.onfocus = () => (radios.at(-1).checked = true);
+  f.onsubmit = (e) => {
+    e.preventDefault();
+    let v = radios.find((r) => r.checked).value;
+    if (v === "custom") v = custom.value.trim();
+    if (!/^https?:\/\/[^\s]+$/.test(v)) return (document.getElementById("err").textContent = "请填一个 http(s):// 开头的地址");
+    if (!v.endsWith("/")) v += "/";
+    location.href = "krino-setup://save?server=" + encodeURIComponent(v);
+  };
+</script>
+</body></html>

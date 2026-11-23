@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- KRINO GLASSES 桌面测试版的镜片页面（/device）。Windows 应用（app/glasses-desktop）用透明置顶窗口加载它；普通浏览器打开也能用。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KRINO GLASSES</title>
+  <link rel="icon" href="/static/assets/krino-mark.svg">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="device">
+  <div class="device-lens" id="lens">
+    <div class="ar-avatar" id="ar-avatar"></div>
+    <div class="dev-hud" id="dev-hud"></div>
+  </div>
+  <div class="dev-voice"></div>
+  <div class="dev-login hidden" id="dev-login"></div>
+  <div class="dev-bar" id="dev-bar"></div>
+  <div id="toast" class="toast hidden"></div>
+  <script type="module" src="/static/js/device.js"></script>
+</body>
+</html>

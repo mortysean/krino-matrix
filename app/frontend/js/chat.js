@@ -7,8 +7,9 @@
 import { $, $$, S, api, avaHTML, bus, curChar, esc, fail, storeGet, storeSet, t, toast, tr } from "./core.js";
 import { createStage } from "./stage.js";
 import { ICON } from "./icons.js";
-import { listen, speak, stopSpeaking, sttAvailable, sttMode } from "./voice.js";
+import { createSpeech, hum, listen, speak, speechLevel, stopSpeaking, sttAvailable, sttMode, warmHum } from "./voice.js";
 import { createVoiceMode } from "./voicemode.js";
+import { arSupport, openAR } from "./ar.js";
 import { pixelBackdrop } from "./pixelbg.js";
 import { renderDrawer, refreshAsks } from "./memory.js";
 import { G, helpCard, minorNotice, reportForm } from "./guard.js";
@@ -23,8 +24,8 @@ const C = {
 // ---------- 形象 ----------
 async function ensureStage() {
   const c = curChar();
-  if (!c) return;
-  C.stage ||= createStage($("#stage-host"), { onStatus: (s) => { if (s.state === "fallback") toast(s.message, 5000); } });
+  if (!c || AR) return;  // AR 里的舞台由 AR 自己加载；退出时再补
+  C.stage ||= createStage($("#stage-host"), { level: speechLevel, onStatus: (s) => { if (s.state === "fallback") toast(s.message, 5000); } });
   C.bg ||= pixelBackdrop($("#stage"));
   C.bg.set(c.color, c.id);  // 像素夜景：颜色跟着角色，城市轮廓每个角色固定一片
   const key = c.id + JSON.stringify(c.portrait || {});
@@ -35,6 +36,7 @@ async function ensureStage() {
 }
 
 function sayOnStage(text, story) {
+  if (AR && !ARVM?.active) AR.say(text);  // AR 里没开语音对话时（比如摸了摸她）字幕显示在她身边
   const el = $("#stage-say");
   if (!text) return el.classList.add("hidden");
   el.textContent = text.length > 110 ? text.slice(0, 108) + "…" : text;
@@ -51,16 +53,25 @@ async function readAloud(text, btn) {
   $$(".speak-btn.on").forEach((b) => b.classList.remove("on"));
   btn?.classList.add("on");
   try {
-    const r = await speak(text, curChar()?.voice || {});
-    if (r.audio) C.stage?.attachAudio(r.audio); else C.stage?.speaking(true);
+    const r = await speak(text, curChar()?.voice || {}, { onStart: () => C.stage?.speaking(true) });
     await r.done;
   } catch (e) { fail(e); }
   C.stage?.speaking(false);
   btn?.classList.remove("on");
 }
 
+// 语音对话时她的样子：你开口时专心听；你说了很久、停下喘口气时，她点个头、轻轻“嗯”一声（每一轮最多一次）
+function listenPose(state) {
+  C.stage?.listening(state === "hearing");  // 只在你真的开口时；等你开口的时候她照常待着
+}
+function nodAndHum() {
+  C.stage?.play("nod").catch(() => {});
+  return hum(curChar()?.voice || {});
+}
+
 // 执行后端给的行为
-function perform(actions, { speakIt = false } = {}) {
+// speech：这一句已经边生成边在念了（send 里建的），这里只等它念完，不再念一遍
+function perform(actions, { speakIt = false, speech = null } = {}) {
   // Q 版小人用身体动作表达情绪：同一句里既有动作又有表情时，先做动作（表情片段在动作之后 0.4 秒内不会再抢）
   const ordered = [...(actions || [])].sort((x, y) => (y.type === "animate") - (x.type === "animate"));
   for (const a of ordered) {
@@ -70,11 +81,16 @@ function perform(actions, { speakIt = false } = {}) {
     else if (a.type === "remember_suggest") rememberChip(a);
     else if (a.type === "help") setTimeout(() => helpCard(a), 300);
     else if (a.type === "minor_detected") minorNotice();
-    else if (a.type === "exit") { C.exited = true; setTimeout(() => VM?.stop(), 1500); }  // 说了“退出”：停掉语音对话，不再主动搭话
+    else if (a.type === "exit") { C.exited = true; setTimeout(() => { VM?.stop(); ARVM?.stop(); }, 1500); }  // 说了“退出”：停掉语音对话，不再主动搭话
   }
   const say = (actions || []).find((a) => a.type === "say");
   if (!say) return;
   sayOnStage(say.text, say.story);
+  if (speech) {
+    const btn = $(".msg.assistant:last-of-type .speak-btn");
+    btn?.classList.add("on");
+    return speech.done.then(() => { C.stage?.speaking(false); btn?.classList.remove("on"); });
+  }
   if (speakIt || C.autoRead) return readAloud(say.text, $(".msg.assistant:last-of-type .speak-btn"));
   C.stage?.speaking(true); setTimeout(() => C.stage?.speaking(false), Math.min(6000, 600 + say.text.length * 90));
 }
@@ -226,8 +242,10 @@ async function watchJob(jobId, replyId) {
 }
 
 // ---------- 发送（流式） ----------
-// 返回 { ok, reply, speaking }：speaking 是她念完这句的 promise（不念就没有），语音对话靠它决定什么时候接着听
-async function send(text, { source = "app", audio = null, signal = null } = {}) {
+// 返回 { ok, reply, speaking, heard() }：speaking 是她念完这句的 promise（不念就没有），语音对话靠它决定什么时候接着听；
+// 要念的话边生成边念：第一句一出来就送去合成（gate：语音对话里先合成好，等确认你说完了才出声）。
+// interrupted()：语音里她说到一半被打断，告诉后端她其实只说到哪
+async function send(text, { source = "app", audio = null, signal = null, gate = null, onStart = null, frame = null } = {}) {
   if (C.pending) return { ok: false };
   text = (text || "").trim();
   if (!text && !C.image && !audio) return { ok: false };
@@ -240,15 +258,23 @@ async function send(text, { source = "app", audio = null, signal = null } = {}) 
     await ensureSession();
     const sid = C.session.id, cid = S.charId;
     const here = () => C.session?.id === sid && S.charId === cid;  // 还在同一个角色的同一段对话里
-    const image = C.image; clearImage();
+    const image = C.image || frame; clearImage();  // frame：语音时眼前的一帧（AR 摄像头）
     C.session.messages.push({ id: "tmp", role: "user", content: audio ? t("🎙 语音") : text, meta: { image: !!image, source, audio: !!audio } });
     renderMessages();
     if ($("#chat-input").value.trim() === text) $("#chat-input").value = "";
     composer();
     C.stage?.play("think").catch(() => {});
     const res = await api(`/api/sessions/${sid}/stream`, { body: { text: audio ? "" : text, audio, image, source: source === "voice" ? "voice" : "app", character_id: cid }, raw: true, signal });
-    let live = null, done = null, error = null, typer = null;
+    let live = null, done = null, error = null, typer = null, speech = null;
+    const say = (x) => {
+      if (!(source === "voice" || C.autoRead) || !here()) return;
+      speech ||= createSpeech(curChar()?.voice || {}, { gate, onStart: () => { C.stage?.speaking(true); onStart?.(); } });
+      speech.add(x);
+    };
+    signal?.addEventListener("abort", () => speech?.stop(), { once: true });
     for await (const [ev, data] of sse(res)) {
+      if (ev === "filler") say(data.text + " ");  // 要查一下：先说一声
+      if (ev === "delta") say(data.text);
       if (ev === "delta" && here()) {
         if (!live) {
           C.pending = false; renderMessages();
@@ -263,7 +289,9 @@ async function send(text, { source = "app", audio = null, signal = null } = {}) 
       if (ev === "done") done = data;
       if (ev === "error") error = data.message;
     }
-    if (error) throw new Error(error);
+    if (error) { speech?.stop(); throw new Error(error); }
+    speech?.end();
+    speech?.ready.catch((e) => { if (here()) fail(e); });
     if (typer) await typer.finish();  // 把还没显示完的字匀速打完，再换成最终的气泡
     if (!here()) return { ok: false };  // 中途换了角色：这句回复留在原来那个角色的对话里，回去就能看到
     C.session.messages.pop();
@@ -272,9 +300,12 @@ async function send(text, { source = "app", audio = null, signal = null } = {}) 
     if (done.reply) C.session.messages.push(done.reply);
     renderMessages();
     if (!done.reply) toast("她安静地陪在你身边", 2000);
-    const speaking = perform(done.actions, { speakIt: source === "voice" });
+    if (!done.reply) speech?.stop();
+    const speaking = perform(done.actions, { speakIt: source === "voice", speech });
     if (done.memory_job && done.reply) watchJob(done.memory_job, done.reply.id);
-    return { ok: true, reply: done.reply?.content || "", speaking };
+    const rid = done.reply?.id;
+    return { ok: true, reply: done.reply?.content || "", speaking, speech,
+      interrupted: () => rid && interrupted(sid, rid, speech?.heard() || "") };
   } catch (e) {
     C.pending = false;
     if (e.status === 409) loadSession().catch(() => {});  // 后端发现会话和角色对不上：重新加载当前角色的会话
@@ -292,6 +323,15 @@ async function send(text, { source = "app", audio = null, signal = null } = {}) 
     C.pending = false;
     $("#send-btn").disabled = false;
   }
+}
+
+// 她被打断：后端只留下你真的听到的那部分，气泡也跟着改
+async function interrupted(sid, mid, heard) {
+  try {
+    const m = await api(`/api/sessions/${sid}/messages/${mid}/heard`, { body: { heard } });
+    const i = C.session?.id === sid ? C.session.messages.findIndex((x) => x.id === mid) : -1;
+    if (i >= 0) { C.session.messages[i] = m; renderMessages(); }
+  } catch { /* 记不下就算了：不影响接着聊 */ }
 }
 
 // 匀速打字：模型生成很快，网络常常一次送来十几个字；直接贴上去就是“蹦一下、停一下”。
@@ -365,7 +405,7 @@ async function sendEvent(body) {
 function activity() { C.lastActivity = Date.now(); C.idleCount = 0; C.exited = false; }
 setInterval(() => {
   const it = S.me?.settings?.interaction || {};
-  if (S.view !== "chat" || document.hidden || C.pending || !C.session || C.session.ended || it.proactive === false || VM?.active || C.exited) return;
+  if (S.view !== "chat" || document.hidden || C.pending || !C.session || C.session.ended || it.proactive === false || VM?.active || ARVM?.active || C.exited) return;
   if (G.st?.needs?.length || document.querySelector("#guard-lock")) return;
   if (Date.now() - C.lastActivity < (it.idle_seconds || 45) * 1000) return;
   C.idleCount += 1; C.lastActivity = Date.now();
@@ -427,6 +467,44 @@ async function toggleMic() {
 // ---------- 语音对话：输入框空着时，发送按钮的位置就是它 ----------
 const WAVE = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/></svg>';
 let VM = null;  // initChat 里建好（要挂在聊天栏上）
+
+// ---------- AR：把她放进真实空间。进 AR 时她的舞台换成 AR 里那个，后端给的动作、口型、语音对话都照常驱动她 ----------
+let AR = null, ARVM = null, arMode = "";
+async function enterAR() {
+  const c = curChar();
+  if (!c || AR) return;
+  VM?.stop();
+  stopSpeaking();
+  const home = C.stage, toastEl = $("#toast");
+  const seeing = !!S.me?.settings?.privacy?.camera;  // 允许了摄像头：你说话时她看一眼眼前的画面
+  try {
+    AR = await openAR({
+      character: c, level: speechLevel, mode: arMode, seeing,  // 事先查好：iPhone 要求问陀螺仪权限前不能有别的等待
+      onTap: () => { activity(); sendEvent({ type: "gesture", gesture: "pat_head" }); },
+      onPlaced: () => {  // 放好她就开始语音对话：AR 里不打字
+        if (ARVM.active) return;
+        warmHum(c.voice || {}); ARVM.start();
+        if (!seeing && arMode === "camera") toast(t("想让她看到你眼前的东西：在“设置 → 隐私”里打开“允许她看摄像头画面”"), 6000);
+      },
+      onExit: () => {
+        ARVM?.stop(); stopSpeaking();
+        document.body.appendChild(toastEl);
+        AR = null; C.stage = home;
+        C.stage?.speaking(false);
+        C.portraitFor = null; ensureStage().catch(fail);  // AR 期间改过形象的话补上
+      },
+    });
+  } catch (e) { AR = null; return fail(e); }
+  AR.overlay.appendChild(toastEl);  // xr 模式只显示覆盖层里的东西：提示也挪进来
+  C.stage = AR.stage;
+  ARVM = createVoiceMode({
+    host: AR.overlay.querySelector(".ar-voice"),
+    submit: ({ text, audio, signal, gate, onStart }) =>
+      send(text || "", { source: "voice", audio, signal, gate, onStart, frame: audio && seeing ? AR?.frame() : null }),
+    onExit: () => C.stage?.speaking(false),
+    onState: listenPose, onHum: nodAndHum,
+  });
+}
 function composer() {  // 有字（或带着图）就是“发送”，空着就是“语音对话”
   const empty = !$("#chat-input").value.trim() && !C.image;
   $("#send-btn").classList.toggle("hidden", empty);
@@ -436,6 +514,7 @@ async function startVoice() {
   if (C.listening) { C.listening.cancel?.(); C.listening = null; micIdle(); }
   activity();
   stopSpeaking();
+  warmHum(curChar()?.voice || {});  // 提前合成好她的“嗯”
   await ensureSession().catch(fail);
   VM.start();
 }
@@ -466,8 +545,9 @@ export function initChat() {
   $("#img-btn").innerHTML = ICON.image; micIdle();
   VM = createVoiceMode({
     host: $(".chat-col"),
-    submit: ({ text, audio, signal }) => send(text || "", { source: "voice", audio, signal }),
+    submit: ({ text, audio, signal, gate, onStart }) => send(text || "", { source: "voice", audio, signal, gate, onStart }),
     onExit: () => { C.stage?.speaking(false); composer(); },
+    onState: listenPose, onHum: nodAndHum,
   });
   $("#vm-btn").innerHTML = `${WAVE}<span>${t("语音对话")}</span>`;
   $("#vm-btn").title = t("开始语音对话：说完她会自动回答，可以随时打断");
@@ -475,6 +555,12 @@ export function initChat() {
   $("#chat-input").addEventListener("input", composer);
   composer();
   $("#voice-toggle").onclick = () => setAutoRead(!C.autoRead);
+  $("#ar-btn").onclick = () => enterAR();
+  arSupport().then((m) => {
+    arMode = m;
+    $("#ar-btn").classList.toggle("hidden", !m);
+    if (m === "camera") $("#ar-btn").title = t("AR（摄像头模式）：这个浏览器不能识别桌面，她会跟着手机转向留在原地");
+  });
   setAutoRead(C.autoRead);
   $("#img-btn").onclick = () => $("#img-file").click();
   $("#img-file").onchange = (e) => { pickImage(e.target.files[0]); e.target.value = ""; };
@@ -496,6 +582,7 @@ export function initChat() {
     C.jobs = {};
     C.session = null;  // 立刻放下上一个角色的会话：加载完之前发的话也不会进到她那里
     VM?.stop();
+    AR?.close();
     stopSpeaking();
     renderMessages();
     C.loading = loadSession();
@@ -505,6 +592,6 @@ export function initChat() {
     if (!C.session) greet();
   });
   bus.on("character:changed", () => { C.portraitFor = null; ensureStage().catch(fail); });
-  bus.on("view", (v) => { if (v === "chat") { renderMessages(); ensureStage().catch(fail); } else VM?.stop(); });
-  bus.on("logout", () => { VM?.stop(); Object.assign(C, { session: null, pending: false, jobs: {} }); C.seen = new Set(); stopSpeaking(); });
+  bus.on("view", (v) => { if (v === "chat") { renderMessages(); ensureStage().catch(fail); } else { VM?.stop(); AR?.close(); } });
+  bus.on("logout", () => { VM?.stop(); AR?.close(); Object.assign(C, { session: null, pending: false, jobs: {} }); C.seen = new Set(); stopSpeaking(); });
 }

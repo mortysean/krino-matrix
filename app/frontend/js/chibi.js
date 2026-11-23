@@ -14,7 +14,7 @@ const pick = (arr, not) => {
 };
 
 export function createChibi(box) {
-  const S = { def: null, base: "", blobs: {}, clip: null, queue: [], talking: false, idleLoops: 0, gen: 0, alive: true, ready: false };
+  const S = { def: null, base: "", blobs: {}, clip: null, queue: [], talking: false, attentive: false, idleLoops: 0, gen: 0, alive: true, ready: false };
   const wrap = document.createElement("div");
   wrap.className = "chibi";
   const vids = [0, 1].map(() => {
@@ -73,15 +73,16 @@ export function createChibi(box) {
   function choose(commit) {
     if (S.queue.length) return commit ? S.queue.shift() : S.queue[0];
     if (S.talking && has(S.def.talk)) return S.def.talk;
-    const idle = S.def.rest || "idle";
+    const idle = rest();
     const loops = S.clip === idle ? S.idleLoops + 1 : 0;
-    const flourish = loops >= 2 && Math.random() < 0.4 && S.def.idle?.length;
+    const flourish = !S.attentive && loops >= 2 && Math.random() < 0.4 && S.def.idle?.length;  // 你在说话时不去看书、喝咖啡
     if (commit) S.idleLoops = flourish ? 0 : loops;
     return flourish ? pick(S.def.idle, S.clip) : idle;
   }
   const peek = () => choose(false);
   const next = () => { if (S.alive) show(choose(true)); };
-  const calm = () => !S.clip || S.clip === (S.def.rest || "idle") || S.clip === S.def.talk;  // 待机和说话可以随时打断
+  const rest = () => (S.attentive && has(S.def.listen) ? S.def.listen : S.def.rest || "idle");
+  const calm = () => !S.clip || S.clip === rest() || S.clip === (S.def.rest || "idle") || S.clip === S.def.talk;  // 待机和说话可以随时打断
 
   // 做一个动作：正在待机 / 说话就马上换；正在做别的动作就排在后面（最多排一个，不攒一串）
   function act(name, { strong = true } = {}) {
@@ -141,9 +142,17 @@ export function createChibi(box) {
     play(name) { return act(pickReady(S.def?.moves?.[name] || (has(name) ? [name] : []))); },
     // 表情 → 对应的片段（没有就不动）
     expression(name) { const c = pickReady(S.def?.faces?.[name]); return c ? act(c, { strong: false }) : false; },
-    speaking(on) {
+    // cut：话停了就马上从“说话”片段切回待机（跟着真实声音时用；说话片段一段好几秒，等它放完就慢半拍了）
+    speaking(on, { cut = false } = {}) {
       S.talking = !!on;
       if (on && calm() && has(S.def?.talk) && S.clip !== S.def.talk) { S.queue = []; show(S.def.talk); }
+      if (!on && cut && S.clip === S.def?.talk && !S.queue.length) show(rest());
+    },
+    // 专心听：不插待机小动作；有专门的“听”片段（chibi.json 的 listen）就换成它
+    attentive(on) {
+      S.attentive = !!on;
+      const l = S.def?.listen;
+      if (on && has(l) && !S.talking && calm()) { S.queue = []; show(l); }
     },
     moves: () => Object.keys(S.def?.moves || {}),
     destroy() {

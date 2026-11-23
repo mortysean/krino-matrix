@@ -203,6 +203,8 @@ class OmniLLM:
             fmt = ctx.get("audio_format", "wav")
             msgs[-1] = {"role": "user", "content": [{"type": "input_audio", "input_audio": {"data": "data:;base64," + audio, "format": fmt}},
                                                     {"type": "text", "text": note}]}
+            if ctx.get("image"):  # 说话时眼前的一帧：边听边看
+                msgs[-1]["content"].insert(0, {"type": "image_url", "image_url": {"url": ctx["image"]}})
         body = {"model": self.model, "messages": msgs, "stream": True, "stream_options": {"include_usage": True},
                 "modalities": ["text"], "max_tokens": max_tokens or settings.llm_max_tokens}
         if self.self_hosted:  # 自建的 vLLM：OpenAI 标准写法，mp3 要标准的 MIME
@@ -244,7 +246,7 @@ class OmniLLM:
             audio_t = (usage.get("prompt_tokens_details") or {}).get("audio_tokens") or 0
             if not audio_t and audio:
                 audio_t = min(prompt_t, round(credits.audio_seconds(audio, ctx.get("audio_format", "wav")) * credits.OMNI_AUDIO_TOKENS_PER_S))
-            cny = credits.omni_cny(prompt_t, usage.get("completion_tokens") or 0, audio_t)
+            cny = credits.omni_cny(prompt_t, usage.get("completion_tokens") or 0, audio_t, image=bool(ctx.get("image")))
             credits.charge(ctx.get("payer"), "hear", cny, model=self.model, audio_tokens=audio_t,
                            tokens=prompt_t + (usage.get("completion_tokens") or 0), self_hosted=self.self_hosted)
 

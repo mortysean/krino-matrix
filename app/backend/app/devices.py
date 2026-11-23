@@ -1,15 +1,19 @@
 """KRINO GLASSES 兼容层：统一的 Device Adapter + 浏览器眼镜模拟器 + AR 显示事件。
 
-当前没有真实眼镜通信。首版用浏览器的摄像头、麦克风和一个 3D 场景模拟器（前端“眼镜模拟器”页）当作设备，
-通过 WebSocket 接入；以后接入设备 SDK 时，新写一个 DeviceAdapter 子类注册到 ADAPTERS 即可。
+当前没有真实眼镜通信。用浏览器里的眼镜模拟器（“设置 → 高级”）和 Windows 桌面测试版（app/glasses-desktop，
+加载 /device 页面）当作设备，通过 WebSocket 接入；以后接入设备 SDK 时，新写一个 DeviceAdapter 子类注册到 ADAPTERS 即可。
 
-    设备输入  camera.frame / mic.text / mic.audio（她直接听）/ imu.pose / heartbeat   → 互动流程（chat.py）
-    设备输出  AR 显示事件（结构化、白名单、有范围限制）         ← 角色行为（say / emote / animate / …）
+    设备输入  camera.frame / mic.text / mic.audio（她直接听）/ imu.pose / anchor.set（把她放在哪）/ heartbeat
+              → 互动流程（chat.py）
+    设备输出  delta（边生成边推的字幕）/ result（这一轮的完整回复，设备自己朗读）
+              / ar（AR 显示事件：结构化、白名单、有范围限制）       ← 角色行为（say / emote / animate / …）
 模型不会直接操作渲染：AR 事件只由 present() 根据已经执行的行为生成，并在发出前逐条校验。
+她待在世界里的一个位置上（每个连接各自的 anchor，相对开机时的朝向），不随头转；要说话时人不在你视野里，她才走到你眼前。
 """
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
 import uuid
@@ -69,9 +73,32 @@ AREvent = Annotated[ARSubtitle | ARAvatar | ARPanel | ARClear, Field(discriminat
 _ar = TypeAdapter(list[AREvent])
 
 
-def to_ar(char_name: str, actions: list[dict], pose: dict) -> list[dict]:
-    """角色行为 → AR 事件。角色默认站在用户正前方偏右 20°、1.5 米处，跟随世界坐标（不随头转）。"""
-    anchor = {"yaw": 20.0, "pitch": -5.0, "distance": 1.5}
+DEFAULT_ANCHOR = {"yaw": 20.0, "pitch": -5.0, "distance": 1.5}  # 开机时正前方偏右 20°、1.5 米
+VIEW_YAW, VIEW_PITCH = 35.0, 25.0  # 眼镜视野的半角（度）：超出就看不到她
+
+
+def _wrap(deg: float) -> float:
+    return (deg + 180.0) % 360.0 - 180.0
+
+
+def in_view(anchor: dict, pose: dict) -> bool:
+    return (abs(_wrap(anchor["yaw"] - float(pose.get("yaw", 0)))) <= VIEW_YAW
+            and abs(anchor["pitch"] - float(pose.get("pitch", 0))) <= VIEW_PITCH)
+
+
+def follow(anchor: dict, pose: dict) -> dict:
+    """她要开口时你没在看她：走到你眼前（你现在朝向的右前方 20°），距离不变。看得到她就待在原地。"""
+    if in_view(anchor, pose):
+        return anchor
+    yaw, pitch = float(pose.get("yaw", 0)), float(pose.get("pitch", 0))
+    return {"yaw": round(_wrap(yaw + 20.0), 1), "pitch": round(max(-45.0, min(45.0, pitch - 5.0)), 1), "distance": anchor["distance"]}
+
+
+def to_ar(char_name: str, actions: list[dict], pose: dict | None = None, anchor: dict | None = None) -> list[dict]:
+    """角色行为 → AR 事件。她站在 anchor（世界坐标，不随头转）；这一轮要说话而你没在看她时，先走到你眼前。"""
+    anchor = dict(anchor or DEFAULT_ANCHOR)
+    if any(a.get("type") == "say" for a in actions):
+        anchor = follow(anchor, pose or {})
     out: list[dict] = []
     avatar: dict = {}
     for a in actions:
@@ -131,6 +158,14 @@ class GlassesSimulator(DeviceAdapter):
     capabilities = Capabilities(camera=True, microphone=True, speaker=True, ar_display=True, imu=True)
 
 
+class GlassesDesktop(DeviceAdapter):
+    """Windows 桌面测试版（app/glasses-desktop）：透明置顶窗口当镜片，电脑的摄像头、麦克风、扬声器，鼠标 / 方向键模拟转头。"""
+
+    kind = "glasses-desktop"
+    label = "KRINO GLASSES 桌面测试版（Windows）"
+    capabilities = Capabilities(camera=True, microphone=True, speaker=True, ar_display=True, imu=True)
+
+
 class KrinoGlasses(DeviceAdapter):
     """真机占位：设备 SDK 接入后实现 connect / 输入输出。"""
 
@@ -141,7 +176,7 @@ class KrinoGlasses(DeviceAdapter):
     capabilities = Capabilities(camera=True, microphone=True, speaker=True, ar_display=True, imu=True)
 
 
-ADAPTERS: dict[str, type[DeviceAdapter]] = {a.kind: a for a in (GlassesSimulator, KrinoGlasses)}
+ADAPTERS: dict[str, type[DeviceAdapter]] = {a.kind: a for a in (GlassesSimulator, GlassesDesktop, KrinoGlasses)}
 
 
 @dataclass
@@ -152,6 +187,7 @@ class Connection:
     queue: asyncio.Queue
     character_id: str | None = None
     pose: dict = field(default_factory=lambda: {"yaw": 0.0, "pitch": 0.0, "roll": 0.0})
+    anchor: dict = field(default_factory=lambda: dict(DEFAULT_ANCHOR))
     connected_at: float = field(default_factory=time.time)
     last_seen: float = field(default_factory=time.time)
 
@@ -160,7 +196,7 @@ class Connection:
 
     def out(self) -> dict:
         return {"id": self.id, "kind": self.adapter.kind, "label": self.adapter.label, "state": self.state(),
-                "capabilities": self.adapter.capabilities.__dict__, "pose": self.pose, "character_id": self.character_id,
+                "capabilities": self.adapter.capabilities.__dict__, "pose": self.pose, "anchor": self.anchor, "character_id": self.character_id,
                 "last_seen_s": round(time.time() - self.last_seen, 1)}
 
 
@@ -195,16 +231,19 @@ class Hub:
                    and (c.character_id in (None, char.id))]
         if not targets:
             return []
-        try:
-            evs = to_ar(char.name, actions, targets[0].pose)
-        except ValidationError as e:
-            events.error("ar", f"AR 事件校验失败：{e.errors()[:1]}")
-            return []
-        for c in targets:
+        first: list[dict] = []
+        for c in targets:  # 每副眼镜朝向不同：她走不走到眼前各算各的
+            try:
+                evs = to_ar(char.name, actions, c.pose, c.anchor)
+            except ValidationError as e:
+                events.error("ar", f"AR 事件校验失败：{e.errors()[:1]}")
+                return []
+            c.anchor = evs[0]["anchor"]
             self.send(c, {"type": "ar", "events": evs})
+            first = first or evs
         events.record("ar", "present", user_id=user_id, character_id=char.id,
-                      payload={"types": [e["type"] for e in evs], "devices": len(targets)})
-        return evs
+                      payload={"types": [e["type"] for e in first], "devices": len(targets)})
+        return first
 
 
 hub = Hub()
@@ -237,9 +276,14 @@ def _clamp(v, lo, hi) -> float:
         return 0.0
 
 
-def _handle_input(conn: Connection, msg: dict) -> dict | None:
-    """设备输入 → 互动流程。在线程池里跑（会访问数据库、调模型）。"""
-    from . import chat
+def _sse(chunk: str) -> tuple[str, dict]:
+    head, _, body = chunk.partition("\ndata: ")
+    return head.removeprefix("event: "), json.loads(body)
+
+
+def _handle_input(conn: Connection, msg: dict, emit=None) -> dict | None:
+    """设备输入 → 互动流程。在线程池里跑（会访问数据库、调模型）。回复边生成边经 emit 推 delta，最后返回 result。"""
+    from . import chat, credits, guard
     from .models import ChatSession
 
     db = SessionLocal()
@@ -249,6 +293,8 @@ def _handle_input(conn: Connection, msg: dict) -> dict | None:
         char = db.get(Character, cid) if cid else None
         if char is None or char.owner_id != user.id:
             return {"type": "error", "message": "先在模拟器里选一位角色"}
+        credits.check(db, user)  # 和聊天接口一样：额度、未成年保护都要过
+        guard.check(db, user, cid)
         sess = db.query(ChatSession).filter(ChatSession.user_id == user.id, ChatSession.character_id == cid,
                                             ChatSession.ended_at.is_(None)).order_by(ChatSession.updated_at.desc()).first()
         if sess is None:
@@ -261,12 +307,24 @@ def _handle_input(conn: Connection, msg: dict) -> dict | None:
                                image=img, source="glasses")
         elif msg["type"] == "mic.audio":  # 眼镜的麦克风：她直接听
             audio = chat.decode_audio(str(msg.get("audio") or ""))
+            glance = chat.decode_image(msg.get("image")) if msg.get("image") and chat.glance_allowed(user) else None  # 说话时眼前的一帧
             p = chat.plan_turn(db, user, sess, event="message", text=chat.tr("（语音）"), source="glasses")
-            chat.hear_turn(p, audio)
+            chat.hear_turn(p, audio, glance)
         else:
             p = chat.plan_turn(db, user, sess, event="message", text=str(msg.get("text") or "")[:1000], source="glasses")
-        r = chat.run_turn(db, p)
-        return {"type": "result", "session_id": sess.id, "reply": (r["reply"] or {}).get("content"),
+        db.commit()  # 用户消息先落库，流式生成在另一个数据库会话里收尾
+        r = None
+        for chunk in chat.stream_turn(p):
+            ev, data = _sse(chunk)
+            if ev in ("delta", "filler") and emit:
+                emit({"type": ev, "text": data["text"]})
+            elif ev == "done":
+                r = data
+            elif ev == "error":
+                return {"type": "error", "message": data["message"]}
+        if r is None:
+            return {"type": "error", "message": "回复失败了，请稍后再试"}
+        return {"type": "result", "session_id": sess.id, "reply": (r["reply"] or {}).get("content"), "reply_id": (r["reply"] or {}).get("id"),
                 "heard": (r.get("user") or {}).get("content") if msg["type"] == "mic.audio" else None,
                 "actions": r["actions"], "decision": {"actions": p.decision.actions(), "label": p.decision.label}}
     except Exception as e:  # noqa: BLE001  设备输入出错只回报，不断开
@@ -324,13 +382,18 @@ async def ws(websocket: WebSocket, token: str = "", kind: str = "glasses-sim"):
             elif t == "imu.pose":
                 conn.pose = {"yaw": _clamp(msg.get("yaw"), -180, 180), "pitch": _clamp(msg.get("pitch"), -90, 90),
                              "roll": _clamp(msg.get("roll"), -90, 90)}
+            elif t == "anchor.set":  # 把她放在你看着的地方
+                conn.anchor = {"yaw": round(_wrap(_clamp(msg.get("yaw"), -180, 180)), 1), "pitch": _clamp(msg.get("pitch"), -45, 45),
+                               "distance": _clamp(msg.get("distance") or 1.5, 0.5, 5)}
+                await websocket.send_json({"type": "ar", "events": _ar.dump_python(_ar.validate_python([{"type": "ar.avatar", "anchor": conn.anchor}]))})
             elif t in ("camera.frame", "mic.text", "mic.audio"):
                 events.record("device", t, user_id=user.id, character_id=conn.character_id,
                               payload={"has_image": bool(msg.get("image")), "chars": len(str(msg.get("text") or ""))})
+                await websocket.send_json({"type": "ar", "events": [{"type": "ar.clear"}]})  # 新的一轮：清掉上一轮的字幕和面板
                 await websocket.send_json({"type": "busy"})
-                reply = await asyncio.get_running_loop().run_in_executor(None, _handle_input, conn, msg)
-                if reply:
-                    await websocket.send_json(reply)
+                reply = await asyncio.get_running_loop().run_in_executor(None, _handle_input, conn, msg, lambda m: hub.send(conn, m))
+                if reply:  # 和 delta、ar 走同一条队列：一定排在它们后面
+                    conn.queue.put_nowait(reply)
             else:
                 await websocket.send_json({"type": "error", "message": f"不认识的输入：{t}"})
     except WebSocketDisconnect:

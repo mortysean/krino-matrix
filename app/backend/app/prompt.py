@@ -32,6 +32,9 @@ TEXT = {
                   "不要硬去理解，也不要借这个话头扯别的。"
                   "听不清就直说，不要猜。这一轮你查不了网：对方问天气、新闻、价格、比分这类要实时查的事，不要猜也不要编，"
                   "直接说你现在查不到，请对方再问一次或者打字问你。"),
+        "glance": ("## 这一轮：你看得到对方眼前的画面\n随这句话附上了一帧对方此刻眼前的画面（你就在这个空间里，和对方看着同一处）。"
+                   "对方问到眼前的东西，或者话题和画面有关时，自然地说起你看到的；和话题无关就别硬提，也不要每次都描述画面。"
+                   "画面里看不清、拿不准的不要编。"),
         "web": "## 上网\n今天是 {date}（{weekday}）。你可以上网查资料：对方问到需要最新或准确信息的事（天气、新闻、比赛、价格、"
                "上映时间、某个具体事实）时再查；闲聊、谈心、讲故事不要查。查到后用你自己的口吻挑重点说，不要贴网址、不要写来源链接、"
                "不要念出“根据搜索结果”这类话。查不到或拿不准就直说。",
@@ -78,6 +81,10 @@ animation 选一个最贴合这句话内容和情绪的动作，让形象鲜活�
                   "or a word or two, just ask briefly whether they were talking to you; don't force a meaning or use it to change the subject. "
                   "If you can't make it out, say so; don't guess. You can't search the web this turn: if they ask about weather, news, "
                   "prices or scores, don't guess or make it up; say you can't check right now and ask them to ask again or type it."),
+        "glance": ("## This turn: you can see what's in front of them\nA frame of what they're looking at right now comes with this message "
+                   "(you're in this space with them, looking at the same place). When they ask about what's in front of them, or the topic "
+                   "touches it, talk about what you see naturally; otherwise don't force it, and don't describe the scene every time. "
+                   "Don't make up anything you can't see clearly."),
         "web": "## The web\nToday is {date} ({weekday}). You can search the web: do it when they ask about something that needs "
                "current or exact facts (weather, news, games, prices, release dates, a specific fact); don't search for small talk, "
                "feelings or stories. Say what you found in your own voice, briefly. No URLs, no source links, no \"according to search "
@@ -123,6 +130,10 @@ def T() -> dict:
 
 def prompt_heard() -> str:
     return T()["heard"]
+
+
+def prompt_glance() -> str:
+    return T()["glance"]
 
 
 def web_section() -> str:

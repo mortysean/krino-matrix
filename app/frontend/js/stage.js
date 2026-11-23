@@ -3,7 +3,10 @@
 //   image  一张立绘（透明 PNG）。呼吸、轻微摇摆、说话时的上下弹动、预设动作用 CSS 变换表现，表情用一个小表情气泡提示；
 //          有整套表情图（portrait.expressions，外观工作台生成）时换表情就换图。
 //   live2d Live2D 模型（PixiJS + pixi-live2d-display + Cubism Core）。眨眼、视线、物理、口型都由模型自己完成。
-// 对外接口统一：load(portrait) / setExpression(name) / play(name) / speaking(bool) / attachAudio(audio) / setLook(x, y)。
+// 对外接口统一：load(portrait) / setExpression(name) / play(name) / speaking(bool) / attachAudio(audio) / setLook(x, y)
+//   / listening(bool) 你在说话时她专心听 / snapshot(ctx, w, h) 把当前这一帧画到 2D 画布上（AR 里贴到空间中的那张卡片用）。
+// level：返回她此刻说话音量（0~1）的函数，没有就是 null；有的话口型跟着真实声音走，没有才按时间假装张嘴。
+// stillChibi：Q 版小人不播视频、用定妆照（Safari 不支持 WebM 的透明通道，透明的地方会是黑的）。
 // 做什么动作由后端互动策略决定，这里只负责演出来。
 import { t } from "./i18n.js";
 import { createChibi } from "./chibi.js";
@@ -39,10 +42,10 @@ async function loadLive2DLibs() {
   return scriptsLoaded;
 }
 
-export function createStage(host, { onStatus } = {}) {
+export function createStage(host, { onStatus, level, stillChibi = false } = {}) {
   host.innerHTML = '<div class="portrait"><img alt=""><span class="emote"></span></div>';
   const box = host.querySelector(".portrait"), img = box.querySelector("img"), emote = box.querySelector(".emote");
-  const S = { kind: null, base: "", faces: {}, app: null, model: null, chibi: null, expr: "neutral", move: null, mouth: 0, speaking: false, audio: null, look: [0, 0] };
+  const S = { kind: null, base: "", faces: {}, app: null, model: null, chibi: null, expr: "neutral", move: null, mouth: 0, speaking: false, audio: null, look: [0, 0], listening: false, raf: 0, voiced: false, quietAt: 0 };
 
   function status(state, message = "") { onStatus?.({ state, kind: S.kind, message }); }
 
@@ -71,6 +74,9 @@ export function createStage(host, { onStatus } = {}) {
     box.querySelector(".nameplate")?.remove(); delete box.dataset.plate;
     if (!portrait) return plate(name, color);
     const p = { ...portrait };
+    if (p.kind === "chibi" && stillChibi) {  // 放不了透明视频的地方（iPhone 的 AR 叠在摄像头画面上）：用她透明底的定妆照，不然一圈黑底
+      p.kind = "image"; p.src = p.still || p.src.replace(/chibi\.json$/, "still.webp");
+    }
     if (p.kind === "chibi") {
       try {
         S.kind = "chibi"; status("loading");
@@ -136,7 +142,15 @@ export function createStage(host, { onStatus } = {}) {
     const [eye, mouthForm, cheek, brow] = L2D_EXPR[S.expr] || L2D_EXPR.neutral;
     set("ParamEyeLSmile", eye); set("ParamEyeRSmile", eye); set("ParamMouthForm", mouthForm); set("ParamCheek", cheek);
     set("ParamBrowLY", brow); set("ParamBrowRY", brow);
-    if (S.speaking && !S.audio) set("ParamMouthOpenY", 0.35 + 0.35 * Math.abs(Math.sin(performance.now() / 90)));
+    if (S.speaking && !S.audio) {
+      const lv = level?.();
+      S.mouth += ((lv == null ? 0.35 + 0.35 * Math.abs(Math.sin(performance.now() / 90)) : Math.min(1, lv * 1.3)) - S.mouth) * 0.5;
+      set("ParamMouthOpenY", S.mouth);
+    }
+    if (S.listening && !S.move) {  // 专心听：头微微侧过来、往前一点，眉毛抬一点
+      set("ParamAngleZ", 6); set("ParamBodyAngleX", 0); set("ParamBodyAngleY", 3);
+      set("ParamBrowLY", brow + 0.3); set("ParamBrowRY", brow + 0.3);
+    }
     if (S.move) {
       const t = (performance.now() - S.move.at) / 1000;
       if (t * 1000 > S.move.ms) { S.move.done(); S.move = null; } else Object.entries(L2D_MOVES[S.move.name](t)).forEach(([k, v]) => set(k, v));
@@ -174,7 +188,50 @@ export function createStage(host, { onStatus } = {}) {
     });
   }
 
-  function speaking(on) { S.speaking = !!on; box.classList.toggle("talking", !!on && S.kind === "image"); if (S.kind === "chibi") S.chibi?.speaking(on); }
+  function speaking(on) {
+    S.speaking = !!on; S.voiced = !!on; S.quietAt = 0;
+    box.classList.toggle("talking", !!on && S.kind === "image");
+    if (S.kind === "chibi") S.chibi?.speaking(on);
+    cancelAnimationFrame(S.raf); S.raf = 0;
+    box.classList.remove("voiced"); box.style.removeProperty("--mouth");
+    if (on && level && S.kind !== "live2d") S.raf = requestAnimationFrame(follow);
+  }
+  // 立绘和 Q 版小人跟着真实音量：立绘按音量上下动（不再是固定节奏的弹动）；
+  // Q 版小人一句话中间停顿超过 0.45 秒就切回待机，再开口再接上“说话”，不会对着静音一直动嘴
+  function follow() {
+    if (!S.speaking) return;
+    S.raf = requestAnimationFrame(follow);
+    const lv = level();
+    if (lv == null) { box.classList.remove("voiced"); return; }  // 拿不到声音：照旧按节奏
+    const now = performance.now();
+    if (S.kind === "image") {
+      box.classList.add("voiced");
+      S.mouth += (lv - S.mouth) * 0.5;
+      box.style.setProperty("--mouth", S.mouth.toFixed(3));
+    } else if (S.kind === "chibi") {
+      if (lv > 0.08) { S.quietAt = 0; if (!S.voiced) { S.voiced = true; S.chibi?.speaking(true); } }
+      else if (S.voiced) { S.quietAt ||= now; if (now - S.quietAt > 450) { S.voiced = false; S.chibi?.speaking(false, { cut: true }); } }
+    }
+  }
+
+  function listening(on) {
+    S.listening = !!on;
+    box.classList.toggle("listening", S.listening);
+    if (S.kind === "chibi") S.chibi?.attentive(S.listening);
+  }
+
+  // 当前这一帧画到 2D 画布上，脚底贴着画布底边、水平居中、按比例缩放。返回 false 表示还没有可画的画面
+  function snapshot(ctx, w, h) {
+    let src = null, sw = 0, sh = 0;
+    if (S.kind === "chibi") { src = box.querySelector(".chibi video.front"); sw = src?.videoWidth; sh = src?.videoHeight; }
+    else if (S.kind === "live2d" && S.app) { S.app.renderer.render(S.app.stage); src = S.app.view; sw = src.width; sh = src.height; }  // 刚画完马上取，不用保留绘图缓冲
+    else if (S.kind === "image" && !img.hidden && img.complete) { src = img; sw = img.naturalWidth; sh = img.naturalHeight; }
+    if (!src || !sw || !sh) return false;
+    const k = Math.min(w / sw, h / sh), dw = sw * k, dh = sh * k;
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(src, (w - dw) / 2, h - dh, dw, dh);
+    return true;
+  }
 
   function attachAudio(audio) {
     S.audio = audio; speaking(true);
@@ -189,5 +246,6 @@ export function createStage(host, { onStatus } = {}) {
 
   function setLook(x, y) { S.look = [Math.max(-1, Math.min(1, x)), Math.max(-1, Math.min(1, y))]; }
 
-  return { load, setExpression, play, speaking, attachAudio, setLook, kind: () => S.kind };
+  return { load, setExpression, play, speaking, attachAudio, setLook, listening, snapshot, kind: () => S.kind,
+    destroy() { cancelAnimationFrame(S.raf); clearLive2D(); host.innerHTML = ""; } };
 }

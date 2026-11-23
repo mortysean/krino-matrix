@@ -492,7 +492,18 @@ table.res th { font: 10px var(--mono); color: var(--muted); letter-spacing: .12e
 .lens .lens-bg { background: radial-gradient(ellipse at 50% 120%, #1d1d6a, #08080c 70%);
   background-image: linear-gradient(rgba(185, 186, 199, .06) 1px, transparent 1px), linear-gradient(90deg, rgba(185, 186, 199, .06) 1px, transparent 1px);
   background-size: 40px 40px; }
-.lens .ar-avatar { position: absolute; width: 34%; aspect-ratio: 3 / 4; transition: left .4s var(--ease), top .4s var(--ease), transform .4s var(--ease); pointer-events: none; }
+.lens { cursor: grab; touch-action: none; user-select: none; }
+.lens:active { cursor: grabbing; }
+/* 她：left/top 是她身体中心在镜片里的位置（由头部姿态和她在世界里的位置算出），--s 是远近缩放。转头时立即跟上；走到你眼前时才平滑移动 */
+.lens .ar-avatar, .device-lens .ar-avatar { position: absolute; width: 34%; aspect-ratio: 3 / 4; translate: -50% -55%; scale: var(--s, 1); transition: opacity .3s; pointer-events: none; }
+.lens .ar-avatar.walk, .device-lens .ar-avatar.walk { transition: left .8s var(--ease), top .8s var(--ease), scale .8s var(--ease), opacity .3s; }
+.lens .ar-avatar.out, .device-lens .ar-avatar.out { opacity: 0; }
+.ar-edge { position: absolute; width: 0; height: 0; translate: -50% -50%; border: 9px solid transparent; border-left: 15px solid #3df5ff; filter: drop-shadow(0 0 4px rgba(61, 245, 255, .7));
+  pointer-events: none; animation: edge-pulse 1.4s ease-in-out infinite; }
+.ar-edge[hidden] { display: none; }
+@keyframes edge-pulse { 50% { opacity: .45; } }
+.lens .ar-subtitle.live, .device-lens .ar-subtitle.live { border-style: dashed; }
+.lens .ar-subtitle.system, .device-lens .ar-subtitle.system { color: #ffb3c4; }
 .lens .ar-subtitle { position: absolute; left: 50%; bottom: 7%; translate: -50% 0; max-width: 80%; background: rgba(8, 8, 12, .7); border: 1px solid rgba(230, 231, 239, .5);
   color: var(--silver-hi); padding: 6px 14px; font-size: 14px; animation: fade .3s; }
 .lens .ar-subtitle b { font: 10px var(--mono); letter-spacing: .15em; color: var(--silver); margin-right: 8px; }
@@ -537,6 +548,9 @@ table.res th { font: 10px var(--mono); color: var(--muted); letter-spacing: .12e
   animation: breathe 5.5s ease-in-out infinite; filter: drop-shadow(0 0 1px rgba(255, 255, 255, .25)) drop-shadow(0 12px 18px rgba(0, 0, 0, .55)); user-select: none; -webkit-user-drag: none; }
 .portrait canvas { position: absolute; inset: 0; }
 .portrait.talking > img { animation: breathe 5.5s ease-in-out infinite, talk .32s ease-in-out infinite alternate; }
+.portrait.talking.voiced > img { animation: breathe 5.5s ease-in-out infinite; translate: 0 calc(var(--mouth, 0) * -4px); }  /* 有真实音量：跟着声音动 */
+.portrait > img { transition: rotate .5s ease, translate .08s linear; }
+.portrait.listening > img { rotate: -1.6deg; }  /* 专心听：头微微侧过来 */
 .portrait .emote { position: absolute; top: 12%; right: 22%; font: 700 22px var(--mono); color: var(--silver-hi); background: rgba(19, 19, 25, .7);
   border: 1px solid var(--silver); padding: 2px 10px; opacity: 0; transform: translateY(6px) scale(.9); transition: opacity .25s, transform .25s var(--ease); }
 .portrait .emote.on { opacity: 1; transform: none; }
@@ -565,6 +579,8 @@ table.res th { font: 10px var(--mono); color: var(--muted); letter-spacing: .12e
   padding: 4px 10px; font-size: 16px; }
 .stage-voice::before { background: var(--cobalt); }
 .stage-voice.off { opacity: .6; }
+.stage-ar { position: absolute; right: 56px; top: 10px; z-index: 2; padding: 6px 9px; font: 700 11px var(--mono); letter-spacing: .12em; background: rgba(19, 19, 25, .6); color: #3df5ff; border-color: var(--line-2); }
+.stage-ar::before { background: var(--cobalt); }
 .stage-say { position: absolute; left: 50%; bottom: 64px; translate: -50% 0; z-index: 2; max-width: min(84%, 460px); background: rgba(19, 19, 25, .86);
   border: 1px solid var(--silver); color: var(--silver-hi); padding: 8px 14px; font-size: 14px; line-height: 1.6; animation: rise .35s var(--ease); }
 .stage-say.story { border-color: #c9a8ff; }
@@ -1037,3 +1053,68 @@ html.page-hidden .plate::after { animation-play-state: paused; }
   .char-item.active::before, .modal, .modal-card,
   .studio-dock, .dock-card, .studio-dock.is-closing, .studio-dock.is-closing .dock-card { animation: none !important; }
 }
+
+/* AR：全屏覆盖层。xr 模式下相机画面由浏览器在下面画，这一层只放界面；camera 模式自己铺摄像头画面 */
+.ar { position: fixed; inset: 0; z-index: 60; overflow: hidden; color: var(--silver-hi); touch-action: none; user-select: none; -webkit-user-select: none; }
+.ar-camera { background: #000; }
+.ar-cam { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ar-puppet { position: absolute; width: min(46vmin, 300px); height: min(62vmin, 400px); }
+.ar-xr .ar-puppet { left: 0; top: 0; width: 360px; height: 480px; opacity: 0; pointer-events: none; z-index: -1; }  /* 只拿来取画面，贴到空间里的卡片上 */
+.ar-camera .ar-puppet { left: 50%; top: 70%; translate: -50% -100%; transform-origin: 50% 100%; visibility: hidden; }
+.ar-camera.placed-cam .ar-puppet { visibility: visible; }
+.ar-camera .ar-puppet .portrait, .ar-camera .ar-puppet .portrait.is-chibi { inset: 0; }
+.ar-camera .ar-puppet::after { content: ""; position: absolute; left: 20%; right: 20%; bottom: -4%; height: 8%; z-index: -1;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, .5), transparent); }
+.ar-top { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; display: flex; align-items: center; gap: 8px; }
+.ar-name { font-weight: 600; text-shadow: 0 1px 4px rgba(0, 0, 0, .7); }
+.ar-mode { font: 10px var(--mono); letter-spacing: .15em; color: #3df5ff; text-shadow: 0 1px 4px rgba(0, 0, 0, .7); }
+.ar-seeing { font: 10px var(--mono); letter-spacing: .1em; color: #fff; background: rgba(61, 245, 255, .25); border: 1px solid #3df5ff; padding: 1px 6px; }
+.ar-close { margin-left: auto; padding: 6px 12px; background: rgba(19, 19, 25, .7); color: var(--silver-hi); border-color: var(--line-2); }
+.ar-hint { position: absolute; top: 40%; left: 50%; translate: -50% 0; max-width: 84%; padding: 8px 14px; text-align: center; font-size: 14px;
+  background: rgba(19, 19, 25, .72); border: 1px solid var(--line-2); pointer-events: none; }
+.ar-hint[hidden], .ar-say[hidden] { display: none; }
+.ar-say { position: absolute; left: 50%; bottom: 46%; translate: -50% 0; max-width: min(84%, 420px); padding: 8px 14px; font-size: 14px; line-height: 1.6;
+  background: rgba(19, 19, 25, .82); border: 1px solid var(--line-2); pointer-events: none; }
+.ar-size { position: absolute; right: 12px; top: 50%; translate: 0 -50%; display: flex; flex-direction: column; gap: 8px; }
+.ar-size button { width: 40px; height: 40px; padding: 0; font-size: 20px; background: rgba(19, 19, 25, .7); color: var(--silver-hi); border-color: var(--line-2); }
+.ar:not(.placed) .ar-size, .ar:not(.placed) .ar-voice { display: none; }
+.ar-voice { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; }
+.ar-voice .vm, .dev-voice .vm { background: linear-gradient(transparent, rgba(0, 0, 0, .55) 40%); padding: 12px 16px max(16px, env(safe-area-inset-bottom)); }
+.ar-voice .vm::after, .dev-voice .vm::after { display: none; }
+.ar-voice .vm-stage, .dev-voice .vm-stage { gap: 8px; justify-content: flex-end; }
+.ar-voice .vm-orb, .dev-voice .vm-orb { --size: 84px; }
+.ar-voice .vm-caption, .dev-voice .vm-caption { min-height: 0; font-size: 14px; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+.ar .toast { z-index: 80; }
+
+/* KRINO GLASSES 桌面测试版（/device）：透明窗口就是镜片，她站在你的桌面上，底下一条小工具栏 */
+html:has(body.device), body.device { background: transparent; overflow: hidden; height: 100%; }
+body.device:not(.in-app) { background: radial-gradient(ellipse at 50% 120%, #1d1d6a, #08080c 70%); }  /* 浏览器里打开时给个底色，看得清 */
+.device-lens { position: fixed; inset: 0 0 52px; overflow: hidden; pointer-events: none; }
+.device-lens .ar-avatar { width: min(62%, 300px); }
+.device-lens .ar-subtitle { position: absolute; left: 50%; bottom: 4%; translate: -50% 0; width: max-content; max-width: 92%; padding: 7px 12px; font-size: 13px; line-height: 1.6;
+  background: rgba(8, 8, 12, .78); border: 1px solid rgba(230, 231, 239, .5); color: var(--silver-hi); pointer-events: auto; }
+.device-lens .ar-subtitle b { font: 10px var(--mono); letter-spacing: .15em; color: var(--silver); margin-right: 8px; }
+.device-lens .ar-panel { position: absolute; left: 6%; right: 6%; top: 8%; background: rgba(20, 20, 168, .72); border: 1px solid var(--silver); padding: 8px 12px; font-size: 12px;
+  color: var(--silver-hi); animation: rise .3s var(--ease); pointer-events: auto; }
+.device-lens .ar-panel b { display: block; font-size: 13px; margin-bottom: 2px; }
+.dev-hud { position: absolute; left: 10px; top: 8px; font: 10px var(--mono); letter-spacing: .12em; color: rgba(230, 231, 239, .75); text-shadow: 0 1px 3px #000; }
+.dev-bar { position: fixed; left: 6px; right: 6px; bottom: 6px; height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 6px;
+  background: rgba(19, 19, 25, .88); border: 1px solid var(--line-2); }
+.dev-bar:empty { display: none; }
+.dev-grip { -webkit-app-region: drag; cursor: move; color: var(--muted); padding: 0 4px; letter-spacing: -2px; user-select: none; }
+.dev-dot { font-size: 10px; color: var(--danger); }
+.dev-dot.connected { color: #3df58a; }
+.dev-dot.connecting, .dev-dot.stale { color: #f2ff3d; }
+.dev-bar select { width: auto; max-width: 92px; padding: 4px 6px; font-size: 12px; }
+.dev-bar input { flex: 1; min-width: 40px; padding: 5px 8px; font-size: 12px; }
+.dev-btn { flex: none; width: 30px; height: 30px; padding: 0; font-size: 15px; line-height: 1; background: transparent; color: var(--text); border-color: transparent; }
+.dev-btn svg { display: block; margin: auto; }
+.dev-btn::before { background: var(--ink-3); }
+.dev-btn.on { border-color: #3df5ff; box-shadow: 0 0 8px rgba(61, 245, 255, .5); }
+.dev-voice { position: fixed; left: 0; right: 0; bottom: 52px; height: 150px; pointer-events: none; }
+.dev-voice .vm { pointer-events: auto; }
+.dev-login { position: fixed; left: 12px; right: 12px; top: 50%; translate: 0 -50%; padding: 18px; text-align: center; background: rgba(19, 19, 25, .94); border: 1px solid var(--line-2); }
+.dev-login b { font: 600 13px var(--mono); letter-spacing: .2em; }
+.dev-voice .vm { padding: 6px 10px; }
+.dev-voice .vm-orb { --size: 56px; }
+.dev-voice .vm-btn { padding: 5px 12px; font-size: 12px; }
