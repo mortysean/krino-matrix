@@ -1,5 +1,7 @@
 """外观工作台：用一句话设计角色立绘，接着用一句话改，再一键生成整套表情（换表情时换图）。
 
+openrouter：OpenRouter 的 /api/v1/images，画新角色用 IMAGE_MODEL（GPT Image），改图、表情用 IMAGE_EDIT_MODEL（Seedream）；
+            按 OpenRouter 返回的实际花费记积分。画新角色的模型用不了（比如账号开了零数据保留，OpenAI 的图像接口被排除）时改用 IMAGE_EDIT_MODEL。
 dashscope：百炼千问图像（IMAGE_MODEL，默认 qwen-image-3.0），文生图和“参考图 + 修改说明”都走同一个接口。
 self：自建生图服务（app/gpu/image_server.py，IMAGE_BASE_URL），接口和百炼一样；出错时有百炼密钥就退回百炼。
 mock：测试用，生成纯色块，不调外部服务。
@@ -137,6 +139,73 @@ def _dashscope(content: list[dict], n: int, size: str, base_url: str | None = No
         raise ImageError("图像服务返回的格式不对") from e
 
 
+ASPECTS = ((1, 1), (2, 3), (3, 2), (3, 4), (4, 3), (4, 5), (5, 4), (9, 16), (16, 9))
+
+
+def _aspect(size: str) -> str:
+    """百炼写法的尺寸（"768*1152"）换成最接近的画幅比例（"2:3"）。"""
+    w, h = (int(x) for x in size.split("*"))
+    a, b = min(ASPECTS, key=lambda r: abs(r[0] / r[1] - w / h))
+    return f"{a}:{b}"
+
+
+def _openrouter_one(c: httpx.Client, model: str, prompt: str, refs: list[str], size: str) -> tuple[bytes, float]:
+    body = {"model": model, "prompt": prompt, "n": 1, "aspect_ratio": _aspect(size),
+            **({"input_references": [{"type": "image_url", "image_url": {"url": u}} for u in refs]} if refs else {})}
+    for wait in (*RETRY_WAITS, None):
+        r = c.post("/images", json=body)
+        if r.status_code not in (429, 502, 529) or wait is None:
+            break
+        log.warning("OpenRouter 生图 %s，%s 秒后重试", r.status_code, wait)
+        time.sleep(wait + random.random())
+    if r.status_code != 200:
+        log.error("OpenRouter 生图 %s %s: %s", model, r.status_code, r.text[:300])
+        msg = str((r.json().get("error") or {}).get("message", "")) if r.headers.get("content-type", "").startswith("application/json") else ""
+        if r.status_code == 404 and "endpoints" in msg:
+            raise _Unavailable(msg)
+        if r.status_code in (429, 502, 503, 529):
+            raise ImageError("图像服务太忙了，过一会儿再点一次")
+        if r.status_code in (400, 403) and any(k in msg.lower() for k in ("moderation", "safety", "policy", "flagged")):
+            raise ImageError("描述或图片没有通过内容审核，换个说法试试")
+        raise ImageError(f"生成图片出错（{r.status_code}）")
+    d = r.json()
+    x = (d.get("data") or [{}])[0]
+    data = base64.b64decode(x["b64_json"]) if x.get("b64_json") else c.get(x["url"]).content
+    return data, float((d.get("usage") or {}).get("cost") or 0) * settings.usd_cny
+
+
+class _Unavailable(ImageError):
+    """这个模型在 OpenRouter 上没有可用的服务商（账号的隐私设置排除了它，或者下架了）。"""
+
+
+def _openrouter(content: list[dict], n: int, size: str, edit: bool) -> tuple[list[bytes], float, str]:
+    """OpenRouter /images：返回图片、花费（元）和实际用的模型。n 张分开并发请求（有的服务商一次只出一张）。"""
+    if not settings.llm_api_key:
+        raise ImageError("没有配置 OPENROUTER_API_KEY，外观工作台用不了")
+    prompt = "\n".join(x["text"] for x in content if x.get("text"))
+    refs = [x["image"] for x in content if x.get("image")]
+    model = settings.image_edit_model if edit else settings.image_model
+    try:
+        with httpx.Client(base_url=settings.llm_base_url.rstrip("/"), timeout=httpx.Timeout(300, connect=10),
+                          headers={"Authorization": f"Bearer {settings.llm_api_key}", "X-Title": "KRINO WORLD"}) as c:
+            def run(m: str) -> list[tuple[bytes, float]]:
+                with ThreadPoolExecutor(max_workers=n) as pool:
+                    return list(pool.map(lambda _: _openrouter_one(c, m, prompt, refs, size), range(n)))
+            try:
+                out = run(model)
+            except _Unavailable:
+                if model == settings.image_edit_model:
+                    raise ImageError("图像模型现在用不了，请稍后再试") from None
+                log.error("%s 在 OpenRouter 上没有可用的服务商（检查账号的隐私设置），这次改用 %s", model, settings.image_edit_model)
+                model = settings.image_edit_model
+                out = run(model)
+    except httpx.HTTPError as e:
+        raise ImageError("无法连接图像服务") from e
+    except (KeyError, ValueError, TypeError) as e:
+        raise ImageError("图像服务返回的格式不对") from e
+    return [b for b, _ in out], sum(x for _, x in out), model
+
+
 def _mock(n: int, size: str) -> list[bytes]:
     from PIL import Image
 
@@ -151,24 +220,28 @@ def _mock(n: int, size: str) -> list[bytes]:
     return out
 
 
-def _generate(content: list[dict], n: int, size: str) -> tuple[list[bytes], str]:
-    """返回图片和实际用的服务（mock / self / dashscope），收费只算百炼。"""
+def _generate(content: list[dict], n: int, size: str, edit: bool = False) -> tuple[list[bytes], str, float | None]:
+    """返回图片、实际用的服务或模型（mock / self / dashscope / OpenRouter 上的模型名）和花费（元；None = 按张数的固定价算）。
+    edit：在参考图上改（改图、表情、Q 版底图），openrouter 用 IMAGE_EDIT_MODEL。"""
     p = settings.image_provider
     if p == "mock":
-        return _mock(n, size), "mock"
+        return _mock(n, size), "mock", 0
+    if p == "openrouter":
+        raw, cny, model = _openrouter(content, n, size, edit)
+        return raw, model, cny
     if p == "self":
         if not settings.image_base_url:
             raise ImageError("没有配置 IMAGE_BASE_URL（自建生图服务地址）")
         try:
-            return _dashscope(content, n, size, settings.image_base_url, settings.image_api_key), "self"
+            return _dashscope(content, n, size, settings.image_base_url, settings.image_api_key), "self", 0
         except ImageError as e:
             if not settings.dashscope_api_key:
                 raise
             log.warning("自建生图不可用，改用百炼：%s", e)
-        return _dashscope(content, n, size), "dashscope"
+        return _dashscope(content, n, size), "dashscope", None
     if p != "dashscope":
         raise ImageError("服务端没有配置图像生成（IMAGE_PROVIDER）")
-    return _dashscope(content, n, size), "dashscope"
+    return _dashscope(content, n, size), "dashscope", None
 
 
 # ---------- 处理和保存 ----------
@@ -318,19 +391,21 @@ def _check_quota(db: Session, user: User, n: int) -> None:
 def _record(user: User, name: str, n: int, ms: float, provider: str) -> None:
     for _ in range(n):
         events.record("image", name, user_id=user.id, latency_ms=ms,
-                      payload={"provider": provider, "model": settings.image_model if provider == "dashscope" else provider})
+                      payload={"provider": settings.image_provider, "model": settings.image_model if provider == "dashscope" else provider})
 
 
 def _run(user: User, name: str, content: list[dict], n: int, size: str) -> list[str]:
     t0 = time.perf_counter()
     try:
-        raw, used = _generate(content, n, size)
+        raw, used, cny = _generate(content, n, size, edit=name != "design")
         urls = [_save(user.id, _process(b)) for b in raw]
     except ImageError as e:
         raise HTTPException(503, str(e)) from e
     _record(user, name, len(urls), (time.perf_counter() - t0) * 1000, used)
-    if used == "dashscope":
+    if cny is None:  # 百炼：按张数的固定价
         credits.charge_images(user.id, len(urls))
+    elif cny:  # OpenRouter：按它返回的实际花费
+        credits.charge(user.id, "image", cny, n=len(urls), model=used)
     return urls
 
 
@@ -339,7 +414,8 @@ def _run(user: User, name: str, content: list[dict], n: int, size: str) -> list[
 @router.get("")
 def info(user: User = Depends(current_user), db: Session = Depends(get_db)):
     p = settings.image_provider
-    ready = p == "mock" or (p == "dashscope" and bool(settings.dashscope_api_key)) or (p == "self" and bool(settings.image_base_url))
+    ready = (p == "mock" or (p == "dashscope" and bool(settings.dashscope_api_key)) or (p == "self" and bool(settings.image_base_url))
+             or (p == "openrouter" and bool(settings.llm_api_key)))
     from .motion import cost_cny
     return {"ready": ready, "provider": settings.image_provider, "model": settings.image_model,
             "limit": daily_limit(user), "used": _used_today(db, user.id), "expressions": list(EXPRESSIONS),

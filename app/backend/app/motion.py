@@ -103,6 +103,13 @@ def base_pose(portrait) -> "Image.Image":  # noqa: F821
     rgba = portrait.convert("RGBA")
     ref.paste(rgba, mask=rgba.split()[3])
     ref.thumbnail((1024, 1024))
+    if settings.image_provider == "openrouter":  # 和外观工作台的改图同一个模型（Seedream）
+        from .workbench import ImageError, _openrouter
+        try:
+            raw, _, _ = _openrouter([{"image": _data_uri(ref, "JPEG")}, {"text": BASE_PROMPT}], 1, "1024*1024", edit=True)
+        except ImageError as e:
+            raise MotionError(f"Q 版基础姿势没画出来（{e}）") from e
+        return Image.open(io.BytesIO(raw[0])).convert("RGB")
     body = {"model": settings.image_model,
             "input": {"messages": [{"role": "user", "content": [{"image": _data_uri(ref, "JPEG")}, {"text": BASE_PROMPT}]}]},
             "parameters": {"n": 1, "size": "1024*1024", "watermark": False}}
