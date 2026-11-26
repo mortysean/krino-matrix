@@ -4,7 +4,7 @@
 
 The HTTP API behind the KRINO WORLD app. The web app uses the same endpoints, so anything it does you can do too. Every endpoint, with its request and response schema, is in [`openapi.json`](openapi.json) (OpenAPI 3.1). This page covers what the schema can't: where to connect, how to sign in, how streaming works, and what errors mean.
 
-The quickest way in is the Python client in [`sdk/python`](../../sdk/python).
+The quickest way in is the Python client in [`sdk/python`](../../sdk/python) (`pip install krino-world`). The same docs, with an example for every endpoint, are online at [krinomatrix.com/global/developers](https://krinomatrix.com/global/developers/).
 
 ## Base URLs
 
@@ -19,15 +19,21 @@ A server you run yourself serves the API at `http://<host>:8630/api/`.
 
 ## Authentication
 
-Register or log in, then send the token as a Bearer header on every other request.
+Sign in to the app and create an **API key** under Settings → API keys. It starts with `km_`, is shown only once and stays valid until you delete it. Send it as a Bearer header on every request:
 
 ```bash
 API=https://krinomatrix.com/global/products/world/api
+curl -s $API/characters -H "Authorization: Bearer $KRINO_API_KEY"
+```
+
+An API key can do everything the app does except manage keys and delete the account; those need a signed-in browser. Keep it like a password, and delete it in Settings if it leaks.
+
+You can also log in with a password and use the token it returns (it expires after a week):
+
+```bash
 curl -s $API/auth/login -H 'Content-Type: application/json' \
   -d '{"username": "me", "password": "secret"}'
 # → {"token": "…", "user": {"id": "…", "username": "me", "display_name": "…", "settings": {…}}}
-
-curl -s $API/characters -H "Authorization: Bearer $TOKEN"
 ```
 
 | Endpoint | |
@@ -38,7 +44,7 @@ curl -s $API/characters -H "Authorization: Bearer $TOKEN"
 | `GET /me` · `PATCH /me` | Your account and settings |
 | `DELETE /me` | Deletes the account and everything in it. Body: `{"password": "…"}` |
 
-Tokens expire after a while. When one does, requests return `401` and you need to log in again.
+A deleted key or an expired login token gets `401`.
 
 ## Talking to a character
 

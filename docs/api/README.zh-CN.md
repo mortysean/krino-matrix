@@ -4,7 +4,7 @@
 
 KRINO WORLD 应用背后的 HTTP 接口。网页版用的就是这些接口，它能做的你都能做。所有接口和请求、返回的格式都在 [`openapi.json`](openapi.json)（OpenAPI 3.1）里。这一页讲规范文件里看不出来的部分：连到哪里、怎么登录、流式回复怎么收、报错是什么意思。
 
-最快的用法是 [`sdk/python`](../../sdk/python) 里的 Python 客户端。
+最快的用法是 [`sdk/python`](../../sdk/python) 里的 Python 客户端（`pip install krino-world`）。同样的文档、每个接口都带示例的在线版：[krinomatrix.com/cn/developers](https://krinomatrix.com/cn/developers/)。
 
 ## 地址
 
@@ -17,17 +17,23 @@ KRINO WORLD 应用背后的 HTTP 接口。网页版用的就是这些接口，�
 
 自己部署的服务器，接口在 `http://<主机>:8630/api/`。
 
-## 登录
+## 鉴权
 
-先注册或登录，拿到 token，之后每个请求都带上 Bearer 头。
+登录应用，在 设置 → API 密钥 里创建一把 **API 密钥**。它以 `km_` 开头，只显示一次，删掉之前一直有效。每个请求都放在 Bearer 头里：
 
 ```bash
 API=https://krinomatrix.com/cn/products/world/api
+curl -s $API/characters -H "Authorization: Bearer $KRINO_API_KEY"
+```
+
+API 密钥能做应用里能做的一切，只有管理密钥和注销账号不行，这两件要在网页上登录后操作。像密码一样保管，泄露了就在设置里删掉。
+
+也可以用密码登录，拿返回的 token 用（一周后过期）：
+
+```bash
 curl -s $API/auth/login -H 'Content-Type: application/json' \
   -d '{"username": "me", "password": "secret"}'
 # → {"token": "…", "user": {"id": "…", "username": "me", "display_name": "…", "settings": {…}}}
-
-curl -s $API/characters -H "Authorization: Bearer $TOKEN"
 ```
 
 | 接口 | |
@@ -38,7 +44,7 @@ curl -s $API/characters -H "Authorization: Bearer $TOKEN"
 | `GET /me` · `PATCH /me` | 账号信息和设置 |
 | `DELETE /me` | 删除账号和里面的一切，请求体 `{"password": "…"}` |
 
-token 一段时间后会过期。过期后请求返回 `401`，重新登录即可。
+删掉的密钥、过期的登录 token 会得到 `401`。
 
 ## 和角色聊天
 

@@ -16,7 +16,7 @@
 KRINO WORLD 是一个 AI 角色平台，角色会记得你。在浏览器里就能和她们用文字、语音聊天：[krinomatrix.com/cn/products/world/](https://krinomatrix.com/cn/products/world/)（中国大陆）、[krinomatrix.com/global/products/world/](https://krinomatrix.com/global/products/world/)（国际）。SDK 用的接口和网页版完全一样。
 
 ```bash
-pip install "git+https://github.com/mortysean/krino-matrix#subdirectory=sdk/python"
+pip install krino-world
 ```
 
 ```python

@@ -1,11 +1,21 @@
 # krino-world（Python）
 
-[English](README.md) | **简体中文**
+[English](https://github.com/mortysean/krino-matrix/blob/main/sdk/python/README.md) | **简体中文**
 
-[KRINO WORLD 接口](../../docs/api/README.zh-CN.md)的 Python 客户端。需要 Python 3.10+，唯一的依赖是 `httpx`。
+[KRINO WORLD 接口](https://github.com/mortysean/krino-matrix/blob/main/docs/api/README.zh-CN.md)的 Python 客户端。需要 Python 3.10+，唯一的依赖是 `httpx`。
 
 ```bash
-pip install "git+https://github.com/mortysean/krino-matrix#subdirectory=sdk/python"
+pip install krino-world
+```
+
+完整文档和快速开始：[krinomatrix.com/cn/developers](https://krinomatrix.com/cn/developers/)（[国际站](https://krinomatrix.com/global/developers/)）。
+
+## API 密钥
+
+登录 KRINO WORLD，在 **设置 → API 密钥** 里创建一把。它以 `km_` 开头，只显示一次，删掉之前一直有效。像密码一样保管，最方便的是放进环境变量：
+
+```bash
+export KRINO_API_KEY=km_...
 ```
 
 ## 用法
@@ -13,8 +23,7 @@ pip install "git+https://github.com/mortysean/krino-matrix#subdirectory=sdk/pyth
 ```python
 from krino_world import Client, KrinoError
 
-with Client(region="cn") as kw:               # 国际站用 "global"
-    kw.login("me", "secret")                  # 或 kw.register(...)；token 会存在客户端里
+with Client(region="cn") as kw:               # 读取 KRINO_API_KEY；国际站用 "global"
     character = kw.characters()[0]
     session = kw.start_session(character["id"])
     print(session["greeting"])
@@ -49,6 +58,7 @@ with Client(region="cn") as kw:               # 国际站用 "global"
 | 其他接口 | `request(method, path, **httpx 参数)` 可以调用 `/api/` 下的任何接口 |
 
 - 连自己的服务器：`Client(base_url="http://127.0.0.1:8630")`。
-- 复用已有的 token：`Client(region="cn", token="…")`。
+- 直接传密钥：`Client(region="cn", api_key="km_…")`。
+- 没有密钥时也可以用密码登录：`kw.login("me", "secret")`，这样拿到的 token 一周后过期。
 - 请求被拒绝时抛出 `KrinoError`：`.status` 是 HTTP 状态码，`.message` 是服务器给的说明。
-- 两个地区的账号互不相通，见[地址](../../docs/api/README.zh-CN.md#地址)。
+- 两个地区的账号互不相通，见[地址](https://github.com/mortysean/krino-matrix/blob/main/docs/api/README.zh-CN.md#地址)。

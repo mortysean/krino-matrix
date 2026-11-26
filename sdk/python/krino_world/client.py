@@ -1,9 +1,8 @@
-"""KRINO WORLD client: sign in, pick a character, chat (whole replies or streamed), manage memories, synthesize speech.
+"""KRINO WORLD client: pick a character, chat (whole replies or streamed), manage memories, synthesize speech.
 
     from krino_world import Client
 
-    with Client(region="global") as kw:
-        kw.login("me", "secret")
+    with Client(region="global", api_key="km_...") as kw:   # or set KRINO_API_KEY
         fish = kw.characters()[0]
         session = kw.start_session(fish["id"])
         for event in kw.stream(session["id"], "hello"):
@@ -15,6 +14,7 @@ Every method returns the server's JSON as plain dicts and lists; the shapes are 
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from typing import Any, Iterator
 
@@ -43,20 +43,23 @@ class Event:
 class Client:
     """base_url is where the app lives (its API is under /api/); region picks one of the two official sites.
 
-    The two regions are separate deployments with separate accounts: an account made on cn does not exist on global.
+    api_key is a key from Settings → API keys in the app (starts with km_); without one, the client reads
+    the KRINO_API_KEY environment variable. You can also call login() instead, which gives a token that expires.
+    The two regions are separate deployments with separate accounts: a key made on cn does not work on global.
     """
 
     def __init__(
         self,
         region: str = "global",
         base_url: str | None = None,
+        api_key: str | None = None,
         token: str | None = None,
         timeout: float = 120
     ):
         if base_url is None and region not in REGIONS:
             raise ValueError(f"region must be one of {sorted(REGIONS)}, or pass base_url")
         self.base_url = (base_url or REGIONS[region]).rstrip("/")
-        self.token = token
+        self.token = api_key or token or os.environ.get("KRINO_API_KEY") or None
         self._http = httpx.Client(base_url=f"{self.base_url}/api", timeout=timeout)
 
     def __enter__(self) -> Client:
@@ -102,6 +105,7 @@ class Client:
         return out["user"]
 
     def login(self, username: str, password: str) -> dict:
+        """Sign in with a password instead of an API key; the token is kept on the client and expires after a week."""
         out = self._post("/auth/login", {"username": username, "password": password})
         self.token = out["token"]
         return out["user"]

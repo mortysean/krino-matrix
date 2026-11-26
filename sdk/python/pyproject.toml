@@ -4,16 +4,37 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "krino-world"
-version = "0.1.0"
-description = "Python client for the KRINO WORLD API"
+version = "0.2.0"
+description = "Python client for the KRINO WORLD API: AI characters that remember you"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
+authors = [{ name = "Krino Matrix", email = "support@krinomatrix.com" }]
+keywords = ["krino", "ai", "character", "companion", "chat", "memory", "sdk"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Typing :: Typed",
+]
 dependencies = ["httpx>=0.25"]
 
 [project.urls]
-Homepage = "https://krinomatrix.com"
-Source = "https://github.com/mortysean/krino-matrix"
+Homepage = "https://krinomatrix.com/global/developers/"
+Documentation = "https://krinomatrix.com/global/developers/sdk/"
+Source = "https://github.com/mortysean/krino-matrix/tree/main/sdk/python"
+Issues = "https://github.com/mortysean/krino-matrix/issues"
 
 [tool.setuptools]
 packages = ["krino_world"]
+
+[tool.setuptools.package-data]
+krino_world = ["py.typed"]
